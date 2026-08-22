@@ -169,7 +169,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { toWaybillExpenseOcrAnalyzeResponse } from '@/utils/intelligent-recognition'
+  import { toWaybillExpenseOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
   import WaybillExpenseDialog from './modules/waybill-expense-dialog.vue'
   import ReimbursementDialog from './modules/reimbursement-dialog.vue'
   import PaymentDialog from './modules/payment-dialog.vue'

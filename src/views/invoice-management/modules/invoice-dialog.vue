@@ -214,7 +214,7 @@
     getFieldAccess
   } from '@/utils/field-permission'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
-  import { toInvoiceOcrAnalyzeResponse } from '@/utils/intelligent-recognition'
+  import { toInvoiceOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import {
     buildInvoicePayload,

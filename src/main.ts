@@ -1,6 +1,7 @@
 import type { Component } from 'vue'
 import { bootstrapPlatformApp } from '@/bootstrap'
 import { registerApplicationViewModules } from '@/router/core/ComponentLoader'
+import { registerFmsRecognitionIntegration } from './integrations'
 
 type RouteComponentModule = { default: Component }
 
@@ -12,4 +13,5 @@ const fmsModules = import.meta.glob<RouteComponentModule>([
 ])
 
 registerApplicationViewModules('fms', fmsSourceRoot, fmsModules)
+registerFmsRecognitionIntegration()
 bootstrapPlatformApp()

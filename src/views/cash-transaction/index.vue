@@ -81,7 +81,7 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
-  import { toCashVoucherOcrAnalyzeResponse } from '@/utils/intelligent-recognition'
+  import { toCashVoucherOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
   import CashTransactionDetailDrawer from './modules/cash-transaction-detail-drawer.vue'
   import CustomerReceiptDialog from './modules/customer-receipt-dialog.vue'
   import CarrierPaymentDialog from './modules/carrier-payment-dialog.vue'
