@@ -41,6 +41,14 @@ function resolvePlatformRoot(): string {
 
 const platformRoot = resolvePlatformRoot()
 const platformSourceRoot = path.join(platformRoot, 'src')
+const sourceTransformPattern = createSourceTransformPattern(applicationRoot, platformSourceRoot)
+
+function createSourceTransformPattern(...roots: string[]): RegExp {
+  const rootPattern = roots
+    .map((root) => root.replace(/\\/g, '/').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')
+  return new RegExp(`^(?:${rootPattern})/.*\\.(?:ts|tsx|vue)(?:\\?.*)?$`)
+}
 
 interface FmsRuntimeEnv extends Record<string, string | undefined> {
   VITE_APP_CODE: string
@@ -112,17 +120,20 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       AutoImport({
         imports: ['vue', 'vue-router', 'pinia', '@vueuse/core'],
+        include: [sourceTransformPattern],
+        exclude: [/[\\/]\.git[\\/]/],
         dts: false,
         resolvers: [ElementPlusResolver({ importStyle: 'sass' })]
       }),
       Components({
+        include: [sourceTransformPattern],
+        exclude: [/[\\/]\.git[\\/]/, /[\\/]art-data-select[\\/]preview\.vue$/],
         dirs: [
           path.join(platformSourceRoot, 'components'),
           path.join(applicationRoot, 'src/views/modules')
         ],
         deep: true,
         dts: false,
-        exclude: [/[\\/]art-data-select[\\/]preview\.vue$/],
         resolvers: [ElementPlusResolver({ importStyle: 'sass' })]
       }),
       ElementPlus({ useSource: true }),
