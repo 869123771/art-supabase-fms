@@ -116,7 +116,10 @@ export default defineConfig(({ mode }) => {
         resolvers: [ElementPlusResolver({ importStyle: 'sass' })]
       }),
       Components({
-        dirs: [path.join(platformSourceRoot, 'components')],
+        dirs: [
+          path.join(platformSourceRoot, 'components'),
+          path.join(applicationRoot, 'src/views/modules')
+        ],
         deep: true,
         dts: false,
         exclude: [/[\\/]art-data-select[\\/]preview\.vue$/],

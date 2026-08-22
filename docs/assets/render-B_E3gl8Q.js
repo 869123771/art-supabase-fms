@@ -1,0 +1,1 @@
+import{Nt as e}from"./style-CCbnMNkJ.js";import{t}from"./attachment-link-8IAwe8t1.js";var n=n=>e(t,{file:n});export{n as t};
