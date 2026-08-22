@@ -3,7 +3,7 @@ import path from 'node:path'
 
 const repositoryRoot = process.cwd()
 const sourceRoot = path.join(repositoryRoot, 'src')
-const allowedSourceRoots = new Set(['api', 'views'])
+const allowedSourceRoots = new Set(['api', 'types', 'views'])
 const allowedRootFiles = new Set(['index.ts', 'main.ts'])
 const sourceExtensions = new Set(['.ts', '.tsx', '.vue'])
 const allowedFunctionSharedFiles = new Set([
