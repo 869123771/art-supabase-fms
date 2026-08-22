@@ -1,1 +1,0 @@
-import{t as e}from"./_plugin-vue_export-helper-BDNMzG2s.js";import{t}from"./hr-workspace-page.vue_vue_type_style_index_0_scoped_61c7939f_lang-D3RkvZOS.js";var n=e(t,[[`__scopeId`,`data-v-61c7939f`]]);export{n as t};
