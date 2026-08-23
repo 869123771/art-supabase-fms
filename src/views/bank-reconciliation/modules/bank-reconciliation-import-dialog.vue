@@ -225,8 +225,9 @@
     {
       label: '导入说明',
       key: 'remark',
-      type: 'input',
-      props: { maxlength: 300, placeholder: '选填' }
+      type: 'textarea',
+      span: 24,
+      props: { placeholder: '选填' }
     }
   ])
 

@@ -5,7 +5,13 @@ declare global {
     namespace Fms {
       type ExpenseOcrStatus = 'not_started' | 'processing' | 'succeeded' | 'failed'
       type ReimbursementApprovalStatus =
-        'draft' | 'pending_review' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+        | 'draft'
+        | 'pending_review'
+        | 'approved'
+        | 'rejected'
+        | 'partially_paid'
+        | 'paid'
+        | 'cancelled'
 
       type AccountSetStatus = 'draft' | 'active' | 'suspended' | 'archived'
       type AccountingStandard =
@@ -1238,6 +1244,8 @@ declare global {
         plannedPaymentDate: string
         paymentMethod?: CashPaymentMethod | '***'
         totalAmount?: Api.Tms.BasicData.SensitiveNumber
+        paidAmount?: Api.Tms.BasicData.SensitiveNumber
+        remainingAmount?: Api.Tms.BasicData.SensitiveNumber
         basisUrls?: string[]
         status: ReimbursementApprovalStatus
         submittedAt?: string | null
@@ -1255,6 +1263,7 @@ declare global {
         waybillNos?: string | null
         paymentId?: string | null
         paymentNo?: string | null
+        paymentCount: number
         createBy?: string | null
         createTime: string
         updateBy?: string | null
@@ -1287,6 +1296,7 @@ declare global {
         paymentNo?: string | null
         reimbursementId: string
         fundAccountId: string
+        amount: number
         paymentDate: string
         bankReference?: string | null
         voucherUrls?: string[]

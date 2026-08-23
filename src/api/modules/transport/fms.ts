@@ -407,13 +407,14 @@ export async function executeExpenseReimbursement(
       supabase.rpc('execute_fms_expense_reimbursement_secure', {
         p_reimbursement_id: params.reimbursementId,
         p_fund_account_id: params.fundAccountId,
+        p_amount: params.amount,
         p_payment_date: params.paymentDate,
         p_bank_reference: params.bankReference || null,
         p_voucher_urls: params.voucherUrls ?? [],
         p_remark: params.remark || null,
         p_payment_no: params.paymentNo || null
       }),
-    { showMessage: true, breakReturn: true, message: '付款已登记，关联费用已逐笔核销' }
+    { showMessage: true, breakReturn: true, message: '付款已登记，报销单付款进度已更新' }
   )
 }
 

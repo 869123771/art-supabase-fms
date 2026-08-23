@@ -3,16 +3,27 @@
     <ElAlert class="payment-dialog__summary" type="success" :closable="false" show-icon>
       <template #title>
         <strong>{{ state.reimbursement?.reimbursementNo }}</strong>
-        · {{ state.reimbursement?.payeeName }} · {{ money(state.reimbursement?.totalAmount) }}
+        · {{ state.reimbursement?.payeeName }}
       </template>
+      <div class="payment-dialog__amounts">
+        <span
+          >申请报销 <strong>{{ money(state.reimbursement?.totalAmount) }}</strong></span
+        >
+        <span
+          >累计已付 <strong>{{ money(state.reimbursement?.paidAmount ?? 0) }}</strong></span
+        >
+        <span
+          >剩余待付 <strong>{{ money(remainingAmount) }}</strong></span
+        >
+      </div>
     </ElAlert>
     <ArtForm
       ref="formRef"
       v-model="form.data"
       :items="form.items"
       :rules="form.rules"
-      :span="24"
-      label-width="104px"
+      :span="12"
+      :gutter="20"
       :show-reset="false"
       :show-submit="false"
     >
@@ -49,6 +60,7 @@
   interface PaymentForm {
     paymentNo: string
     fundAccountId: string
+    amount?: number
     paymentDate: string
     bankReference: string
     voucherUrls: string[]
@@ -75,6 +87,7 @@
   const createInitialForm = (): PaymentForm => ({
     paymentNo: '',
     fundAccountId: '',
+    amount: undefined,
     paymentDate: dayjs().format('YYYY-MM-DD'),
     bankReference: '',
     voucherUrls: [],
@@ -94,6 +107,24 @@
       ],
       paymentDate: [{ required: true, message: '请选择实际付款日期', trigger: 'change' }],
       fundAccountId: [{ required: true, message: '请选择实际付款账户', trigger: 'change' }],
+      amount: [
+        {
+          required: true,
+          validator: (_rule, value, callback) => {
+            const amount = Number(value)
+            if (!Number.isFinite(amount) || amount <= 0) {
+              callback(new Error('请输入大于 0 的实付金额'))
+              return
+            }
+            if (amount > remainingAmount.value) {
+              callback(new Error(`实付金额不能大于剩余待付金额 ${money(remainingAmount.value)}`))
+              return
+            }
+            callback()
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
       bankReference: [
         {
           validator: (_rule, value, callback) =>
@@ -119,6 +150,21 @@
         props: { valueFormat: 'YYYY-MM-DD', class: '!w-full' }
       },
       {
+        label: '实付金额(元)',
+        key: 'amount',
+        type: 'number',
+        props: {
+          min: 0.01,
+          max: remainingAmount.value,
+          precision: 2,
+          step: 100,
+          controlsPosition: 'right',
+          class: '!w-full',
+          placeholder: '请输入本次实际付款金额'
+        },
+        description: `本次最多可支付 ${money(remainingAmount.value)}`
+      },
+      {
         label: '付款账户',
         key: 'fundAccountId',
         type: 'select',
@@ -133,6 +179,7 @@
         label: '银行流水号',
         key: 'bankReference',
         type: 'input',
+        span: 24,
         props: {
           maxlength: 160,
           placeholder: state.reimbursement?.paymentMethod === 'bank_transfer' ? '必填' : '可选'
@@ -142,11 +189,26 @@
         label: '付款备注',
         key: 'remark',
         type: 'textarea',
+        span: 24,
         props: { rows: 3, maxlength: 500, showWordLimit: true }
       },
-      { label: '付款凭证', key: 'voucherUrls', type: 'input' }
+      { label: '付款凭证', key: 'voucherUrls', type: 'input', span: 24 }
     ])
   })
+
+  const remainingAmount = computed(() => {
+    const explicitRemaining = toReadableAmount(state.reimbursement?.remainingAmount)
+    if (explicitRemaining !== undefined) return explicitRemaining
+    const total = toReadableAmount(state.reimbursement?.totalAmount) ?? 0
+    const paid = toReadableAmount(state.reimbursement?.paidAmount) ?? 0
+    return Math.max(total - paid, 0)
+  })
+
+  function toReadableAmount(value?: Api.Tms.BasicData.SensitiveNumber): number | undefined {
+    if (value === null || value === undefined || isMaskedValue(value)) return undefined
+    const amount = Number(value)
+    return Number.isFinite(amount) ? amount : undefined
+  }
 
   function money(value?: Api.Tms.BasicData.SensitiveNumber): string {
     if (isMaskedValue(value)) return '***'
@@ -167,6 +229,7 @@
         paymentNo: form.data.paymentNo.trim() || null,
         reimbursementId: state.reimbursement.id,
         fundAccountId: form.data.fundAccountId,
+        amount: Number(form.data.amount),
         paymentDate: form.data.paymentDate,
         bankReference: form.data.bankReference.trim() || null,
         voucherUrls: [...form.data.voucherUrls],
@@ -203,10 +266,11 @@
     ])
     fundAccountOptions.value = fundAccounts.data ?? []
     state.reimbursement = structuredClone(toRaw(row))
+    form.data.amount = remainingAmount.value
     await dialogRef.value?.handleOpen(row, {
       title: '出纳登记付款',
-      subtitle: '确认付款后不可撤回，系统将自动核销报销单内的每一笔在途费用',
-      confirmText: '确认付款并核销',
+      subtitle: '可按实际付款金额分次登记；全部付清后系统才会核销报销单内的关联费用',
+      confirmText: '确认登记付款',
       contentMaxHeight: '70vh',
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
@@ -221,6 +285,21 @@
   .payment-dialog {
     &__summary {
       margin-bottom: var(--art-space-4);
+    }
+
+    &__amounts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2) var(--art-space-5);
+      margin-top: var(--art-space-2);
+      font-size: var(--art-font-size-sm);
+      color: var(--el-text-color-regular);
+
+      strong {
+        margin-left: 4px;
+        font-variant-numeric: tabular-nums;
+        color: var(--el-text-color-primary);
+      }
     }
   }
 </style>

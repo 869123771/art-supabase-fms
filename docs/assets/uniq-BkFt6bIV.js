@@ -1,0 +1,1 @@
+import{u as e}from"./art-form-CH7h9TkQ.js";function t(t){return t&&t.length?e(t):[]}export{t};

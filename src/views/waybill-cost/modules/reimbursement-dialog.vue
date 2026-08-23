@@ -38,8 +38,6 @@
       :rules="form.rules"
       :span="isCompact ? 24 : 12"
       :gutter="20"
-      :label-position="isCompact ? 'top' : 'right'"
-      :label-width="isCompact ? 'auto' : '104px'"
       :show-reset="false"
       :show-submit="false"
     >

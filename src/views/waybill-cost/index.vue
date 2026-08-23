@@ -304,7 +304,7 @@
   ]
   const workflowStage = computed(() => {
     if (activeTab.value === 'reimbursement') {
-      return reimbursementTable.search.status === 'approved' ? 4 : 3
+      return ['approved', 'partially_paid'].includes(reimbursementTable.search.status || '') ? 4 : 3
     }
     if (
       expenseTable.search.auditStatus === 'approved' &&
@@ -933,7 +933,7 @@
         color: 'var(--el-color-danger)'
       })
     }
-    if (row.status === 'approved' && canPayReimbursement(row)) {
+    if (['approved', 'partially_paid'].includes(row.status) && canPayReimbursement(row)) {
       actions.push({
         auth: 'FinanceWaybillCost:Pay',
         key: 'pay',

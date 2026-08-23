@@ -366,8 +366,8 @@
     {
       label: '付款备注',
       key: 'remark',
-      type: 'input',
-      span: 12,
+      type: 'textarea',
+      span: 24,
       props: { disabled: dialog.mode === 'allocate', maxlength: 500, placeholder: '选填' }
     },
     { label: '核销信息', key: 'allocation', type: 'divider', span: 24 },
