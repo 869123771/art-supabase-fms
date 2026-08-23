@@ -3465,6 +3465,97 @@ declare global {
         amount: number
         remark?: string | null
       }
+
+      interface CashForecastHorizon {
+        days: 7 | 15 | 30
+        expectedInflow?: number
+        expectedOutflow?: number
+        projectedBalance?: number
+      }
+
+      interface CashForecastOverview {
+        generatedAt: string
+        availableBalance?: number
+        receivableOutstanding?: number
+        payableOutstanding?: number
+        historicalNetFlow30d?: number
+        projectedBalance30d?: number
+        pressureLevel: 'healthy' | 'attention' | 'critical' | 'unavailable'
+        readable: boolean
+        horizons: CashForecastHorizon[]
+      }
+
+      type ReceivableAgingBucketKey =
+        'current' | 'days1To30' | 'days31To60' | 'days61To90' | 'daysOver90'
+
+      interface ReceivableAgingRecord {
+        id: string
+        statementNo: string
+        customerId: string
+        customerName: string
+        periodEnd: string
+        agingDays: number
+        bucket: ReceivableAgingBucketKey
+        amount?: number
+      }
+
+      interface ReceivableAgingBucket {
+        key: ReceivableAgingBucketKey
+        statementCount: number
+        amount?: number
+      }
+
+      interface ReceivableAgingCustomer {
+        customerId: string
+        customerName: string
+        statementCount: number
+        oldestAgingDays: number
+        amount?: number
+      }
+
+      interface ReceivableAgingOverview {
+        generatedAt: string
+        totalRecords: number
+        returnedRecords: number
+        truncated: boolean
+        readable: boolean
+        statementCount: number
+        overdueStatementCount: number
+        over90StatementCount: number
+        totalOutstanding?: number
+        buckets: ReceivableAgingBucket[]
+        customers: ReceivableAgingCustomer[]
+        records: ReceivableAgingRecord[]
+      }
+
+      type FinancialExceptionCategory = 'posting' | 'bank' | 'cost' | 'receivable' | 'close'
+      type FinancialExceptionSeverity = 'critical' | 'warning' | 'attention'
+
+      interface FinancialExceptionIssue {
+        id: string
+        category: FinancialExceptionCategory
+        severity: FinancialExceptionSeverity
+        title: string
+        description: string
+        sourceNo?: string | null
+        occurredAt?: string | null
+        routePath: string
+        routeLabel: string
+      }
+
+      interface FinancialExceptionOverview {
+        generatedAt: string
+        totalIssues: number
+        returnedIssues: number
+        truncated: boolean
+        postingFailedCount: number
+        postingPendingCount: number
+        bankUnmatchedCount: number
+        costPendingReviewCount: number
+        overdueReceivableCount: number
+        closeBlockingCount: number
+        issues: FinancialExceptionIssue[]
+      }
     }
   }
 }

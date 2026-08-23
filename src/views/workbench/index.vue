@@ -13,6 +13,7 @@
       :tags="workspaceTags"
       :metrics="overview.metrics"
       class="finance-workbench__header"
+      @metric-click="handleMetricClick"
     >
       <template #actions>
         <ElButton type="primary" @click="openCollectionAdvisor">
@@ -156,6 +157,12 @@
   }
 
   const router = useRouter()
+  const metricRouteNames: Record<string, string> = {
+    'customer-receivable': financeRouteNames.customerSettlement,
+    'carrier-payable': financeRouteNames.carrierSettlement,
+    'month-receipt': financeRouteNames.cashTransaction,
+    'month-gross-profit': financeRouteNames.waybillProfit
+  }
   const loadError = ref<Error | null>(null)
   const collectionAdvisorRef = ref<CollectionAdvisorExpose>()
 
@@ -378,6 +385,7 @@
       {
         access: 'customerSettlementAmounts',
         metric: {
+          key: 'customer-receivable',
           label: '客户应收余额',
           value: formatMoney(stats.customerReceivableBalance),
           description:
@@ -385,12 +393,14 @@
               ? '本月回款金额受限'
               : `本月已回款 ${formatMoney(stats.monthReceiptAmount)}`,
           icon: 'ri:funds-line',
-          tone: 'primary'
+          tone: 'primary',
+          interactive: true
         }
       },
       {
         access: 'carrierSettlementAmounts',
         metric: {
+          key: 'carrier-payable',
           label: '承运商应付余额',
           value: formatMoney(stats.carrierPayableBalance),
           description:
@@ -398,12 +408,14 @@
               ? '本月付款金额受限'
               : `本月已付款 ${formatMoney(stats.monthPaymentAmount)}`,
           icon: 'ri:bank-card-line',
-          tone: 'warning'
+          tone: 'warning',
+          interactive: true
         }
       },
       {
         access: 'cashFlowAmounts',
         metric: {
+          key: 'month-receipt',
           label: '本月回款',
           value: formatMoney(stats.monthReceiptAmount),
           description:
@@ -411,17 +423,20 @@
               ? '回款完成率受限'
               : `回款完成率 ${formatPercent(stats.receiptCompletionRate)}`,
           icon: 'ri:money-cny-circle-line',
-          tone: 'success'
+          tone: 'success',
+          interactive: true
         }
       },
       {
         access: 'operatingAmounts',
         metric: {
+          key: 'month-gross-profit',
           label: '本月运输毛利',
           value: formatMoney(stats.monthGrossProfit),
           description: `综合毛利率 ${formatPercent(grossMargin.value)}`,
           icon: 'ri:line-chart-line',
-          tone: profit === undefined || profit >= 0 ? 'primary' : 'danger'
+          tone: profit === undefined || profit >= 0 ? 'primary' : 'danger',
+          interactive: true
         }
       }
     ]
@@ -730,6 +745,11 @@
     const routeName = task.routeName
     if (!routeName) return
     void router.push({ name: routeName, query: task.query })
+  }
+
+  function handleMetricClick(metric: BusinessWorkspaceMetric): void {
+    const routeName = metricRouteNames[metric.key ?? '']
+    if (routeName) void router.push({ name: routeName })
   }
 
   function openCollectionAdvisor(): void {
