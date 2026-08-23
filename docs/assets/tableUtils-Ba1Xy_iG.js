@@ -1,1 +1,0 @@
-var e=e=>{let{current:t,size:n}=e;return{from:(t-1)*n,to:t*n-1}};export{e as t};
