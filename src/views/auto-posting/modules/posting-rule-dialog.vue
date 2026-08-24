@@ -14,16 +14,22 @@
         scroll-to-error
       />
 
-      <section class="posting-rule-dialog__lines art-card-xs" aria-label="制证分录规则">
-        <div class="posting-rule-dialog__section-head">
-          <div>
-            <ArtSectionTitle :show-line="false">制证分录规则</ArtSectionTitle>
-            <p>金额口径与倍率共同计算分录金额；借贷双方必须至少各一条。</p>
+      <ArtSectionCard
+        class="posting-rule-dialog__lines"
+        aria-label="制证分录规则"
+        preserve-content-structure
+      >
+        <template #header>
+          <div class="posting-rule-dialog__section-head">
+            <div>
+              <ArtSectionTitle :show-line="false">制证分录规则</ArtSectionTitle>
+              <p>金额口径与倍率共同计算分录金额；借贷双方必须至少各一条。</p>
+            </div>
+            <ElButton type="primary" plain @click="addLine">
+              <ArtSvgIcon icon="ri:add-line" />新增分录
+            </ElButton>
           </div>
-          <ElButton type="primary" plain @click="addLine">
-            <ArtSvgIcon icon="ri:add-line" />新增分录
-          </ElButton>
-        </div>
+        </template>
 
         <ArtTable
           :data="form.lines"
@@ -35,7 +41,7 @@
           empty-description="请新增借方和贷方分录，形成完整的会计规则。"
           empty-height="180px"
         />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <PostingLineAuxiliaryDialog ref="auxiliaryDialogRef" />
@@ -43,13 +49,14 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'

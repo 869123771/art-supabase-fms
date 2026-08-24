@@ -22,7 +22,7 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-show="!focusMode"
       title="核算范围"
       subtitle="切换账套后，币种和汇率按法人核算主体完全隔离"
@@ -52,13 +52,25 @@
         :can-configure="hasAuth('FinanceAccountSet:Add')"
         @configure="goToAccountSet"
       />
-    </ArtPageSection>
+    </ArtSectionCard>
 
     <div class="accounting-currency-page__workspace" :class="{ 'is-focused': focusMode }">
-      <ArtPageSection
+      <ArtSectionCard
         title="核算币种"
         subtitle="本位币不可停用，外币可独立启停"
         class="accounting-workspace-fill-section"
+        :body-class="[
+          'accounting-workspace-content-state',
+          { 'is-empty': workspace.currencies.length === 0 }
+        ]"
+        :loading="workspace.loading"
+        :empty-visual-size="68"
+        :min-height="150"
+        :error="workspace.error"
+        :empty="workspace.currencies.length === 0"
+        empty-title="暂无核算币种"
+        empty-description="账套初始化时会自动生成本位币。"
+        @retry="loadWorkspace"
       >
         <template #actions>
           <ElButton
@@ -69,73 +81,56 @@
             <ArtSvgIcon icon="ri:add-line" />新增外币
           </ElButton>
         </template>
-        <ArtAsyncState
-          class="accounting-workspace-content-state"
-          :class="{ 'is-empty': workspace.currencies.length === 0 }"
-          :loading="workspace.loading"
-          :empty-image-size="68"
-          :min-height="150"
-          :error="workspace.error"
-          :empty="workspace.currencies.length === 0"
-          empty-text="暂无核算币种"
-          empty-description="账套初始化时会自动生成本位币。"
-          @retry="loadWorkspace"
-        >
-          <ElScrollbar class="accounting-currency-page__currency-scrollbar">
-            <div class="accounting-currency-page__currency-grid">
-              <div
-                v-for="item in workspace.currencies"
-                :key="item.id"
-                class="accounting-currency-page__currency-card"
-                :class="{ 'is-active': item.id === workspace.selectedCurrencyId }"
+        <ElScrollbar class="accounting-currency-page__currency-scrollbar">
+          <div class="accounting-currency-page__currency-grid">
+            <div
+              v-for="item in workspace.currencies"
+              :key="item.id"
+              class="accounting-currency-page__currency-card"
+              :class="{ 'is-active': item.id === workspace.selectedCurrencyId }"
+            >
+              <button
+                type="button"
+                class="accounting-currency-page__currency-select"
+                :aria-label="`选择${item.currencyName}`"
+                :aria-pressed="item.id === workspace.selectedCurrencyId"
+                @click="workspace.selectedCurrencyId = item.id"
               >
-                <button
-                  type="button"
-                  class="accounting-currency-page__currency-select"
-                  :aria-label="`选择${item.currencyName}`"
-                  :aria-pressed="item.id === workspace.selectedCurrencyId"
-                  @click="workspace.selectedCurrencyId = item.id"
-                >
-                  <span class="accounting-currency-page__symbol">{{
-                    item.symbol || item.currencyCode
-                  }}</span>
-                  <span class="accounting-currency-page__currency-name">
-                    <span class="accounting-currency-page__currency-title">
-                      <strong>{{ item.currencyName }}</strong>
-                      <span
-                        v-if="item.id === workspace.selectedCurrencyId"
-                        class="accounting-currency-page__selected-badge"
-                      >
-                        <ArtSvgIcon icon="ri:check-line" />当前
-                      </span>
-                    </span>
-                    <span class="accounting-currency-page__currency-meta">
-                      <small>{{ item.currencyCode }} · {{ item.decimalPlaces }} 位小数</small>
-                      <ElTag v-if="item.isBase" type="primary" size="small" effect="plain">
-                        本位币
-                      </ElTag>
-                      <ElTag
-                        :type="item.isEnabled ? 'success' : 'info'"
-                        size="small"
-                        effect="plain"
-                      >
-                        {{ item.isEnabled ? '启用' : '停用' }}
-                      </ElTag>
+                <span class="accounting-currency-page__symbol">{{
+                  item.symbol || item.currencyCode
+                }}</span>
+                <span class="accounting-currency-page__currency-name">
+                  <span class="accounting-currency-page__currency-title">
+                    <strong>{{ item.currencyName }}</strong>
+                    <span
+                      v-if="item.id === workspace.selectedCurrencyId"
+                      class="accounting-currency-page__selected-badge"
+                    >
+                      <ArtSvgIcon icon="ri:check-line" />当前
                     </span>
                   </span>
-                </button>
-                <ArtButtonMore
-                  class="accounting-currency-page__currency-more"
-                  :list="getCurrencyActions(item)"
-                  @click="handleCurrencyAction($event, item)"
-                />
-              </div>
+                  <span class="accounting-currency-page__currency-meta">
+                    <small>{{ item.currencyCode }} · {{ item.decimalPlaces }} 位小数</small>
+                    <ElTag v-if="item.isBase" type="primary" size="small" effect="plain">
+                      本位币
+                    </ElTag>
+                    <ElTag :type="item.isEnabled ? 'success' : 'info'" size="small" effect="plain">
+                      {{ item.isEnabled ? '启用' : '停用' }}
+                    </ElTag>
+                  </span>
+                </span>
+              </button>
+              <ArtButtonMore
+                class="accounting-currency-page__currency-more"
+                :list="getCurrencyActions(item)"
+                @click="handleCurrencyAction($event, item)"
+              />
             </div>
-          </ElScrollbar>
-        </ArtAsyncState>
-      </ArtPageSection>
+          </div>
+        </ElScrollbar>
+      </ArtSectionCard>
 
-      <ArtPageSection
+      <ArtSectionCard
         title="汇率台账"
         :subtitle="
           selectedCurrency ? `${selectedCurrency.currencyCode} 对本位币的直接汇率` : '请选择外币'
@@ -201,7 +196,7 @@
             empty-text="暂无汇率记录"
           />
         </ArtAsyncState>
-      </ArtPageSection>
+      </ArtSectionCard>
     </div>
 
     <CurrencyDialog ref="currencyDialogRef" @success="loadWorkspace" />
@@ -219,8 +214,8 @@
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AccountingSetupGuide from '../modules/accounting-setup-guide.vue'
   import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
-  import ArtPageSection from '@/components/core/layouts/art-page-section/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtButtonMore, {
     type ButtonMoreItem

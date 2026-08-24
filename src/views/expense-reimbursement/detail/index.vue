@@ -58,26 +58,35 @@
     </section>
 
     <div v-if="detail.data" class="expense-reimbursement-detail__content">
-      <section class="expense-reimbursement-detail__section art-card-xs">
-        <ArtSectionTitle>报销信息</ArtSectionTitle>
+      <ArtSectionCard
+        class="expense-reimbursement-detail__section"
+        preserve-content-structure
+        title="报销信息"
+      >
         <ArtDescriptions
           :data="detail.data"
           :items="reimbursementItems"
           :columns="descriptionColumns"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="expense-reimbursement-detail__section art-card-xs">
-        <ArtSectionTitle>审批与付款</ArtSectionTitle>
+      <ArtSectionCard
+        class="expense-reimbursement-detail__section"
+        preserve-content-structure
+        title="审批与付款"
+      >
         <ArtDescriptions
           :data="detail.data"
           :items="approvalPaymentItems"
           :columns="descriptionColumns"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="expense-reimbursement-detail__section art-card-xs">
-        <ArtSectionTitle>逐笔核销明细</ArtSectionTitle>
+      <ArtSectionCard
+        class="expense-reimbursement-detail__section"
+        preserve-content-structure
+        title="逐笔核销明细"
+      >
         <ArtTable
           :data="detail.data.items ?? []"
           :columns="expenseColumns"
@@ -90,13 +99,14 @@
           <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
           当前报销单暂无费用明细
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canViewEvidence || canViewPaymentExecution"
-        class="expense-reimbursement-detail__section art-card-xs"
+        class="expense-reimbursement-detail__section"
+        preserve-content-structure
+        title="报销与付款凭证"
       >
-        <ArtSectionTitle>报销与付款凭证</ArtSectionTitle>
         <div class="expense-reimbursement-detail__evidence-grid">
           <div v-if="canViewEvidence">
             <h3>报销依据</h3>
@@ -139,7 +149,7 @@
             </div>
           </div>
         </div>
-      </section>
+      </ArtSectionCard>
 
       <section v-if="detail.data.id" class="expense-reimbursement-detail__section art-card-xs">
         <WorkflowBusinessHistory
@@ -152,6 +162,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { RouterLink } from 'vue-router'
   import { useMediaQuery } from '@vueuse/core'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -162,7 +173,6 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtPageHeader from '@/components/core/layouts/art-page-header/index.vue'
   import ArtPageShell from '@/components/core/layouts/art-page-shell/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'

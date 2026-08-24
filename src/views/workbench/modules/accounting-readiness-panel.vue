@@ -1,8 +1,14 @@
 <template>
-  <ArtPageSection
+  <ArtSectionCard
     title="核算运行状态"
     subtitle="把基础配置、期间和资金账户的阻断集中到一个入口"
     class="accounting-readiness-panel"
+    :loading="state.loading"
+    :error="state.error"
+    :empty="!state.accountSetId"
+    empty-title="尚无可用账套"
+    empty-description="先创建并启用企业账套，再开始会计核算。"
+    @retry="load"
   >
     <template #actions>
       <ElSelect
@@ -20,61 +26,52 @@
       </ElSelect>
     </template>
 
-    <ArtAsyncState
-      :loading="state.loading"
-      :error="state.error"
-      :empty="!state.accountSetId"
-      empty-title="尚无可用账套"
-      empty-description="先创建并启用企业账套，再开始会计核算。"
-      @retry="load"
-    >
-      <div class="accounting-readiness-panel__summary">
-        <span
-          class="accounting-readiness-panel__score"
-          :class="{ 'is-ready': readiness?.transactionReady }"
-        >
-          <strong>{{ completedStepCount }}/4</strong>
-          <small>{{ readiness?.transactionReady ? '已可运行' : '项已就绪' }}</small>
-        </span>
-        <div>
-          <strong>{{ readinessTitle }}</strong>
-          <p>{{ readinessDescription }}</p>
-        </div>
+    <div class="accounting-readiness-panel__summary">
+      <span
+        class="accounting-readiness-panel__score"
+        :class="{ 'is-ready': readiness?.transactionReady }"
+      >
+        <strong>{{ completedStepCount }}/4</strong>
+        <small>{{ readiness?.transactionReady ? '已可运行' : '项已就绪' }}</small>
+      </span>
+      <div>
+        <strong>{{ readinessTitle }}</strong>
+        <p>{{ readinessDescription }}</p>
       </div>
+    </div>
 
-      <div class="accounting-readiness-panel__steps" role="list" aria-label="财务核算启用步骤">
-        <article
-          v-for="item in readinessSteps"
-          :key="item.key"
-          class="accounting-readiness-panel__step"
-          :class="item.ready ? 'is-ready' : 'is-pending'"
-          role="listitem"
-        >
-          <span class="accounting-readiness-panel__step-icon" aria-hidden="true">
-            <ArtSvgIcon :icon="item.ready ? 'ri:check-line' : item.icon" />
-          </span>
-          <div class="accounting-readiness-panel__step-copy">
-            <div>
-              <strong>{{ item.label }}</strong>
-              <ElTag :type="item.ready ? 'success' : 'warning'" size="small" effect="plain">
-                {{ item.ready ? '已就绪' : '待处理' }}
-              </ElTag>
-            </div>
-            <p>{{ item.description }}</p>
+    <div class="accounting-readiness-panel__steps" role="list" aria-label="财务核算启用步骤">
+      <article
+        v-for="item in readinessSteps"
+        :key="item.key"
+        class="accounting-readiness-panel__step"
+        :class="item.ready ? 'is-ready' : 'is-pending'"
+        role="listitem"
+      >
+        <span class="accounting-readiness-panel__step-icon" aria-hidden="true">
+          <ArtSvgIcon :icon="item.ready ? 'ri:check-line' : item.icon" />
+        </span>
+        <div class="accounting-readiness-panel__step-copy">
+          <div>
+            <strong>{{ item.label }}</strong>
+            <ElTag :type="item.ready ? 'success' : 'warning'" size="small" effect="plain">
+              {{ item.ready ? '已就绪' : '待处理' }}
+            </ElTag>
           </div>
-          <ElButton
-            v-if="!item.ready || item.alwaysShowAction"
-            link
-            type="primary"
-            :loading="item.key === 'foundation' && state.initializing"
-            @click="handleStep(item)"
-          >
-            {{ item.actionLabel }}<ArtSvgIcon icon="ri:arrow-right-s-line" />
-          </ElButton>
-        </article>
-      </div>
-    </ArtAsyncState>
-  </ArtPageSection>
+          <p>{{ item.description }}</p>
+        </div>
+        <ElButton
+          v-if="!item.ready || item.alwaysShowAction"
+          link
+          type="primary"
+          :loading="item.key === 'foundation' && state.initializing"
+          @click="handleStep(item)"
+        >
+          {{ item.actionLabel }}<ArtSvgIcon icon="ri:arrow-right-s-line" />
+        </ElButton>
+      </article>
+    </div>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">

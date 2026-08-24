@@ -28,7 +28,7 @@
       class="finance-workbench__content"
       :class="{ 'finance-workbench__content--single': !overview.progressItems.length }"
     >
-      <ArtPageSection
+      <ArtSectionCard
         title="财务待办"
         subtitle="按优先级集中处理当前未完成事项"
         class="finance-workbench__panel"
@@ -47,9 +47,9 @@
             <ElButton link type="primary" @click="handleTask(row)">去处理</ElButton>
           </template>
         </ArtTable>
-      </ArtPageSection>
+      </ArtSectionCard>
 
-      <ArtPageSection
+      <ArtSectionCard
         v-if="overview.progressItems.length"
         title="业务完成率"
         subtitle="跟踪本月关键财务流程推进情况"
@@ -68,19 +68,19 @@
             <ElProgress :percentage="item.percent" :stroke-width="10" :color="item.color" />
           </div>
         </div>
-      </ArtPageSection>
+      </ArtSectionCard>
     </div>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-if="statsDescriptionItems.length"
       title="本月经营概览"
       subtitle="本月运输收入、成本、毛利及资金核销概况"
       class="finance-workbench__panel"
     >
       <ArtDescriptions :data="statsDescriptionData" :items="statsDescriptionItems" :columns="4" />
-    </ArtPageSection>
+    </ArtSectionCard>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-if="overview.reminders.length"
       title="结算提醒"
       class="finance-workbench__panel"
@@ -93,7 +93,7 @@
         show-icon
         :closable="false"
       />
-    </ArtPageSection>
+    </ArtSectionCard>
 
     <ReceivablesCollectionAdvisorDrawer ref="collectionAdvisorRef" />
   </ArtPageShell>

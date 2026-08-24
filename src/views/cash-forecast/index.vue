@@ -34,16 +34,18 @@
         :description="pressureMeta[forecast.pressureLevel].description"
       />
 
-      <section class="cash-forecast-page__workspace art-card-xs">
-        <header class="cash-forecast-page__section-header">
-          <div>
-            <ArtSectionTitle :show-line="false">滚动资金曲线</ArtSectionTitle>
-            <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
-          </div>
-          <ElTag :type="pressureMeta[forecast.pressureLevel].tagType" effect="light" round>
-            {{ pressureMeta[forecast.pressureLevel].label }}
-          </ElTag>
-        </header>
+      <ArtSectionCard class="cash-forecast-page__workspace" preserve-content-structure>
+        <template #header
+          ><header class="cash-forecast-page__section-header">
+            <div>
+              <ArtSectionTitle :show-line="false">滚动资金曲线</ArtSectionTitle>
+              <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
+            </div>
+            <ElTag :type="pressureMeta[forecast.pressureLevel].tagType" effect="light" round>
+              {{ pressureMeta[forecast.pressureLevel].label }}
+            </ElTag>
+          </header></template
+        >
 
         <div class="cash-forecast-page__horizons">
           <article v-for="item in forecast.horizons" :key="item.days">
@@ -64,10 +66,13 @@
             </dl>
           </article>
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section class="cash-forecast-page__explain art-card-xs">
-        <ArtSectionTitle :show-line="false">预测口径与行动建议</ArtSectionTitle>
+      <ArtSectionCard
+        class="cash-forecast-page__explain"
+        preserve-content-structure
+        title="预测口径与行动建议"
+      >
         <div class="cash-forecast-page__explain-grid">
           <div>
             <span><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
@@ -85,17 +90,18 @@
             <p>近 30 日已入账资金流水净额，用于判断预测与近期真实趋势是否背离。</p>
           </div>
         </div>
-      </section>
+      </ArtSectionCard>
     </template>
   </FinanceAccountingWorkspaceShell>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'

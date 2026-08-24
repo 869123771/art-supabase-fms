@@ -32,23 +32,29 @@
         :readonly="!amountEditable"
       />
 
-      <section v-if="canViewAttachments" class="voucher-dialog__attachments art-card-xs">
-        <div class="voucher-dialog__section-header">
-          <div>
-            <ArtSectionTitle :show-line="false">原始凭证附件</ArtSectionTitle>
-            <p>支持上传回单、发票、合同或其他记账依据，附件与凭证一并留存。</p>
-          </div>
-          <ArtExcelImport
-            v-if="canEditAttachments"
-            accept=""
-            :parse-excel="false"
-            :disabled="form.attachmentUploading"
-            :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
-            @file-change="handleAttachmentUpload"
-          >
-            上传附件
-          </ArtExcelImport>
-        </div>
+      <ArtSectionCard
+        v-if="canViewAttachments"
+        class="voucher-dialog__attachments"
+        preserve-content-structure
+      >
+        <template #header
+          ><div class="voucher-dialog__section-header">
+            <div>
+              <ArtSectionTitle :show-line="false">原始凭证附件</ArtSectionTitle>
+              <p>支持上传回单、发票、合同或其他记账依据，附件与凭证一并留存。</p>
+            </div>
+            <ArtExcelImport
+              v-if="canEditAttachments"
+              accept=""
+              :parse-excel="false"
+              :disabled="form.attachmentUploading"
+              :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
+              @file-change="handleAttachmentUpload"
+            >
+              上传附件
+            </ArtExcelImport>
+          </div></template
+        >
         <ArtTable
           :data="form.data.attachments"
           :columns="attachmentColumns"
@@ -57,7 +63,7 @@
           empty-height="120px"
           empty-text="暂无附件"
         />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <template #footer="{ loading, api }">
@@ -82,6 +88,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import dayjs from 'dayjs'
   import { cloneDeep } from 'lodash-es'
   import { ElButton, ElMessage } from 'element-plus'
@@ -92,7 +99,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtExcelImport from '@/components/core/forms/art-excel-import/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import type { ColumnOption } from '@/types'

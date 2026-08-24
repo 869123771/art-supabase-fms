@@ -1,14 +1,16 @@
 <template>
-  <section class="voucher-entry-lines art-card-xs" aria-label="凭证分录">
-    <div class="voucher-entry-lines__header">
-      <div>
-        <ArtSectionTitle :show-line="false">凭证分录</ArtSectionTitle>
-        <p>借贷金额必须平衡；科目启用外币、数量或辅助核算时，请同步填写对应信息。</p>
+  <ArtSectionCard class="voucher-entry-lines" aria-label="凭证分录" preserve-content-structure>
+    <template #header>
+      <div class="voucher-entry-lines__header">
+        <div>
+          <ArtSectionTitle :show-line="false">凭证分录</ArtSectionTitle>
+          <p>借贷金额必须平衡；科目启用外币、数量或辅助核算时，请同步填写对应信息。</p>
+        </div>
+        <ElButton v-if="!readonly" type="primary" plain @click="addLine">
+          <ArtSvgIcon icon="ri:add-line" />新增分录
+        </ElButton>
       </div>
-      <ElButton v-if="!readonly" type="primary" plain @click="addLine">
-        <ArtSvgIcon icon="ri:add-line" />新增分录
-      </ElButton>
-    </div>
+    </template>
 
     <ArtTable
       :data="modelValue"
@@ -30,14 +32,15 @@
         {{ isBalanced ? '借贷平衡' : '借贷不平' }}
       </ElTag>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { round } from 'lodash-es'
   import { ElInput, ElInputNumber, ElOption, ElSelect, ElTag } from 'element-plus'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'

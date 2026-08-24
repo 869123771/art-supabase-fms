@@ -1,12 +1,18 @@
 <template>
-  <section v-if="cashLines.length" class="cash-flow-allocation-panel art-card-xs">
-    <div class="cash-flow-allocation-panel__header">
-      <div>
-        <ArtSectionTitle :show-line="false">现金流量归集</ArtSectionTitle>
-        <p>现金及现金等价物分录需按流入/流出项目全额归集，提交时由数据库再次校验。</p>
-      </div>
-      <ElTag type="warning" effect="plain">{{ cashLines.length }} 条现金分录</ElTag>
-    </div>
+  <ArtSectionCard
+    v-if="cashLines.length"
+    class="cash-flow-allocation-panel"
+    preserve-content-structure
+  >
+    <template #header
+      ><div class="cash-flow-allocation-panel__header">
+        <div>
+          <ArtSectionTitle :show-line="false">现金流量归集</ArtSectionTitle>
+          <p>现金及现金等价物分录需按流入/流出项目全额归集，提交时由数据库再次校验。</p>
+        </div>
+        <ElTag type="warning" effect="plain">{{ cashLines.length }} 条现金分录</ElTag>
+      </div></template
+    >
 
     <ElAlert
       v-if="!statementItems.length"
@@ -106,13 +112,14 @@
         </footer>
       </article>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useUserStore } from '@/store/modules/user'
   import { formatCurrencyValue } from '@/utils/ui'

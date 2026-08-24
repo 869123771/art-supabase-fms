@@ -64,13 +64,21 @@
     </section>
 
     <div v-if="detail.data" class="waybill-cost-detail__content">
-      <section v-if="canViewExpenseLocation" class="waybill-cost-detail__section art-card-xs">
-        <ArtSectionTitle>费用信息</ArtSectionTitle>
+      <ArtSectionCard
+        v-if="canViewExpenseLocation"
+        class="waybill-cost-detail__section"
+        preserve-content-structure
+        title="费用信息"
+      >
         <ArtDescriptions :data="detail.data" :items="expenseItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section v-if="canViewExpenseEvidence" class="waybill-cost-detail__section art-card-xs">
-        <ArtSectionTitle>运输关联</ArtSectionTitle>
+      <ArtSectionCard
+        v-if="canViewExpenseEvidence"
+        class="waybill-cost-detail__section"
+        preserve-content-structure
+        title="运输关联"
+      >
         <ArtDescriptions :data="detail.data" :items="transportItems" :columns="4">
           <template #item-waybillNo>
             <RouterLink
@@ -83,15 +91,21 @@
             <span v-else>{{ waybillNo }}</span>
           </template>
         </ArtDescriptions>
-      </section>
+      </ArtSectionCard>
 
-      <section class="waybill-cost-detail__section art-card-xs">
-        <ArtSectionTitle>发生地点</ArtSectionTitle>
+      <ArtSectionCard
+        class="waybill-cost-detail__section"
+        preserve-content-structure
+        title="发生地点"
+      >
         <ArtDescriptions :data="detail.data" :items="locationItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="waybill-cost-detail__section art-card-xs">
-        <ArtSectionTitle>审核、报销与支付</ArtSectionTitle>
+      <ArtSectionCard
+        class="waybill-cost-detail__section"
+        preserve-content-structure
+        title="审核、报销与支付"
+      >
         <ArtDescriptions :data="detail.data" :items="settlementItems" :columns="4">
           <template #item-reimbursementNo>
             <RouterLink
@@ -104,10 +118,13 @@
             <span v-else>{{ detail.data.reimbursement?.reimbursementNo || '--' }}</span>
           </template>
         </ArtDescriptions>
-      </section>
+      </ArtSectionCard>
 
-      <section class="waybill-cost-detail__section art-card-xs">
-        <ArtSectionTitle>票据附件</ArtSectionTitle>
+      <ArtSectionCard
+        class="waybill-cost-detail__section"
+        preserve-content-structure
+        title="票据附件"
+      >
         <div
           v-if="canReadExpenseEvidence && attachments.length"
           class="waybill-cost-detail__attachments"
@@ -121,7 +138,7 @@
           <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
           {{ canReadExpenseEvidence ? '当前费用单未上传票据附件' : '票据附件已按字段权限脱敏' }}
         </div>
-      </section>
+      </ArtSectionCard>
 
       <section v-if="detail.data.id" class="waybill-cost-detail__section art-card-xs">
         <WorkflowBusinessHistory business-type="tms_waybill_cost" :business-id="detail.data.id" />
@@ -131,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import type { FilePreviewTarget } from '@/hooks/core/useFilePreview'
   import ArtAttachmentLink from '@/components/core/media/art-file-viewer/attachment-link.vue'
@@ -138,7 +156,6 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtPageHeader from '@/components/core/layouts/art-page-header/index.vue'
   import ArtPageShell from '@/components/core/layouts/art-page-shell/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchWaybillCostDetail } from '@fms/api'

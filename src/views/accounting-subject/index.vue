@@ -22,7 +22,7 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-show="!focusMode"
       title="核算范围"
       subtitle="切换账套后，科目树与统计口径同步刷新"
@@ -54,7 +54,7 @@
         :can-configure="hasAuth('FinanceAccountSet:Add')"
         @configure="goToAccountSet"
       />
-    </ArtPageSection>
+    </ArtSectionCard>
 
     <section
       v-if="currentAccountSet && state.readiness && !state.readiness.foundationReady"
@@ -94,7 +94,7 @@
         @reset="resetFilters"
       />
 
-      <ArtPageSection
+      <ArtSectionCard
         title="科目体系"
         :subtitle="
           currentAccountSet
@@ -102,6 +102,20 @@
             : '请先选择账套'
         "
         class="accounting-subject-page__table-section accounting-workspace-fill-section"
+        :body-class="[
+          'accounting-workspace-content-state',
+          { 'is-empty': !state.loading && !state.error && filteredSubjects.length === 0 }
+        ]"
+        :loading="state.loading"
+        :empty-visual-size="72"
+        :min-height="160"
+        :error="state.error"
+        :empty="!state.loading && !state.error && filteredSubjects.length === 0"
+        empty-title="暂无会计科目"
+        :empty-description="
+          currentAccountSet ? '当前账套尚未维护符合条件的会计科目。' : '请选择一个可查看的账套。'
+        "
+        @retry="loadSubjects"
       >
         <template #actions>
           <BusinessWorkspaceFocusToggle v-if="focusMode" v-model="focusMode" />
@@ -110,34 +124,17 @@
           </ElButton>
         </template>
 
-        <ArtAsyncState
-          class="accounting-workspace-content-state"
-          :class="{
-            'is-empty': !state.loading && !state.error && filteredSubjects.length === 0
-          }"
-          :loading="state.loading"
-          :empty-image-size="72"
-          :min-height="160"
-          :error="state.error"
-          :empty="!state.loading && !state.error && filteredSubjects.length === 0"
+        <ArtTable
+          :data="filteredSubjects"
+          :columns="columns"
+          :pagination="false"
+          row-key="id"
+          default-expand-all
+          table-layout="fixed"
+          :tree-props="{ children: 'children' }"
           empty-text="暂无会计科目"
-          :empty-description="
-            currentAccountSet ? '当前账套尚未维护符合条件的会计科目。' : '请选择一个可查看的账套。'
-          "
-          @retry="loadSubjects"
-        >
-          <ArtTable
-            :data="filteredSubjects"
-            :columns="columns"
-            :pagination="false"
-            row-key="id"
-            default-expand-all
-            table-layout="fixed"
-            :tree-props="{ children: 'children' }"
-            empty-text="暂无会计科目"
-          />
-        </ArtAsyncState>
-      </ArtPageSection>
+        />
+      </ArtSectionCard>
     </div>
 
     <SubjectDialog ref="dialogRef" @success="loadSubjects" />
@@ -154,8 +151,7 @@
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AccountingSetupGuide from '../modules/accounting-setup-guide.vue'
   import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
-  import ArtPageSection from '@/components/core/layouts/art-page-section/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSearchBar, {
     type SearchFormItem

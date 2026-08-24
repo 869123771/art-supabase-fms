@@ -22,7 +22,7 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-show="!focusMode"
       title="初始化范围"
       subtitle="期初数据按账套与会计年度分别管控"
@@ -70,9 +70,9 @@
         :can-configure="hasAuth('FinanceAccountSet:Add')"
         @configure="goToAccountSet"
       />
-    </ArtPageSection>
+    </ArtSectionCard>
 
-    <ArtPageSection
+    <ArtSectionCard
       title="期初余额明细"
       :subtitle="
         summary.status === 'confirmed'
@@ -181,7 +181,7 @@
           empty-text="暂无期初余额"
         />
       </ArtAsyncState>
-    </ArtPageSection>
+    </ArtSectionCard>
 
     <OpeningBalanceDialog ref="dialogRef" @success="loadBalances" />
   </FinanceAccountingWorkspaceShell>
@@ -197,8 +197,8 @@
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AccountingSetupGuide from '../modules/accounting-setup-guide.vue'
   import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
-  import ArtPageSection from '@/components/core/layouts/art-page-section/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSearchBar, {
     type SearchFormItem

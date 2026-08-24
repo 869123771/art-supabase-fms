@@ -1,25 +1,27 @@
 <template>
-  <section class="expense-ocr art-card-xs">
-    <header class="expense-ocr__header">
-      <div class="expense-ocr__identity">
-        <span class="expense-ocr__icon"><ArtSvgIcon icon="ri:scan-2-line" /></span>
-        <div>
-          <span class="expense-ocr__eyebrow">智能票据识别</span>
-          <strong>上传票据后自动填写费用要素</strong>
-          <small>识别结果仅写入当前草稿，保存前请人工核对金额与日期。</small>
+  <ArtSectionCard class="expense-ocr" preserve-content-structure>
+    <template #header>
+      <header class="expense-ocr__header">
+        <div class="expense-ocr__identity">
+          <span class="expense-ocr__icon"><ArtSvgIcon icon="ri:scan-2-line" /></span>
+          <div>
+            <span class="expense-ocr__eyebrow">智能票据识别</span>
+            <strong>上传票据后自动填写费用要素</strong>
+            <small>识别结果仅写入当前草稿，保存前请人工核对金额与日期。</small>
+          </div>
         </div>
-      </div>
-      <ElButton
-        type="primary"
-        plain
-        :loading="state.analyzing"
-        :disabled="!enabled || !imageUrls.length"
-        @click="handleAnalyze"
-      >
-        <ArtSvgIcon v-if="!state.analyzing" icon="ri:sparkling-2-line" />
-        {{ state.result ? '重新识别' : '开始识别' }}
-      </ElButton>
-    </header>
+        <ElButton
+          type="primary"
+          plain
+          :loading="state.analyzing"
+          :disabled="!enabled || !imageUrls.length"
+          @click="handleAnalyze"
+        >
+          <ArtSvgIcon v-if="!state.analyzing" icon="ri:sparkling-2-line" />
+          {{ state.result ? '重新识别' : '开始识别' }}
+        </ElButton>
+      </header>
+    </template>
 
     <div class="expense-ocr__body">
       <ArtUploadImage v-model="imageUrls" title="费用票据" :size="82" :limit="5" multiple />
@@ -53,10 +55,11 @@
         <OcrOriginalText class="expense-ocr__raw-text" :text="state.result.rawText" />
       </div>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage } from 'element-plus'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'

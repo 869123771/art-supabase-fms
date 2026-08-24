@@ -35,23 +35,25 @@
         :description="health.description"
       />
 
-      <section class="financial-exception-page__workspace art-card-xs">
-        <header>
-          <div>
-            <ArtSectionTitle :show-line="false">异常处置队列</ArtSectionTitle>
-            <p>相同业务的操作权限仍由目标页面独立校验，更新时间 {{ generatedAt }}</p>
-          </div>
-          <ElRadioGroup v-model="activeCategory" size="small" aria-label="财务异常类别">
-            <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
-            <ElRadioButton
-              v-for="category in categoryOptions"
-              :key="category.value"
-              :value="category.value"
-            >
-              {{ category.label }} {{ categoryCount(category.value) }}
-            </ElRadioButton>
-          </ElRadioGroup>
-        </header>
+      <ArtSectionCard class="financial-exception-page__workspace" preserve-content-structure>
+        <template #header
+          ><header>
+            <div>
+              <ArtSectionTitle :show-line="false">异常处置队列</ArtSectionTitle>
+              <p>相同业务的操作权限仍由目标页面独立校验，更新时间 {{ generatedAt }}</p>
+            </div>
+            <ElRadioGroup v-model="activeCategory" size="small" aria-label="财务异常类别">
+              <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
+              <ElRadioButton
+                v-for="category in categoryOptions"
+                :key="category.value"
+                :value="category.value"
+              >
+                {{ category.label }} {{ categoryCount(category.value) }}
+              </ElRadioButton>
+            </ElRadioGroup>
+          </header></template
+        >
 
         <ElAlert
           v-if="overview.truncated"
@@ -108,19 +110,20 @@
             <span v-else class="financial-exception-page__limited">需目标页面权限</span>
           </li>
         </ol>
-      </section>
+      </ArtSectionCard>
     </template>
   </FinanceAccountingWorkspaceShell>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { getWaybillCostDetailPath } from '@/router/business-paths'

@@ -103,11 +103,13 @@
             </article>
           </section>
 
-          <section class="bank-batch__table art-card-xs">
-            <header>
-              <div><h4>逐行匹配结果</h4><p>默认勾选信息完整且往来单位高置信匹配的流水。</p></div>
-              <ElTag type="primary" effect="plain" round>已选 {{ selectedRows.length }} 条</ElTag>
-            </header>
+          <ArtSectionCard class="bank-batch__table" preserve-content-structure>
+            <template #header>
+              <header>
+                <div><h4>逐行匹配结果</h4><p>默认勾选信息完整且往来单位高置信匹配的流水。</p></div>
+                <ElTag type="primary" effect="plain" round>已选 {{ selectedRows.length }} 条</ElTag>
+              </header>
+            </template>
             <ArtTable
               :data="state.result.rows"
               :columns="columns"
@@ -116,7 +118,7 @@
               max-height="430px"
               border
             />
-          </section>
+          </ArtSectionCard>
         </template>
 
         <section v-else class="bank-batch__onboarding">
@@ -205,12 +207,13 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { createFriendlySupabaseError, getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElCheckbox, ElMessage, ElTag } from 'element-plus'
   import { uniq } from 'lodash-es'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtExcelImport from '@/components/core/forms/art-excel-import/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'

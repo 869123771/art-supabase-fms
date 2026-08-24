@@ -1,26 +1,28 @@
 <template>
-  <section class="invoice-ocr-panel art-card-xs">
-    <header class="invoice-ocr-panel__header">
-      <div class="invoice-ocr-panel__identity">
-        <span class="invoice-ocr-panel__icon" aria-hidden="true">
-          <ArtSvgIcon icon="ri-scan-2-line" />
-        </span>
-        <div>
-          <div class="invoice-ocr-panel__eyebrow">AI 智能识别</div>
-          <h3>上传发票，自动提取关键字段</h3>
-          <p>识别结果先预览、再回填，不会自动保存或改变审核状态。</p>
+  <ArtSectionCard class="invoice-ocr-panel" preserve-content-structure>
+    <template #header>
+      <header class="invoice-ocr-panel__header">
+        <div class="invoice-ocr-panel__identity">
+          <span class="invoice-ocr-panel__icon" aria-hidden="true">
+            <ArtSvgIcon icon="ri-scan-2-line" />
+          </span>
+          <div>
+            <div class="invoice-ocr-panel__eyebrow">AI 智能识别</div>
+            <h3>上传发票，自动提取关键字段</h3>
+            <p>识别结果先预览、再回填，不会自动保存或改变审核状态。</p>
+          </div>
         </div>
-      </div>
-      <ElButton
-        type="primary"
-        :loading="analyzing"
-        :disabled="!imageUrls.length"
-        @click="handleAnalyze"
-      >
-        <ArtSvgIcon v-if="!analyzing" icon="ri-sparkling-2-line" />
-        {{ result ? '重新识别' : '识别票面' }}
-      </ElButton>
-    </header>
+        <ElButton
+          type="primary"
+          :loading="analyzing"
+          :disabled="!imageUrls.length"
+          @click="handleAnalyze"
+        >
+          <ArtSvgIcon v-if="!analyzing" icon="ri-sparkling-2-line" />
+          {{ result ? '重新识别' : '识别票面' }}
+        </ElButton>
+      </header>
+    </template>
 
     <div class="invoice-ocr-panel__body">
       <div class="invoice-ocr-panel__upload">
@@ -101,10 +103,11 @@
         </div>
       </div>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage } from 'element-plus'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'

@@ -22,7 +22,7 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtPageSection
+    <ArtSectionCard
       v-show="!focusMode"
       title="核算范围"
       subtitle="客户、承运商、部门和员工以现有业务档案为权威来源"
@@ -52,13 +52,25 @@
         :can-configure="hasAuth('FinanceAccountSet:Add')"
         @configure="goToAccountSet"
       />
-    </ArtPageSection>
+    </ArtSectionCard>
 
     <div class="accounting-auxiliary-page__workspace" :class="{ 'is-focused': focusMode }">
-      <ArtPageSection
+      <ArtSectionCard
         title="核算维度"
         subtitle="选择维度后查看其核算项目"
         class="accounting-auxiliary-page__types accounting-workspace-fill-section"
+        :body-class="[
+          'accounting-workspace-content-state',
+          { 'is-empty': workspace.types.length === 0 }
+        ]"
+        :loading="workspace.loading"
+        :empty-visual-size="68"
+        :min-height="150"
+        :error="workspace.error"
+        :empty="workspace.types.length === 0"
+        empty-title="暂无辅助核算维度"
+        empty-description="创建账套时会自动生成客户、承运商、部门、员工和项目维度。"
+        @retry="loadWorkspace"
       >
         <template #actions>
           <ElButton
@@ -70,70 +82,57 @@
           </ElButton>
         </template>
 
-        <ArtAsyncState
-          class="accounting-workspace-content-state"
-          :class="{ 'is-empty': workspace.types.length === 0 }"
-          :loading="workspace.loading"
-          :empty-image-size="68"
-          :min-height="150"
-          :error="workspace.error"
-          :empty="workspace.types.length === 0"
-          empty-text="暂无辅助核算维度"
-          empty-description="创建账套时会自动生成客户、承运商、部门、员工和项目维度。"
-          @retry="loadWorkspace"
-        >
-          <ElScrollbar class="accounting-auxiliary-page__type-scrollbar">
-            <div class="accounting-auxiliary-page__type-list">
-              <div
-                v-for="item in workspace.types"
-                :key="item.id"
-                class="accounting-auxiliary-page__type-card"
-                :class="{ 'is-active': item.id === workspace.selectedTypeId }"
+        <ElScrollbar class="accounting-auxiliary-page__type-scrollbar">
+          <div class="accounting-auxiliary-page__type-list">
+            <div
+              v-for="item in workspace.types"
+              :key="item.id"
+              class="accounting-auxiliary-page__type-card"
+              :class="{ 'is-active': item.id === workspace.selectedTypeId }"
+            >
+              <button
+                type="button"
+                class="accounting-auxiliary-page__type-select"
+                :aria-label="`选择核算维度${item.typeName}`"
+                :aria-pressed="item.id === workspace.selectedTypeId"
+                @click="selectType(item.id)"
               >
-                <button
-                  type="button"
-                  class="accounting-auxiliary-page__type-select"
-                  :aria-label="`选择核算维度${item.typeName}`"
-                  :aria-pressed="item.id === workspace.selectedTypeId"
-                  @click="selectType(item.id)"
-                >
-                  <span class="accounting-auxiliary-page__type-icon">
-                    <ArtSvgIcon :icon="sourceIcon(item.sourceType)" />
+                <span class="accounting-auxiliary-page__type-icon">
+                  <ArtSvgIcon :icon="sourceIcon(item.sourceType)" />
+                </span>
+                <span class="accounting-auxiliary-page__type-content">
+                  <strong>{{ item.typeName }}</strong>
+                  <small>{{ item.typeCode }}</small>
+                </span>
+                <span class="accounting-auxiliary-page__type-meta">
+                  <span
+                    v-if="item.id === workspace.selectedTypeId"
+                    class="accounting-auxiliary-page__selected-badge"
+                  >
+                    <ArtSvgIcon icon="ri:check-line" />已选
                   </span>
-                  <span class="accounting-auxiliary-page__type-content">
-                    <strong>{{ item.typeName }}</strong>
-                    <small>{{ item.typeCode }}</small>
-                  </span>
-                  <span class="accounting-auxiliary-page__type-meta">
-                    <span
-                      v-if="item.id === workspace.selectedTypeId"
-                      class="accounting-auxiliary-page__selected-badge"
-                    >
-                      <ArtSvgIcon icon="ri:check-line" />已选
-                    </span>
-                    <ArtDictDisplay
-                      v-else
-                      dict-code="fmsAuxiliarySourceType"
-                      :value="item.sourceType"
-                      display="text"
-                    />
-                    <ElTag size="small" :type="item.isEnabled ? 'success' : 'info'">
-                      {{ item.isEnabled ? '启用' : '停用' }}
-                    </ElTag>
-                  </span>
-                </button>
-                <ArtButtonMore
-                  class="accounting-auxiliary-page__type-more"
-                  :list="getTypeActions(item)"
-                  @click="handleTypeAction($event, item)"
-                />
-              </div>
+                  <ArtDictDisplay
+                    v-else
+                    dict-code="fmsAuxiliarySourceType"
+                    :value="item.sourceType"
+                    display="text"
+                  />
+                  <ElTag size="small" :type="item.isEnabled ? 'success' : 'info'">
+                    {{ item.isEnabled ? '启用' : '停用' }}
+                  </ElTag>
+                </span>
+              </button>
+              <ArtButtonMore
+                class="accounting-auxiliary-page__type-more"
+                :list="getTypeActions(item)"
+                @click="handleTypeAction($event, item)"
+              />
             </div>
-          </ElScrollbar>
-        </ArtAsyncState>
-      </ArtPageSection>
+          </div>
+        </ElScrollbar>
+      </ArtSectionCard>
 
-      <ArtPageSection
+      <ArtSectionCard
         title="核算项目"
         :subtitle="
           selectedType ? `${selectedType.typeName} · ${sourceDescription}` : '请先选择核算维度'
@@ -194,7 +193,7 @@
             empty-text="暂无辅助核算项目"
           />
         </ArtAsyncState>
-      </ArtPageSection>
+      </ArtSectionCard>
     </div>
 
     <AuxiliaryTypeDialog ref="typeDialogRef" @success="loadWorkspace" />
@@ -209,8 +208,8 @@
   } from '@/components/business/business-workspace-header/index.vue'
   import AccountingSetupGuide from '../modules/accounting-setup-guide.vue'
   import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
-  import ArtPageSection from '@/components/core/layouts/art-page-section/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtButtonMore, {
     type ButtonMoreItem

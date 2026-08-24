@@ -43,13 +43,15 @@
         title="金额字段已按权限隐藏"
         description="仍可查看账龄数量和逾期天数；页面不会通过汇总计算绕过字段权限。"
       />
-      <section class="receivable-aging-page__workspace art-card-xs">
-        <header>
-          <div>
-            <ArtSectionTitle :show-line="false">账龄结构</ArtSectionTitle>
-            <p>未结客户对账单共 {{ overview.statementCount }} 笔，更新时间 {{ generatedAt }}</p>
-          </div>
-        </header>
+      <ArtSectionCard class="receivable-aging-page__workspace" preserve-content-structure>
+        <template #header
+          ><header>
+            <div>
+              <ArtSectionTitle :show-line="false">账龄结构</ArtSectionTitle>
+              <p>未结客户对账单共 {{ overview.statementCount }} 笔，更新时间 {{ generatedAt }}</p>
+            </div>
+          </header></template
+        >
         <div class="receivable-aging-page__buckets">
           <article v-for="bucket in overview.buckets" :key="bucket.key">
             <div
@@ -62,9 +64,12 @@
             </span>
           </article>
         </div>
-      </section>
-      <section class="receivable-aging-page__customers art-card-xs">
-        <ArtSectionTitle :show-line="false">重点客户应收</ArtSectionTitle>
+      </ArtSectionCard>
+      <ArtSectionCard
+        class="receivable-aging-page__customers"
+        preserve-content-structure
+        title="重点客户应收"
+      >
         <ElEmpty v-if="!overview.customers.length" description="当前没有未结客户应收" />
         <ol v-else>
           <li
@@ -100,17 +105,18 @@
             </ElTag>
           </li>
         </ol>
-      </section>
+      </ArtSectionCard>
     </template>
   </FinanceAccountingWorkspaceShell>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'

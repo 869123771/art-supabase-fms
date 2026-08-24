@@ -136,11 +136,12 @@
       />
     </div>
 
-    <section
+    <ArtSectionCard
       v-if="selection.statements.length && canViewInvoiceField('invoiceAmounts')"
-      class="invoice-dialog__links art-card-xs"
+      class="invoice-dialog__links"
+      preserve-content-structure
+      title="对账单关联金额"
     >
-      <ArtSectionTitle>对账单关联金额</ArtSectionTitle>
       <ArtTable
         :data="selection.statements"
         :columns="linkedStatementColumns"
@@ -166,7 +167,7 @@
           />
         </template>
       </ArtTable>
-    </section>
+    </ArtSectionCard>
   </ArtDialog>
 
   <InvoiceCounterpartyCreateDialog
@@ -176,6 +177,7 @@
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage, type FormRules } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
@@ -191,7 +193,6 @@
     DataSelectFetchParams,
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import InvoiceCounterpartyCreateDialog from './invoice-counterparty-create-dialog.vue'
   import InvoiceOcrPanel from './invoice-ocr-panel.vue'
   import {
