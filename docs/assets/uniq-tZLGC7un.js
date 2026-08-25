@@ -1,0 +1,1 @@
+import{l as e}from"./art-form-B_MT8IL1.js";function t(t){return t&&t.length?e(t):[]}export{t};
