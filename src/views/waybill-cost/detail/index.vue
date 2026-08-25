@@ -461,7 +461,7 @@
   }
 
   function formatOptionalNumber(value: unknown): string {
-    return formatSensitiveNumber(value as Api.Tms.BasicData.SensitiveNumber, {
+    return formatSensitiveNumber(value as Api.Fms.SensitiveNumber, {
       maximumFractionDigits: 4
     })
   }

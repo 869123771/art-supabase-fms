@@ -216,7 +216,7 @@
     carrierOptions: []
   })
 
-  const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber): string => {
+  const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }
@@ -409,7 +409,7 @@
     isReadableAccess(getFieldAccess(row.fieldAccess, 'taxIdentity')) &&
     isReadableAccess(getFieldAccess(row.fieldAccess, 'invoiceAttachments'))
 
-  const isReadableAccess = (access: Api.Tms.BasicData.FieldAccessLevel): boolean =>
+  const isReadableAccess = (access: Api.Common.FieldAccessLevel): boolean =>
     access === 'read' || access === 'edit'
 
   async function handleStatusAction(row: Invoice, statusAction: Api.Fms.InvoiceStatusAction) {

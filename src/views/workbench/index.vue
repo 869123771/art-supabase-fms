@@ -115,9 +115,9 @@
   defineOptions({ name: 'FinanceWorkbench' })
 
   type Stats = Api.Fms.FinanceWorkbenchStats
-  type SensitiveNumber = Api.Tms.BasicData.SensitiveNumber
+  type SensitiveNumber = Api.Fms.SensitiveNumber
   type WorkbenchFieldKey = Api.Fms.FinanceWorkbenchFieldKey
-  type FieldAccessLevel = Api.Tms.BasicData.FieldAccessLevel
+  type FieldAccessLevel = Api.Common.FieldAccessLevel
   type Urgency = '普通' | '关注' | '紧急'
 
   interface WorkbenchTask {

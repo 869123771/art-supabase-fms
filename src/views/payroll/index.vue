@@ -394,19 +394,15 @@
   async function refreshAll(): Promise<void> {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
   }
-  function toFiniteNumber(value: Api.Tms.BasicData.SensitiveNumber | undefined): number {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : 0
   }
-  function formatProtectedAmount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
-  function formatProtectedCount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     if (typeof value === 'string') return value
     return value.toLocaleString('zh-CN')

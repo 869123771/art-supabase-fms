@@ -446,9 +446,7 @@
     if (data?.fieldAccess) listFieldAccess.value = data.fieldAccess
   }
 
-  function toFiniteNumber(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): number | undefined {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined | null): number | undefined {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : undefined
   }
@@ -462,7 +460,7 @@
   }
 
   function formatProtectedAmount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null,
+    value: Api.Fms.SensitiveNumber | undefined | null,
     currency = 'CNY'
   ): string {
     if (value === null || value === undefined || value === '') return '--'

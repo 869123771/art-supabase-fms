@@ -344,7 +344,7 @@
     return formatCurrencyValue(value, currency)
   }
 
-  function formatProtectedAmount(value: Api.Tms.BasicData.SensitiveNumber | undefined): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value, currentRecord.value?.currencyCode)
   }
@@ -355,9 +355,7 @@
     return accountNo ? `${name || '--'}（${accountNo}）` : name || '--'
   }
 
-  function toEditableNumber(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined
-  ): number | undefined {
+  function toEditableNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : undefined
   }

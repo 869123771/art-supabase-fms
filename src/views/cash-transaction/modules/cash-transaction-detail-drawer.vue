@@ -87,7 +87,7 @@
   type CashTransaction = Api.Fms.CashTransactionRecord
   interface DetailAllocation {
     id: string
-    allocatedAmount?: Api.Tms.BasicData.SensitiveNumber
+    allocatedAmount?: Api.Fms.SensitiveNumber
     allocatedAt: string
     allocatedBy?: string | null
     isActive: boolean
@@ -110,7 +110,7 @@
   const loadError = shallowRef<Error | null>(null)
   const directionLabel = computed(() => (detail.data?.direction === 'payment' ? '付款' : '收款'))
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }
@@ -150,19 +150,19 @@
             key: 'amount',
             label: `${directionLabel.value}金额`,
             field: 'amount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'allocatedAmount',
             label: '已核销金额',
             field: 'allocatedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'unallocatedAmount',
             label: '未核销金额',
             field: 'unallocatedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           }
         ]
       : []),

@@ -579,7 +579,7 @@
     }
   }
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     return formatSensitiveNumber(value)
   }
 

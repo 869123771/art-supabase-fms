@@ -131,7 +131,7 @@
     { prop: 'actionRemark', label: '说明', minWidth: 180, showOverflowTooltip: true }
   ]
 
-  function formatMoney(value: Api.Tms.BasicData.SensitiveNumber | undefined): string {
+  function formatMoney(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value, detail.value?.currencyCode)
   }

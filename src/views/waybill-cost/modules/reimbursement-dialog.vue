@@ -346,7 +346,7 @@
     }
   ]
 
-  function money(value: Api.Tms.BasicData.SensitiveNumber): string {
+  function money(value: Api.Fms.SensitiveNumber): string {
     if (value === null || value === undefined) return '--'
     const numericValue = Number(value)
     return Number.isFinite(numericValue) ? formatCurrencyValue(numericValue) : String(value)

@@ -434,9 +434,7 @@
     if (data?.fieldAccess) listFieldAccess.value = data.fieldAccess
   }
 
-  function formatProtectedAmount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }

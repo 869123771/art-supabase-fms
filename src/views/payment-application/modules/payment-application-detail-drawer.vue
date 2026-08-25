@@ -99,7 +99,7 @@
             key: 'amount',
             label: '申请金额',
             field: 'amount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           }
         ]
       : []),
@@ -161,7 +161,7 @@
       : [])
   ])
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }

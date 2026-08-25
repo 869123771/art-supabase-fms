@@ -129,12 +129,12 @@
       dialogProps: { closeOnClickModal: false }
     })
   }
-  function toFiniteNumber(value: Api.Tms.BasicData.SensitiveNumber | undefined): number {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : 0
   }
   function toNullableFiniteNumber(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
+    value: Api.Fms.SensitiveNumber | undefined | null
   ): number | null {
     if (value === null || value === undefined || value === '') return null
     const numberValue = Number(value)

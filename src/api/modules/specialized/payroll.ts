@@ -79,6 +79,13 @@ export async function fetchPayrollSummary(accountSetId?: string) {
   )
 }
 
+export async function importHrCompensationLines(runId: string) {
+  return await responseHandle<Api.Fms.PayrollHrImportResult>(
+    () => supabase.rpc('fms_import_hr_compensation_lines_secure', { p_run_id: runId }),
+    { breakReturn: true }
+  )
+}
+
 export async function savePayrollRun(payload: Api.Fms.SavePayrollRunPayload) {
   return await responseHandle<Api.Fms.PayrollRunRecord>(
     () => supabase.rpc('save_fms_payroll_run_secure', { p_payload: payload }),

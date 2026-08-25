@@ -113,7 +113,7 @@
             key: 'amountExcludingTax',
             label: '不含税金额',
             field: 'amountExcludingTax' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'taxRate',
@@ -125,25 +125,25 @@
             key: 'taxAmount',
             label: '税额',
             field: 'taxAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'totalAmount',
             label: '价税合计',
             field: 'totalAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'linkedAmount',
             label: '已关联金额',
             field: 'linkedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           },
           {
             key: 'unlinkedAmount',
             label: '未关联金额',
             field: 'unlinkedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Tms.BasicData.SensitiveNumber)
+            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
           }
         ]
       : []),
@@ -187,17 +187,17 @@
     return columns
   })
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }
 
   function formatPercent(value: unknown): string {
-    const formatted = formatSensitiveNumber(value as Api.Tms.BasicData.SensitiveNumber)
+    const formatted = formatSensitiveNumber(value as Api.Fms.SensitiveNumber)
     return formatted === '***' || formatted === '--' ? formatted : `${formatted}%`
   }
 
-  function formatStatementMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatStatementMoney(value?: Api.Fms.SensitiveNumber): string {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }

@@ -507,15 +507,13 @@
     }
   }
 
-  function toFiniteNumber(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined
-  ): number | undefined {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : undefined
   }
 
   function formatTransferAmount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined,
+    value: Api.Fms.SensitiveNumber | undefined,
     currency = 'CNY'
   ): string {
     if (value === null || value === undefined || value === '') return '--'

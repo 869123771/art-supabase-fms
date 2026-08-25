@@ -146,6 +146,7 @@ export {
   fetchPayrollRunDetail,
   fetchPayrollRunList,
   fetchPayrollSummary,
+  importHrCompensationLines,
   savePayrollLine,
   savePayrollRun
 } from '@fms/api/modules/specialized/payroll'

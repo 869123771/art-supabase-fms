@@ -133,15 +133,11 @@
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }
-  function formatProtectedAmount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
-  function formatProtectedRate(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedRate(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     if (typeof value === 'string') return value
     return `${(value * 100).toFixed(4)}%`

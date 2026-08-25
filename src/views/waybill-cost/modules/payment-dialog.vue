@@ -204,13 +204,13 @@
     return Math.max(total - paid, 0)
   })
 
-  function toReadableAmount(value?: Api.Tms.BasicData.SensitiveNumber): number | undefined {
+  function toReadableAmount(value?: Api.Fms.SensitiveNumber): number | undefined {
     if (value === null || value === undefined || isMaskedValue(value)) return undefined
     const amount = Number(value)
     return Number.isFinite(amount) ? amount : undefined
   }
 
-  function money(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function money(value?: Api.Fms.SensitiveNumber): string {
     if (isMaskedValue(value)) return '***'
     if (value === null || value === undefined) return '--'
     const numericValue = Number(value)

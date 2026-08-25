@@ -701,7 +701,7 @@
     return roundInvoiceMoney(value)
   }
 
-  function sensitiveNumberValue(value?: Api.Tms.BasicData.SensitiveNumber): number {
+  function sensitiveNumberValue(value?: Api.Fms.SensitiveNumber): number {
     const numeric = Number(value)
     return Number.isFinite(numeric) ? numeric : 0
   }
@@ -781,7 +781,7 @@
     )
   }
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     return `¥${Number(value ?? 0).toLocaleString('zh-CN', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -789,9 +789,7 @@
   }
 
   function formatStatementMoney(value: unknown): string {
-    const formatted = formatSensitiveNumber(
-      value as Api.Tms.BasicData.SensitiveNumber | null | undefined
-    )
+    const formatted = formatSensitiveNumber(value as Api.Fms.SensitiveNumber | null | undefined)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }
 

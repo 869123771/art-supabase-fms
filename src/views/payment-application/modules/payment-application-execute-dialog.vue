@@ -163,7 +163,7 @@
     return `${application.value.carrierName} · ${formatMoney(application.value.amount)} · ${application.value.statementCount} 份对账单`
   })
 
-  function formatMoney(value?: Api.Tms.BasicData.SensitiveNumber): string {
+  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }

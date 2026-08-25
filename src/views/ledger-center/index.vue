@@ -661,7 +661,7 @@
     return { key, label, value, description, icon, tone }
   }
 
-  function numericValue(value: Api.Tms.BasicData.SensitiveNumber | undefined): number | undefined {
+  function numericValue(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
     const result = Number(value)
     return Number.isFinite(result) ? result : undefined
   }
@@ -669,7 +669,7 @@
   function sumRows<T extends object>(rows: T[], key: keyof T): number | undefined {
     let sum = 0
     for (const row of rows) {
-      const value = numericValue(row[key] as Api.Tms.BasicData.SensitiveNumber | undefined)
+      const value = numericValue(row[key] as Api.Fms.SensitiveNumber | undefined)
       if (value === undefined) return undefined
       sum += value
     }
@@ -689,7 +689,7 @@
     return option?.label ?? String(value)
   }
 
-  function moneyCell(value: Api.Tms.BasicData.SensitiveNumber | undefined): string {
+  function moneyCell(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }

@@ -30,8 +30,8 @@
   defineOptions({ name: 'FinanceFundAccountDialog' })
 
   type FormData = Omit<Api.Fms.SaveFundAccountPayload, 'openingBalance' | 'frozenBalance'> & {
-    openingBalance: Api.Tms.BasicData.SensitiveNumber
-    frozenBalance: Api.Tms.BasicData.SensitiveNumber
+    openingBalance: Api.Fms.SensitiveNumber
+    frozenBalance: Api.Fms.SensitiveNumber
     fieldAccess?: Api.Fms.FundAccountFieldAccessMap
   }
   type Account = Api.Fms.FundAccountRecord

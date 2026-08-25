@@ -11,12 +11,20 @@
           display="tag" /></section
       ><div class="payroll-detail__toolbar"
         ><div><strong>员工薪资明细</strong><small>应发、扣款、企业成本与实发金额</small></div
-        ><ElButton
-          v-if="editable"
-          v-auth="'FinancePayroll:Calculate'"
-          type="primary"
-          @click="lineDialogRef?.handleOpen(run)"
-          >新增员工</ElButton
+        ><div v-if="editable" class="payroll-detail__toolbar-actions"
+          ><ElButton
+            v-auth="'FinancePayroll:Calculate'"
+            :loading="importing"
+            plain
+            type="primary"
+            @click="importFromHr"
+            ><ArtSvgIcon icon="ri:download-cloud-2-line" />同步 HR 薪酬</ElButton
+          ><ElButton
+            v-auth="'FinancePayroll:Calculate'"
+            type="primary"
+            @click="lineDialogRef?.handleOpen(run)"
+            >新增员工</ElButton
+          ></div
         ></div
       ><ElTable :data="lines" row-key="id"
         ><ElTableColumn
@@ -69,9 +77,15 @@
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { deletePayrollLine, fetchPayrollLines, fetchPayrollRunDetail } from '@fms/api'
+  import {
+    deletePayrollLine,
+    fetchPayrollLines,
+    fetchPayrollRunDetail,
+    importHrCompensationLines
+  } from '@fms/api'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
@@ -86,6 +100,7 @@
   }>()
   const run = ref<Api.Fms.PayrollRunRecord>()
   const lines = ref<Api.Fms.PayrollLineRecord[]>([])
+  const importing = ref(false)
   const lineFieldAccess = ref<Api.Fms.PayrollFieldAccessMap>({})
   const effectiveLineAccess = computed(() =>
     mergeFieldAccessMaps(lineFieldAccess.value, ...lines.value.map((line) => line.fieldAccess))
@@ -129,6 +144,33 @@
       /* 用户取消 */
     }
   }
+  async function importFromHr(): Promise<void> {
+    if (!run.value) return
+    try {
+      await confirmAction(
+        '系统将导入本薪资月份已批准且有效的 HR 薪酬。已有员工明细会保留，不会被覆盖。',
+        '同步 HR 薪酬',
+        { confirmButtonText: '开始同步', cancelButtonText: '取消', type: 'warning' }
+      )
+      importing.value = true
+      const response = await importHrCompensationLines(run.value.id)
+      const result = response.data
+      if (!result?.eligibleCount) {
+        ElMessage.warning('该月份暂无已批准的 HR 员工薪酬，请先在 HR 薪酬管理中完成定薪与批准')
+      } else if (!result.importedCount) {
+        ElMessage.info(`符合条件的 ${result.skippedCount} 名员工均已有薪资明细，本次未覆盖`)
+      } else {
+        ElMessage.success(
+          `已导入 ${result.importedCount} 名员工，保留 ${result.skippedCount} 条已有明细`
+        )
+      }
+      await reload()
+    } catch {
+      /* 用户取消或服务端权限、状态校验失败时保持当前明细。 */
+    } finally {
+      importing.value = false
+    }
+  }
   async function handleOpen(row: Api.Fms.PayrollRunRecord): Promise<void> {
     run.value = (await fetchPayrollRunDetail(row.id)).data ?? row
     await reload()
@@ -139,7 +181,7 @@
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }
-  function formatProtectedAmount(value: Api.Tms.BasicData.SensitiveNumber | undefined): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
@@ -166,6 +208,19 @@
   .payroll-detail__toolbar > div {
     display: grid;
     gap: 4px;
+  }
+
+  .payroll-detail__toolbar-actions {
+    display: flex !important;
+    grid-auto-flow: column;
+    gap: 8px !important;
+    align-items: center;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      margin-right: 5px;
+    }
   }
 
   .payroll-detail small,

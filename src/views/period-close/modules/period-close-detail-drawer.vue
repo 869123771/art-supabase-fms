@@ -77,9 +77,7 @@
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }
-  function formatProtectedCount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
-  ): string {
+  function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'
     return typeof value === 'string' ? value : value.toLocaleString('zh-CN')
   }

@@ -3,6 +3,7 @@ export {}
 declare global {
   declare namespace Api {
     namespace Fms {
+      type SensitiveNumber = number | string | null
       type ExpenseOcrStatus = 'not_started' | 'processing' | 'succeeded' | 'failed'
       type ReimbursementApprovalStatus =
         | 'draft'
@@ -518,16 +519,16 @@ declare global {
         VoucherLineRecord,
         'exchangeRate' | 'originalAmount' | 'quantity' | 'debitAmount' | 'creditAmount'
       > & {
-        exchangeRate?: Api.Tms.BasicData.SensitiveNumber
-        originalAmount?: Api.Tms.BasicData.SensitiveNumber
-        quantity?: Api.Tms.BasicData.SensitiveNumber
-        debitAmount?: Api.Tms.BasicData.SensitiveNumber
-        creditAmount?: Api.Tms.BasicData.SensitiveNumber
+        exchangeRate?: Api.Fms.SensitiveNumber
+        originalAmount?: Api.Fms.SensitiveNumber
+        quantity?: Api.Fms.SensitiveNumber
+        debitAmount?: Api.Fms.SensitiveNumber
+        creditAmount?: Api.Fms.SensitiveNumber
       }
 
       type SecureVoucherRecord = Omit<VoucherRecord, 'totalDebit' | 'totalCredit' | 'lines'> & {
-        totalDebit?: Api.Tms.BasicData.SensitiveNumber
-        totalCredit?: Api.Tms.BasicData.SensitiveNumber
+        totalDebit?: Api.Fms.SensitiveNumber
+        totalCredit?: Api.Fms.SensitiveNumber
         lines?: SecureVoucherLineRecord[]
         fieldAccess?: VoucherFieldAccessMap
         isRecordOwner?: boolean
@@ -562,7 +563,7 @@ declare global {
         approvedCount: number
         postedCount: number
         reversedCount: number
-        currentPeriodPostedAmount?: Api.Tms.BasicData.SensitiveNumber
+        currentPeriodPostedAmount?: Api.Fms.SensitiveNumber
         fieldAccess?: VoucherFieldAccessMap
       }
 
@@ -818,7 +819,7 @@ declare global {
         ruleId?: string | null
         originVoucherId?: string | null
         voucherId?: string | null
-        attemptCount?: Api.Tms.BasicData.SensitiveNumber
+        attemptCount?: Api.Fms.SensitiveNumber
         lastError?: string | null
         processedAt?: string | null
         createBy?: string | null
@@ -828,7 +829,7 @@ declare global {
           id: string
           voucherNo: string
           status: VoucherStatus | '***'
-          totalDebit?: Api.Tms.BasicData.SensitiveNumber
+          totalDebit?: Api.Fms.SensitiveNumber
         } | null
         fieldAccess?: AutoPostingFieldAccessMap
         isRecordOwner?: boolean
@@ -838,7 +839,7 @@ declare global {
       type FundAccountStatus = 'active' | 'frozen' | 'closed'
       type FundAccountFieldKey = 'accountDetails' | 'accountBalances'
       type FundAccountFieldAccessMap = Partial<
-        Record<FundAccountFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<FundAccountFieldKey, Api.Common.FieldAccessLevel>
       >
       type FundLedgerDirection = 'inflow' | 'outflow'
       type FundLedgerSourceType =
@@ -869,8 +870,8 @@ declare global {
         bankName?: string | null
         bankBranch?: string | null
         accountNoMasked?: string
-        openingBalance?: Api.Tms.BasicData.SensitiveNumber
-        frozenBalance?: Api.Tms.BasicData.SensitiveNumber
+        openingBalance?: Api.Fms.SensitiveNumber
+        frozenBalance?: Api.Fms.SensitiveNumber
         status: FundAccountStatus
         isDefault: boolean
         onlineBankingEnabled: boolean
@@ -882,10 +883,10 @@ declare global {
         createTime: string
         updateBy?: string | null
         updateTime: string
-        inflowAmount?: Api.Tms.BasicData.SensitiveNumber
-        outflowAmount?: Api.Tms.BasicData.SensitiveNumber
-        currentBalance?: Api.Tms.BasicData.SensitiveNumber
-        availableBalance?: Api.Tms.BasicData.SensitiveNumber
+        inflowAmount?: Api.Fms.SensitiveNumber
+        outflowAmount?: Api.Fms.SensitiveNumber
+        currentBalance?: Api.Fms.SensitiveNumber
+        availableBalance?: Api.Fms.SensitiveNumber
         ledgerEntryCount: number
         latestBalanceDate?: string | null
         accountSet?: Pick<AccountSetRecord, 'id' | 'accountSetCode' | 'accountSetName'> | null
@@ -936,7 +937,7 @@ declare global {
         accountType: FundAccountType
         status: FundAccountStatus
         reconciliationEnabled: boolean
-        availableBalance?: Api.Tms.BasicData.SensitiveNumber
+        availableBalance?: Api.Fms.SensitiveNumber
         fieldAccess?: FundAccountFieldAccessMap
         isRecordOwner?: boolean
       }
@@ -944,9 +945,9 @@ declare global {
       interface FundAccountOverview {
         accountCount: number
         activeAccountCount: number
-        baseCurrencyCurrentBalance?: Api.Tms.BasicData.SensitiveNumber
-        baseCurrencyAvailableBalance?: Api.Tms.BasicData.SensitiveNumber
-        baseCurrencyFrozenBalance?: Api.Tms.BasicData.SensitiveNumber
+        baseCurrencyCurrentBalance?: Api.Fms.SensitiveNumber
+        baseCurrencyAvailableBalance?: Api.Fms.SensitiveNumber
+        baseCurrencyFrozenBalance?: Api.Fms.SensitiveNumber
         foreignCurrencyAccountCount: number
         fieldAccess?: FundAccountFieldAccessMap
       }
@@ -959,7 +960,7 @@ declare global {
         entryNo: string
         entryDate: string
         direction: FundLedgerDirection
-        amount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
         sourceType: FundLedgerSourceType
         sourceId?: string | null
         sourceNo?: string | null
@@ -1008,8 +1009,8 @@ declare global {
         sourceAccountId?: string
         targetAccountId?: string
         transferDate: string
-        amount?: Api.Tms.BasicData.SensitiveNumber
-        feeAmount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
+        feeAmount?: Api.Fms.SensitiveNumber
         purpose: string
         bankReference?: string | null
         status: FundTransferStatus
@@ -1091,8 +1092,8 @@ declare global {
         batchNo: string
         statementStartDate: string
         statementEndDate: string
-        openingBalance?: Api.Tms.BasicData.SensitiveNumber
-        closingBalance?: Api.Tms.BasicData.SensitiveNumber
+        openingBalance?: Api.Fms.SensitiveNumber
+        closingBalance?: Api.Fms.SensitiveNumber
         importedFileName?: string | null
         importedAt: string
         importedBy: string
@@ -1116,11 +1117,11 @@ declare global {
         partialCount: number
         ignoredCount: number
         unmatchedCount: number
-        statementInflowAmount?: Api.Tms.BasicData.SensitiveNumber
-        statementOutflowAmount?: Api.Tms.BasicData.SensitiveNumber
-        matchedAmount?: Api.Tms.BasicData.SensitiveNumber
-        calculatedClosingBalance?: Api.Tms.BasicData.SensitiveNumber
-        statementBalanceDifference?: Api.Tms.BasicData.SensitiveNumber
+        statementInflowAmount?: Api.Fms.SensitiveNumber
+        statementOutflowAmount?: Api.Fms.SensitiveNumber
+        matchedAmount?: Api.Fms.SensitiveNumber
+        calculatedClosingBalance?: Api.Fms.SensitiveNumber
+        statementBalanceDifference?: Api.Fms.SensitiveNumber
         fieldAccess?: BankReconciliationFieldAccessMap
         isRecordOwner?: boolean
       }
@@ -1142,8 +1143,8 @@ declare global {
         lineNo: number
         transactionDate: string
         direction: FundLedgerDirection
-        amount?: Api.Tms.BasicData.SensitiveNumber
-        statementBalance?: Api.Tms.BasicData.SensitiveNumber | null
+        amount?: Api.Fms.SensitiveNumber
+        statementBalance?: Api.Fms.SensitiveNumber | null
         counterpartyName?: string | null
         counterpartyAccountMasked?: string | null
         bankReference?: string | null
@@ -1153,8 +1154,8 @@ declare global {
         ignoredReason?: string | null
         ignoredAt?: string | null
         ignoredBy?: string | null
-        matchedAmount?: Api.Tms.BasicData.SensitiveNumber
-        remainingAmount?: Api.Tms.BasicData.SensitiveNumber
+        matchedAmount?: Api.Fms.SensitiveNumber
+        remainingAmount?: Api.Fms.SensitiveNumber
         matchCount: number
         matchTypes?: string | null
         latestMatchedAt?: string | null
@@ -1167,7 +1168,7 @@ declare global {
         tenantId: string
         statementLineId: string
         ledgerEntryId: string
-        matchedAmount?: Api.Tms.BasicData.SensitiveNumber
+        matchedAmount?: Api.Fms.SensitiveNumber
         matchType: BankMatchType
         confidenceScore?: number | null
         matchRemark?: string | null
@@ -1182,7 +1183,7 @@ declare global {
         id: string
         entryDate: string
         summary: string
-        amount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
         sourceNo?: string | null
         bankReference?: string | null
       }
@@ -1220,7 +1221,7 @@ declare global {
         costNoSnapshot: string
         waybillNoSnapshot: string
         expenseItemNameSnapshot: string
-        amountSnapshot?: Api.Tms.BasicData.SensitiveNumber
+        amountSnapshot?: Api.Fms.SensitiveNumber
         occurredOnSnapshot: string
         createTime: string
       }
@@ -1229,7 +1230,7 @@ declare global {
         'reimbursementAmounts' | 'payeeDetails' | 'reimbursementEvidence' | 'paymentExecution'
 
       type ExpenseReimbursementFieldAccessMap = Partial<
-        Record<ExpenseReimbursementFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<ExpenseReimbursementFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface ExpenseReimbursementRecord {
@@ -1243,9 +1244,9 @@ declare global {
         payeeAccount?: string | null
         plannedPaymentDate: string
         paymentMethod?: CashPaymentMethod | '***'
-        totalAmount?: Api.Tms.BasicData.SensitiveNumber
-        paidAmount?: Api.Tms.BasicData.SensitiveNumber
-        remainingAmount?: Api.Tms.BasicData.SensitiveNumber
+        totalAmount?: Api.Fms.SensitiveNumber
+        paidAmount?: Api.Fms.SensitiveNumber
+        remainingAmount?: Api.Fms.SensitiveNumber
         basisUrls?: string[]
         status: ReimbursementApprovalStatus
         submittedAt?: string | null
@@ -1307,8 +1308,8 @@ declare global {
         totalCount: number
         pendingReviewCount: number
         approvedUnconvertedCount: number
-        pendingPaymentAmount?: Api.Tms.BasicData.SensitiveNumber
-        paidAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingPaymentAmount?: Api.Fms.SensitiveNumber
+        paidAmount?: Api.Fms.SensitiveNumber
         fieldAccess?: WaybillCostFieldAccessMap
       }
 
@@ -1394,7 +1395,7 @@ declare global {
       type WaybillCostFieldKey =
         'costAmounts' | 'paymentDetails' | 'driverPhone' | 'expenseLocation' | 'expenseEvidence'
       type WaybillCostFieldAccessMap = Partial<
-        Record<WaybillCostFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<WaybillCostFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface ExpenseItem {
@@ -1454,10 +1455,10 @@ declare global {
         waybillId: string
         expenseItemId: string
         costType: WaybillCostType | string
-        amount: Api.Tms.BasicData.SensitiveNumber
+        amount: Api.Fms.SensitiveNumber
         occurredOn: string
-        quantity?: Api.Tms.BasicData.SensitiveNumber
-        unitPrice?: Api.Tms.BasicData.SensitiveNumber
+        quantity?: Api.Fms.SensitiveNumber
+        unitPrice?: Api.Fms.SensitiveNumber
         providerName?: string | null
         payeeName?: string | null
         paymentChannel?: string | null
@@ -1677,12 +1678,12 @@ declare global {
         driverName?: string | null
         originStation?: string | null
         destinationStation?: string | null
-        receivableAmount?: Api.Tms.BasicData.SensitiveNumber
-        carrierPayableAmount?: Api.Tms.BasicData.SensitiveNumber
-        otherCostAmount?: Api.Tms.BasicData.SensitiveNumber
-        totalCostAmount?: Api.Tms.BasicData.SensitiveNumber
-        grossProfit?: Api.Tms.BasicData.SensitiveNumber
-        grossMargin?: Api.Tms.BasicData.SensitiveNumber
+        receivableAmount?: Api.Fms.SensitiveNumber
+        carrierPayableAmount?: Api.Fms.SensitiveNumber
+        otherCostAmount?: Api.Fms.SensitiveNumber
+        totalCostAmount?: Api.Fms.SensitiveNumber
+        grossProfit?: Api.Fms.SensitiveNumber
+        grossMargin?: Api.Fms.SensitiveNumber
         completedAt?: string | null
         signedAt?: string | null
         createTime?: string
@@ -1693,7 +1694,7 @@ declare global {
 
       type WaybillProfitFieldKey = 'receivableAmounts' | 'costAmounts' | 'profitAmounts'
       type WaybillProfitFieldAccessMap = Partial<
-        Record<WaybillProfitFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<WaybillProfitFieldKey, Api.Common.FieldAccessLevel>
       >
 
       type WaybillProfitSearchParams = Api.Common.CommonSearchParams & {
@@ -1707,12 +1708,12 @@ declare global {
 
       type CustomerStatementFieldKey = 'statementAmounts' | 'settlementAmounts'
       type CustomerStatementFieldAccessMap = Partial<
-        Record<CustomerStatementFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<CustomerStatementFieldKey, Api.Common.FieldAccessLevel>
       >
 
       type CarrierStatementFieldKey = 'statementAmounts' | 'settlementAmounts'
       type CarrierStatementFieldAccessMap = Partial<
-        Record<CarrierStatementFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<CarrierStatementFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface CustomerStatementItem {
@@ -1727,9 +1728,9 @@ declare global {
         originStationSnapshot?: string | null
         destinationStationSnapshot?: string | null
         completedAtSnapshot?: string | null
-        receivableAmount?: Api.Tms.BasicData.SensitiveNumber
-        adjustmentAmount?: Api.Tms.BasicData.SensitiveNumber
-        lineAmount?: Api.Tms.BasicData.SensitiveNumber
+        receivableAmount?: Api.Fms.SensitiveNumber
+        adjustmentAmount?: Api.Fms.SensitiveNumber
+        lineAmount?: Api.Fms.SensitiveNumber
         isActive: boolean
         remark?: string | null
         createBy?: string | null
@@ -1748,9 +1749,9 @@ declare global {
         periodEnd: string
         status: CustomerStatementStatus
         waybillCount: number
-        statementAmount?: Api.Tms.BasicData.SensitiveNumber
-        settledAmount?: Api.Tms.BasicData.SensitiveNumber
-        outstandingAmount?: Api.Tms.BasicData.SensitiveNumber
+        statementAmount?: Api.Fms.SensitiveNumber
+        settledAmount?: Api.Fms.SensitiveNumber
+        outstandingAmount?: Api.Fms.SensitiveNumber
         submittedAt?: string | null
         submittedBy?: string | null
         reviewedAt?: string | null
@@ -1789,7 +1790,7 @@ declare global {
         originStation?: string | null
         destinationStation?: string | null
         completedAt: string
-        receivableAmount?: Api.Tms.BasicData.SensitiveNumber
+        receivableAmount?: Api.Fms.SensitiveNumber
       }
 
       interface CustomerStatementEligibleWaybillSearchParams extends Api.Common.CommonSearchParams {
@@ -1827,9 +1828,9 @@ declare global {
         costTypeSnapshot: string
         occurredOnSnapshot: string
         payeeNameSnapshot?: string | null
-        costAmount?: Api.Tms.BasicData.SensitiveNumber
-        adjustmentAmount?: Api.Tms.BasicData.SensitiveNumber
-        lineAmount?: Api.Tms.BasicData.SensitiveNumber
+        costAmount?: Api.Fms.SensitiveNumber
+        adjustmentAmount?: Api.Fms.SensitiveNumber
+        lineAmount?: Api.Fms.SensitiveNumber
         isActive: boolean
         remark?: string | null
         createBy?: string | null
@@ -1849,9 +1850,9 @@ declare global {
         status: CustomerStatementStatus
         costCount: number
         waybillCount: number
-        statementAmount?: Api.Tms.BasicData.SensitiveNumber
-        settledAmount?: Api.Tms.BasicData.SensitiveNumber
-        outstandingAmount?: Api.Tms.BasicData.SensitiveNumber
+        statementAmount?: Api.Fms.SensitiveNumber
+        settledAmount?: Api.Fms.SensitiveNumber
+        outstandingAmount?: Api.Fms.SensitiveNumber
         submittedAt?: string | null
         submittedBy?: string | null
         reviewedAt?: string | null
@@ -1887,7 +1888,7 @@ declare global {
         waybillNo: string
         waybillStatus: string
         costType: string
-        costAmount?: Api.Tms.BasicData.SensitiveNumber
+        costAmount?: Api.Fms.SensitiveNumber
         occurredOn: string
         payeeName?: string | null
         remark?: string | null
@@ -1941,7 +1942,7 @@ declare global {
         transactionId: string
         statementId: string
         customerId: string
-        allocatedAmount?: Api.Tms.BasicData.SensitiveNumber
+        allocatedAmount?: Api.Fms.SensitiveNumber
         isActive: boolean
         allocatedAt: string
         allocatedBy?: string | null
@@ -1958,7 +1959,7 @@ declare global {
 
       type CashTransactionFieldKey = 'transactionAmounts' | 'bankDetails' | 'voucherEvidence'
       type CashTransactionFieldAccessMap = Partial<
-        Record<CashTransactionFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<CashTransactionFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface CashTransactionRecord {
@@ -1970,9 +1971,9 @@ declare global {
         carrierId?: string | null
         counterpartyName: string
         transactionDate: string
-        amount?: Api.Tms.BasicData.SensitiveNumber
-        allocatedAmount?: Api.Tms.BasicData.SensitiveNumber
-        unallocatedAmount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
+        allocatedAmount?: Api.Fms.SensitiveNumber
+        unallocatedAmount?: Api.Fms.SensitiveNumber
         allocationCount: number
         paymentMethod: CashPaymentMethod
         bankReference?: string | null
@@ -2081,7 +2082,7 @@ declare global {
         transactionId: string
         statementId: string
         carrierId: string
-        allocatedAmount?: Api.Tms.BasicData.SensitiveNumber
+        allocatedAmount?: Api.Fms.SensitiveNumber
         isActive: boolean
         allocatedAt: string
         allocatedBy?: string | null
@@ -2119,7 +2120,7 @@ declare global {
 
       type CarrierPaymentApplicationFieldKey = 'applicationAmounts' | 'basisEvidence'
       type CarrierPaymentApplicationFieldAccessMap = Partial<
-        Record<CarrierPaymentApplicationFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<CarrierPaymentApplicationFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface CarrierPaymentApplicationItem {
@@ -2129,9 +2130,9 @@ declare global {
         statementId: string
         carrierId: string
         statementNoSnapshot: string
-        statementAmountSnapshot?: Api.Tms.BasicData.SensitiveNumber
-        outstandingAmountSnapshot?: Api.Tms.BasicData.SensitiveNumber
-        appliedAmount?: Api.Tms.BasicData.SensitiveNumber
+        statementAmountSnapshot?: Api.Fms.SensitiveNumber
+        outstandingAmountSnapshot?: Api.Fms.SensitiveNumber
+        appliedAmount?: Api.Fms.SensitiveNumber
         remark?: string | null
         createBy?: string | null
         createTime: string
@@ -2146,7 +2147,7 @@ declare global {
         carrierId: string
         carrierName: string
         plannedPaymentDate: string
-        amount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
         paymentMethod: CashPaymentMethod
         basisUrls?: string[]
         status: CarrierPaymentApplicationStatus
@@ -2318,12 +2319,10 @@ declare global {
       }
 
       type InvoiceFieldKey = 'invoiceAmounts' | 'taxIdentity' | 'invoiceAttachments'
-      type InvoiceFieldAccessMap = Partial<
-        Record<InvoiceFieldKey, Api.Tms.BasicData.FieldAccessLevel>
-      >
+      type InvoiceFieldAccessMap = Partial<Record<InvoiceFieldKey, Api.Common.FieldAccessLevel>>
       type InvoiceStatementLinkFieldKey = 'statementAmounts' | 'invoiceAmounts'
       type InvoiceStatementLinkFieldAccessMap = Partial<
-        Record<InvoiceStatementLinkFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<InvoiceStatementLinkFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface InvoiceStatementLinkRecord {
@@ -2337,8 +2336,8 @@ declare global {
         counterpartyName: string
         periodStart: string
         periodEnd: string
-        statementAmount?: Api.Tms.BasicData.SensitiveNumber
-        linkedAmount?: Api.Tms.BasicData.SensitiveNumber
+        statementAmount?: Api.Fms.SensitiveNumber
+        linkedAmount?: Api.Fms.SensitiveNumber
         fieldAccess?: InvoiceStatementLinkFieldAccessMap
         createBy?: string | null
         createTime: string
@@ -2358,15 +2357,15 @@ declare global {
         invoiceCode?: string | null
         invoiceNo?: string | null
         issueDate: string
-        taxRate?: Api.Tms.BasicData.SensitiveNumber
-        amountExcludingTax?: Api.Tms.BasicData.SensitiveNumber
-        taxAmount?: Api.Tms.BasicData.SensitiveNumber
-        totalAmount?: Api.Tms.BasicData.SensitiveNumber
+        taxRate?: Api.Fms.SensitiveNumber
+        amountExcludingTax?: Api.Fms.SensitiveNumber
+        taxAmount?: Api.Fms.SensitiveNumber
+        totalAmount?: Api.Fms.SensitiveNumber
         status: InvoiceStatus
         attachments?: Array<Record<string, unknown>>
         statementCount: number
-        linkedAmount?: Api.Tms.BasicData.SensitiveNumber
-        unlinkedAmount?: Api.Tms.BasicData.SensitiveNumber
+        linkedAmount?: Api.Fms.SensitiveNumber
+        unlinkedAmount?: Api.Fms.SensitiveNumber
         submittedAt?: string | null
         submittedBy?: string | null
         reviewedAt?: string | null
@@ -2393,7 +2392,7 @@ declare global {
         status: InvoiceStatus
         counterpartyNameSnapshot: string
         issueDate: string
-        totalAmount?: Api.Tms.BasicData.SensitiveNumber
+        totalAmount?: Api.Fms.SensitiveNumber
       }
 
       type InvoiceSearchParams = Api.Common.CommonSearchParams & {
@@ -2630,45 +2629,45 @@ declare global {
         | 'operatingAmounts'
 
       type FinanceWorkbenchFieldAccessMap = Partial<
-        Record<FinanceWorkbenchFieldKey, Api.Tms.BasicData.FieldAccessLevel>
+        Record<FinanceWorkbenchFieldKey, Api.Common.FieldAccessLevel>
       >
 
       interface FinanceWorkbenchStats {
-        customerReceivableBalance?: Api.Tms.BasicData.SensitiveNumber
-        carrierPayableBalance?: Api.Tms.BasicData.SensitiveNumber
-        monthReceiptAmount?: Api.Tms.BasicData.SensitiveNumber
-        monthPaymentAmount?: Api.Tms.BasicData.SensitiveNumber
-        monthRevenueAmount?: Api.Tms.BasicData.SensitiveNumber
-        monthCostAmount?: Api.Tms.BasicData.SensitiveNumber
-        monthGrossProfit?: Api.Tms.BasicData.SensitiveNumber
-        receiptCompletionRate?: Api.Tms.BasicData.SensitiveNumber
-        paymentCompletionRate?: Api.Tms.BasicData.SensitiveNumber
-        invoiceMatchRate?: Api.Tms.BasicData.SensitiveNumber
-        costApprovalRate?: Api.Tms.BasicData.SensitiveNumber
+        customerReceivableBalance?: Api.Fms.SensitiveNumber
+        carrierPayableBalance?: Api.Fms.SensitiveNumber
+        monthReceiptAmount?: Api.Fms.SensitiveNumber
+        monthPaymentAmount?: Api.Fms.SensitiveNumber
+        monthRevenueAmount?: Api.Fms.SensitiveNumber
+        monthCostAmount?: Api.Fms.SensitiveNumber
+        monthGrossProfit?: Api.Fms.SensitiveNumber
+        receiptCompletionRate?: Api.Fms.SensitiveNumber
+        paymentCompletionRate?: Api.Fms.SensitiveNumber
+        invoiceMatchRate?: Api.Fms.SensitiveNumber
+        costApprovalRate?: Api.Fms.SensitiveNumber
         pendingCustomerStatementCount: number
-        pendingCustomerStatementAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingCustomerStatementAmount?: Api.Fms.SensitiveNumber
         pendingCarrierStatementCount: number
-        pendingCarrierStatementAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingCarrierStatementAmount?: Api.Fms.SensitiveNumber
         pendingCostCount: number
-        pendingCostAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingCostAmount?: Api.Fms.SensitiveNumber
         unallocatedReceiptCount: number
-        unallocatedReceiptAmount?: Api.Tms.BasicData.SensitiveNumber
+        unallocatedReceiptAmount?: Api.Fms.SensitiveNumber
         unallocatedPaymentCount: number
-        unallocatedPaymentAmount?: Api.Tms.BasicData.SensitiveNumber
+        unallocatedPaymentAmount?: Api.Fms.SensitiveNumber
         draftInvoiceCount: number
-        draftInvoiceAmount?: Api.Tms.BasicData.SensitiveNumber
+        draftInvoiceAmount?: Api.Fms.SensitiveNumber
         pendingInvoiceCount: number
-        pendingInvoiceAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingInvoiceAmount?: Api.Fms.SensitiveNumber
         pendingPaymentApplicationCount: number
-        pendingPaymentApplicationAmount?: Api.Tms.BasicData.SensitiveNumber
+        pendingPaymentApplicationAmount?: Api.Fms.SensitiveNumber
         approvedUnpaidPaymentCount: number
-        approvedUnpaidPaymentAmount?: Api.Tms.BasicData.SensitiveNumber
+        approvedUnpaidPaymentAmount?: Api.Fms.SensitiveNumber
         unapprovedPaymentCount: number
-        unapprovedPaymentAmount?: Api.Tms.BasicData.SensitiveNumber
+        unapprovedPaymentAmount?: Api.Fms.SensitiveNumber
         overdueReceivableCount: number
-        overdueReceivableAmount?: Api.Tms.BasicData.SensitiveNumber
+        overdueReceivableAmount?: Api.Fms.SensitiveNumber
         uninvoicedReceivableCount: number
-        uninvoicedReceivableAmount?: Api.Tms.BasicData.SensitiveNumber
+        uninvoicedReceivableAmount?: Api.Fms.SensitiveNumber
         fieldAccess?: FinanceWorkbenchFieldAccessMap
       }
 
@@ -2771,16 +2770,16 @@ declare global {
         balanceDirection: BalanceDirection
         subjectLevel: number
         isLeaf: boolean
-        openingDebit?: Api.Tms.BasicData.SensitiveNumber
-        openingCredit?: Api.Tms.BasicData.SensitiveNumber
-        periodDebit?: Api.Tms.BasicData.SensitiveNumber
-        periodCredit?: Api.Tms.BasicData.SensitiveNumber
-        yearToDateDebit?: Api.Tms.BasicData.SensitiveNumber
-        yearToDateCredit?: Api.Tms.BasicData.SensitiveNumber
-        endingDebit?: Api.Tms.BasicData.SensitiveNumber
-        endingCredit?: Api.Tms.BasicData.SensitiveNumber
+        openingDebit?: Api.Fms.SensitiveNumber
+        openingCredit?: Api.Fms.SensitiveNumber
+        periodDebit?: Api.Fms.SensitiveNumber
+        periodCredit?: Api.Fms.SensitiveNumber
+        yearToDateDebit?: Api.Fms.SensitiveNumber
+        yearToDateCredit?: Api.Fms.SensitiveNumber
+        endingDebit?: Api.Fms.SensitiveNumber
+        endingCredit?: Api.Fms.SensitiveNumber
         endingDirection?: ProtectedBalanceDirection
-        endingBalance?: Api.Tms.BasicData.SensitiveNumber
+        endingBalance?: Api.Fms.SensitiveNumber
       }
 
       interface GeneralLedgerReportRecord {
@@ -2788,15 +2787,15 @@ declare global {
         periodStart?: string | null
         periodEnd?: string | null
         openingDirection?: ProtectedBalanceDirection
-        openingBalance?: Api.Tms.BasicData.SensitiveNumber
-        debitAmount?: Api.Tms.BasicData.SensitiveNumber
-        creditAmount?: Api.Tms.BasicData.SensitiveNumber
-        yearToDateDebit?: Api.Tms.BasicData.SensitiveNumber
-        yearToDateCredit?: Api.Tms.BasicData.SensitiveNumber
+        openingBalance?: Api.Fms.SensitiveNumber
+        debitAmount?: Api.Fms.SensitiveNumber
+        creditAmount?: Api.Fms.SensitiveNumber
+        yearToDateDebit?: Api.Fms.SensitiveNumber
+        yearToDateCredit?: Api.Fms.SensitiveNumber
         endingDirection?: ProtectedBalanceDirection
-        endingBalance?: Api.Tms.BasicData.SensitiveNumber
-        voucherCount?: Api.Tms.BasicData.SensitiveNumber
-        lineCount?: Api.Tms.BasicData.SensitiveNumber
+        endingBalance?: Api.Fms.SensitiveNumber
+        voucherCount?: Api.Fms.SensitiveNumber
+        lineCount?: Api.Fms.SensitiveNumber
       }
 
       interface SubsidiaryLedgerReportParams extends LedgerReportParams {
@@ -2818,13 +2817,13 @@ declare global {
         summary?: string | null
         auxiliaryDisplay?: string | null
         currencyCode?: string | null
-        originalAmount?: Api.Tms.BasicData.SensitiveNumber
-        quantity?: Api.Tms.BasicData.SensitiveNumber
+        originalAmount?: Api.Fms.SensitiveNumber
+        quantity?: Api.Fms.SensitiveNumber
         unitName?: string | null
-        debitAmount?: Api.Tms.BasicData.SensitiveNumber
-        creditAmount?: Api.Tms.BasicData.SensitiveNumber
+        debitAmount?: Api.Fms.SensitiveNumber
+        creditAmount?: Api.Fms.SensitiveNumber
         balanceDirection?: ProtectedBalanceDirection
-        balanceAmount?: Api.Tms.BasicData.SensitiveNumber
+        balanceAmount?: Api.Fms.SensitiveNumber
       }
 
       type CommercialBillDirection = 'receivable' | 'payable'
@@ -2854,8 +2853,8 @@ declare global {
         counterpartyName?: string | null
         issueDate: string
         dueDate: string
-        faceAmount?: Api.Tms.BasicData.SensitiveNumber
-        settledAmount?: Api.Tms.BasicData.SensitiveNumber
+        faceAmount?: Api.Fms.SensitiveNumber
+        settledAmount?: Api.Fms.SensitiveNumber
         currencyCode: string
         transferable: boolean
         sourceType?: string | null
@@ -2879,7 +2878,7 @@ declare global {
         billId: string
         eventType: CommercialBillEventType
         eventDate: string
-        amount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
         counterpartyName?: string | null
         fundAccountId?: string | null
         referenceNo?: string | null
@@ -2924,8 +2923,8 @@ declare global {
       interface CommercialBillSummary {
         totalCount: number
         activeCount: number
-        receivableOutstanding?: Api.Tms.BasicData.SensitiveNumber | null
-        payableOutstanding?: Api.Tms.BasicData.SensitiveNumber | null
+        receivableOutstanding?: Api.Fms.SensitiveNumber | null
+        payableOutstanding?: Api.Fms.SensitiveNumber | null
         dueWithin30Days: number
         overdueCount: number
         fieldAccess?: CommercialBillFieldAccessMap
@@ -2971,12 +2970,12 @@ declare global {
         acquisitionDate: string
         readyForUseDate: string
         depreciationStartDate: string
-        originalValue?: Api.Tms.BasicData.SensitiveNumber
-        residualValue?: Api.Tms.BasicData.SensitiveNumber
+        originalValue?: Api.Fms.SensitiveNumber
+        residualValue?: Api.Fms.SensitiveNumber
         usefulLifeMonths: number
         depreciatedMonths: number
-        accumulatedDepreciation?: Api.Tms.BasicData.SensitiveNumber
-        impairmentAmount?: Api.Tms.BasicData.SensitiveNumber
+        accumulatedDepreciation?: Api.Fms.SensitiveNumber
+        impairmentAmount?: Api.Fms.SensitiveNumber
         departmentId?: string | null
         employeeId?: string | null
         location?: string | null
@@ -2986,7 +2985,7 @@ declare global {
         sourceId?: string | null
         sourceNo?: string | null
         disposalDate?: string | null
-        disposalAmount?: Api.Tms.BasicData.SensitiveNumber
+        disposalAmount?: Api.Fms.SensitiveNumber
         disposalReason?: string | null
         remark?: string | null
         version: number
@@ -3052,7 +3051,7 @@ declare global {
         runNo: string
         status: AssetDepreciationRunStatus
         assetCount: number
-        totalAmount?: Api.Tms.BasicData.SensitiveNumber
+        totalAmount?: Api.Fms.SensitiveNumber
         voucherId?: string | null
         calculatedAt?: string | null
         postedAt?: string | null
@@ -3067,9 +3066,9 @@ declare global {
         id: string
         runId: string
         assetId: string
-        openingAccumulatedDepreciation?: Api.Tms.BasicData.SensitiveNumber
-        depreciationAmount?: Api.Tms.BasicData.SensitiveNumber
-        closingAccumulatedDepreciation?: Api.Tms.BasicData.SensitiveNumber
+        openingAccumulatedDepreciation?: Api.Fms.SensitiveNumber
+        depreciationAmount?: Api.Fms.SensitiveNumber
+        closingAccumulatedDepreciation?: Api.Fms.SensitiveNumber
         asset?: Pick<FixedAssetRecord, 'id' | 'assetNo' | 'assetName'> | null
         fieldAccess?: FixedAssetFieldAccessMap
         isRecordOwner?: boolean
@@ -3079,9 +3078,9 @@ declare global {
         categoryCount: number
         assetCount: number
         activeCount: number
-        originalValue?: Api.Tms.BasicData.SensitiveNumber | null
-        netValue?: Api.Tms.BasicData.SensitiveNumber | null
-        periodDepreciation?: Api.Tms.BasicData.SensitiveNumber | null
+        originalValue?: Api.Fms.SensitiveNumber | null
+        netValue?: Api.Fms.SensitiveNumber | null
+        periodDepreciation?: Api.Fms.SensitiveNumber | null
         fieldAccess?: FixedAssetFieldAccessMap
       }
 
@@ -3099,11 +3098,11 @@ declare global {
         runNo: string
         payrollMonth: string
         status: PayrollRunStatus
-        employeeCount?: Api.Tms.BasicData.SensitiveNumber
-        grossAmount?: Api.Tms.BasicData.SensitiveNumber
-        deductionAmount?: Api.Tms.BasicData.SensitiveNumber
-        employerCostAmount?: Api.Tms.BasicData.SensitiveNumber
-        netAmount?: Api.Tms.BasicData.SensitiveNumber
+        employeeCount?: Api.Fms.SensitiveNumber
+        grossAmount?: Api.Fms.SensitiveNumber
+        deductionAmount?: Api.Fms.SensitiveNumber
+        employerCostAmount?: Api.Fms.SensitiveNumber
+        netAmount?: Api.Fms.SensitiveNumber
         salaryExpenseSubjectId?: string | null
         salaryPayableSubjectId?: string | null
         taxPayableSubjectId?: string | null
@@ -3130,10 +3129,10 @@ declare global {
         earningItems?: PayrollAmountItems
         deductionItems?: PayrollAmountItems
         employerCostItems?: PayrollAmountItems
-        grossAmount?: Api.Tms.BasicData.SensitiveNumber
-        deductionAmount?: Api.Tms.BasicData.SensitiveNumber
-        employerCostAmount?: Api.Tms.BasicData.SensitiveNumber
-        netAmount?: Api.Tms.BasicData.SensitiveNumber
+        grossAmount?: Api.Fms.SensitiveNumber
+        deductionAmount?: Api.Fms.SensitiveNumber
+        employerCostAmount?: Api.Fms.SensitiveNumber
+        netAmount?: Api.Fms.SensitiveNumber
         remark?: string | null
         createTime: string
         fieldAccess?: PayrollFieldAccessMap
@@ -3144,6 +3143,12 @@ declare global {
         id: string
         employeeNo: string
         employeeName: string
+      }
+
+      interface PayrollHrImportResult {
+        eligibleCount: number
+        importedCount: number
+        skippedCount: number
       }
 
       interface SavePayrollRunPayload {
@@ -3174,9 +3179,9 @@ declare global {
 
       interface PayrollSummary {
         runCount: number
-        employeeCount?: Api.Tms.BasicData.SensitiveNumber | null
-        grossAmount?: Api.Tms.BasicData.SensitiveNumber | null
-        netAmount?: Api.Tms.BasicData.SensitiveNumber | null
+        employeeCount?: Api.Fms.SensitiveNumber | null
+        grossAmount?: Api.Fms.SensitiveNumber | null
+        netAmount?: Api.Fms.SensitiveNumber | null
         pendingCount: number
         fieldAccess?: PayrollFieldAccessMap
       }
@@ -3195,11 +3200,11 @@ declare global {
         accountingPeriodId: string
         taxType: TaxType
         status: TaxPeriodStatus
-        outputTaxAmount?: Api.Tms.BasicData.SensitiveNumber
-        inputTaxAmount?: Api.Tms.BasicData.SensitiveNumber
-        transferableInputAmount?: Api.Tms.BasicData.SensitiveNumber
-        adjustmentAmount?: Api.Tms.BasicData.SensitiveNumber
-        payableAmount?: Api.Tms.BasicData.SensitiveNumber
+        outputTaxAmount?: Api.Fms.SensitiveNumber
+        inputTaxAmount?: Api.Fms.SensitiveNumber
+        transferableInputAmount?: Api.Fms.SensitiveNumber
+        adjustmentAmount?: Api.Fms.SensitiveNumber
+        payableAmount?: Api.Fms.SensitiveNumber
         filingReference?: string | null
         filedAt?: string | null
         filedBy?: string | null
@@ -3219,9 +3224,9 @@ declare global {
         sourceNo?: string | null
         occurredOn: string
         direction: TaxLedgerDirection
-        taxableAmount?: Api.Tms.BasicData.SensitiveNumber
-        taxRate?: Api.Tms.BasicData.SensitiveNumber | null
-        taxAmount?: Api.Tms.BasicData.SensitiveNumber
+        taxableAmount?: Api.Fms.SensitiveNumber
+        taxRate?: Api.Fms.SensitiveNumber | null
+        taxAmount?: Api.Fms.SensitiveNumber
         isDeductible: boolean
         remark?: string | null
         createTime: string
@@ -3260,9 +3265,9 @@ declare global {
 
       interface TaxSummary {
         periodCount: number
-        outputTaxAmount?: Api.Tms.BasicData.SensitiveNumber | null
-        inputTaxAmount?: Api.Tms.BasicData.SensitiveNumber | null
-        payableAmount?: Api.Tms.BasicData.SensitiveNumber | null
+        outputTaxAmount?: Api.Fms.SensitiveNumber | null
+        inputTaxAmount?: Api.Fms.SensitiveNumber | null
+        payableAmount?: Api.Fms.SensitiveNumber | null
         pendingCount: number
         fieldAccess?: TaxFieldAccessMap
       }
@@ -3282,9 +3287,9 @@ declare global {
         accountingPeriodId: string
         runNo: string
         status: PeriodCloseRunStatus
-        passedCount?: Api.Tms.BasicData.SensitiveNumber
-        warningCount?: Api.Tms.BasicData.SensitiveNumber
-        blockingCount?: Api.Tms.BasicData.SensitiveNumber
+        passedCount?: Api.Fms.SensitiveNumber
+        warningCount?: Api.Fms.SensitiveNumber
+        blockingCount?: Api.Fms.SensitiveNumber
         profitLossVoucherId?: string | null
         yearEndVoucherId?: string | null
         completedAt?: string | null
@@ -3305,7 +3310,7 @@ declare global {
         checkName: string
         status?: PeriodCloseCheckStatus | string
         isBlocking?: boolean | string
-        issueCount?: Api.Tms.BasicData.SensitiveNumber
+        issueCount?: Api.Fms.SensitiveNumber
         summary?: string
         detail?: Record<string, unknown> | string
         checkedAt: string
@@ -3321,8 +3326,8 @@ declare global {
       interface PeriodCloseSummary {
         periodCount: number
         closedCount: number
-        checkingCount?: Api.Tms.BasicData.SensitiveNumber | null
-        blockingCount?: Api.Tms.BasicData.SensitiveNumber | null
+        checkingCount?: Api.Fms.SensitiveNumber | null
+        blockingCount?: Api.Fms.SensitiveNumber | null
         latestCompletedAt?: string | null
         fieldAccess?: PeriodCloseFieldAccessMap
       }
@@ -3385,7 +3390,7 @@ declare global {
         createTime: string
         updateBy?: string | null
         updateTime: string
-        ruleCount?: Api.Tms.BasicData.SensitiveNumber
+        ruleCount?: Api.Fms.SensitiveNumber
         mappings?: FinancialStatementMappingRecord[]
         formulas?: FinancialStatementFormulaRecord[]
         fieldAccess?: FinancialReportFieldAccessMap
@@ -3426,9 +3431,9 @@ declare global {
         displayStyle: FinancialStatementDisplayStyle
         calculationMethod: FinancialStatementCalculationMethod
         isLeaf: boolean
-        primaryAmount?: Api.Tms.BasicData.SensitiveNumber
-        secondaryAmount?: Api.Tms.BasicData.SensitiveNumber
-        mappingCount?: Api.Tms.BasicData.SensitiveNumber
+        primaryAmount?: Api.Fms.SensitiveNumber
+        secondaryAmount?: Api.Fms.SensitiveNumber
+        mappingCount?: Api.Fms.SensitiveNumber
         fieldAccess?: FinancialReportFieldAccessMap
         isRecordOwner?: boolean
       }
@@ -3440,7 +3445,7 @@ declare global {
         voucherLineId: string
         statementItemId: string
         flowDirection: CashFlowDirection
-        amount?: Api.Tms.BasicData.SensitiveNumber
+        amount?: Api.Fms.SensitiveNumber
         remark?: string | null
         createTime: string
         updateTime: string

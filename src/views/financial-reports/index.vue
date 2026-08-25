@@ -401,12 +401,12 @@
     return { key, label, value, description, icon, tone }
   }
 
-  function money(value: Api.Tms.BasicData.SensitiveNumber | null | undefined): string {
+  function money(value: Api.Fms.SensitiveNumber | null | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
 
-  function numericValue(value: Api.Tms.BasicData.SensitiveNumber | undefined): number | undefined {
+  function numericValue(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
     const result = Number(value)
     return Number.isFinite(result) ? result : undefined
   }

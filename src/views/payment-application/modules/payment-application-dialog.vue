@@ -150,7 +150,7 @@
     applicationNo: string
     carrierId: string
     plannedPaymentDate: string
-    amount: Api.Tms.BasicData.SensitiveNumber | undefined
+    amount: Api.Fms.SensitiveNumber | undefined
     paymentMethod: Api.Fms.CashPaymentMethod
     basisUrls: string[]
     remark: string
@@ -416,11 +416,11 @@
 
   const round = (value: number): number =>
     Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
-  const sensitiveNumberValue = (value?: Api.Tms.BasicData.SensitiveNumber): number => {
+  const sensitiveNumberValue = (value?: Api.Fms.SensitiveNumber): number => {
     const numericValue = Number(value)
     return Number.isFinite(numericValue) ? numericValue : 0
   }
-  const money = (value?: Api.Tms.BasicData.SensitiveNumber): string => {
+  const money = (value?: Api.Fms.SensitiveNumber): string => {
     const formatted = formatSensitiveNumber(value)
     return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }

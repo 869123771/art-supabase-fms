@@ -576,7 +576,7 @@
   }
   defineExpose({ handleOpen })
 
-  function sensitiveNumberValue(value?: Api.Tms.BasicData.SensitiveNumber): number {
+  function sensitiveNumberValue(value?: Api.Fms.SensitiveNumber): number {
     const numeric = Number(value)
     return Number.isFinite(numeric) ? numeric : 0
   }

@@ -387,12 +387,12 @@
   async function refreshAll() {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
   }
-  function toFiniteNumber(value: Api.Tms.BasicData.SensitiveNumber | undefined | null): number {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined | null): number {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : 0
   }
   function formatProtectedCount(
-    value: Api.Tms.BasicData.SensitiveNumber | undefined | null
+    value: Api.Fms.SensitiveNumber | undefined | null
   ): string | number {
     if (value === null || value === undefined || value === '') return '--'
     return typeof value === 'string' ? value : value.toLocaleString('zh-CN')

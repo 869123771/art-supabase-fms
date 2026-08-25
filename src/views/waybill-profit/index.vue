@@ -124,7 +124,7 @@
     }
   ])
 
-  const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber): string => {
+  const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
     const formatted = formatSensitiveNumber(value, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2

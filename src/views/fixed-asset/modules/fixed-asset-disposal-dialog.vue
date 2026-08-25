@@ -244,7 +244,7 @@
     void router.push({ name: financeRouteNames.fundAccount })
   }
 
-  function toFiniteNumber(value: Api.Tms.BasicData.SensitiveNumber | undefined): number {
+  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
     const numberValue = Number(value)
     return Number.isFinite(numberValue) ? numberValue : 0
   }

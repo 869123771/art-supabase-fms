@@ -130,7 +130,7 @@
     return items
   })
 
-  function formatProtectedAmount(value: Api.Tms.BasicData.SensitiveNumber | undefined): string {
+  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value, bill.value?.currencyCode)
   }
