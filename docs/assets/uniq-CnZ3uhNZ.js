@@ -1,0 +1,1 @@
+import{l as e}from"./art-form-rW3nawA5.js";function t(t){return t&&t.length?e(t):[]}export{t};
