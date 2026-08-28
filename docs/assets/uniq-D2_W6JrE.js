@@ -1,0 +1,1 @@
+import{l as e}from"./art-form-DIBVjYQ-.js";function t(t){return t&&t.length?e(t):[]}export{t};
