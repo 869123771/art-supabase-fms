@@ -1,113 +1,112 @@
 <template>
-  <FinanceAccountingWorkspaceShell
-    v-auth="'FinanceReceivableAging:View'"
-    class="receivable-aging-page"
-  >
-    <BusinessWorkspaceHeader
-      eyebrow="RECEIVABLE AGING"
-      title="应收账龄"
-      description="按账期结束日拆分未结客户应收，识别长期挂账与客户集中度，为催收顺序提供依据。"
-      icon="ri:hourglass-line"
-      :tags="[
-        { label: '五档账龄', type: 'primary' },
-        { label: '客户集中度', type: 'warning' },
-        { label: '敏感金额保护', type: 'info' }
-      ]"
-      :metrics="metrics"
-      refreshable
-      refresh-label="刷新应收账龄"
-      :refresh-loading="loading"
-      @refresh="loadOverview"
-    />
+  <ArtPermissionGuard permission="FinanceReceivableAging:View">
+    <FinanceAccountingWorkspaceShell class="receivable-aging-page">
+      <BusinessWorkspaceHeader
+        eyebrow="RECEIVABLE AGING"
+        title="应收账龄"
+        description="按账期结束日拆分未结客户应收，识别长期挂账与客户集中度，为催收顺序提供依据。"
+        icon="ri:hourglass-line"
+        :tags="[
+          { label: '五档账龄', type: 'primary' },
+          { label: '客户集中度', type: 'warning' },
+          { label: '敏感金额保护', type: 'info' }
+        ]"
+        :metrics="metrics"
+        refreshable
+        refresh-label="刷新应收账龄"
+        :refresh-loading="loading"
+        @refresh="loadOverview"
+      />
 
-    <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-      <template #default
-        ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
-      >
-    </ElAlert>
-    <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
-    <template v-else-if="overview">
-      <ElAlert
-        v-if="overview.truncated"
-        type="warning"
-        show-icon
-        :closable="false"
-        :title="`应收单据较多，当前展示 ${overview.returnedRecords} / ${overview.totalRecords} 笔`"
-        description="本页账龄、金额与客户汇总基于当前返回的数据集。"
-      />
-      <ElAlert
-        v-if="!overview.readable"
-        type="info"
-        show-icon
-        :closable="false"
-        title="金额字段已按权限隐藏"
-        description="仍可查看账龄数量和逾期天数；页面不会通过汇总计算绕过字段权限。"
-      />
-      <ArtSectionCard class="receivable-aging-page__workspace" preserve-content-structure>
-        <template #header
-          ><header>
-            <div>
-              <ArtSectionTitle :show-line="false">账龄结构</ArtSectionTitle>
-              <p>未结客户对账单共 {{ overview.statementCount }} 笔，更新时间 {{ generatedAt }}</p>
-            </div>
-          </header></template
+      <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
+        <template #default
+          ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
         >
-        <div class="receivable-aging-page__buckets">
-          <article v-for="bucket in overview.buckets" :key="bucket.key">
-            <div
-              ><span>{{ bucketMeta[bucket.key].label }}</span
-              ><small>{{ bucket.statementCount }} 笔</small></div
-            >
-            <strong>{{ formatMoney(bucket.amount) }}</strong>
-            <span class="receivable-aging-page__bar">
-              <i :style="{ width: `${bucketWidth(bucket.amount)}%` }"></i>
-            </span>
-          </article>
-        </div>
-      </ArtSectionCard>
-      <ArtSectionCard
-        class="receivable-aging-page__customers"
-        preserve-content-structure
-        title="重点客户应收"
-      >
-        <ElEmpty v-if="!overview.customers.length" description="当前没有未结客户应收" />
-        <ol v-else>
-          <li
-            v-for="(customer, index) in overview.customers.slice(0, 10)"
-            :key="customer.customerId"
+      </ElAlert>
+      <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
+      <template v-else-if="overview">
+        <ElAlert
+          v-if="overview.truncated"
+          type="warning"
+          show-icon
+          :closable="false"
+          :title="`应收单据较多，当前展示 ${overview.returnedRecords} / ${overview.totalRecords} 笔`"
+          description="本页账龄、金额与客户汇总基于当前返回的数据集。"
+        />
+        <ElAlert
+          v-if="!overview.readable"
+          type="info"
+          show-icon
+          :closable="false"
+          title="金额字段已按权限隐藏"
+          description="仍可查看账龄数量和逾期天数；页面不会通过汇总计算绕过字段权限。"
+        />
+        <ArtSectionCard class="receivable-aging-page__workspace" preserve-content-structure>
+          <template #header
+            ><header>
+              <div>
+                <ArtSectionTitle :show-line="false">账龄结构</ArtSectionTitle>
+                <p>未结客户对账单共 {{ overview.statementCount }} 笔，更新时间 {{ generatedAt }}</p>
+              </div>
+            </header></template
           >
-            <span class="receivable-aging-page__rank">{{ index + 1 }}</span>
-            <div
-              ><strong>{{ customer.customerName }}</strong
-              ><small
-                >{{ customer.statementCount }} 笔 · 最长 {{ customer.oldestAgingDays }} 天</small
-              ></div
+          <div class="receivable-aging-page__buckets">
+            <article v-for="bucket in overview.buckets" :key="bucket.key">
+              <div
+                ><span>{{ bucketMeta[bucket.key].label }}</span
+                ><small>{{ bucket.statementCount }} 笔</small></div
+              >
+              <strong>{{ formatMoney(bucket.amount) }}</strong>
+              <span class="receivable-aging-page__bar">
+                <i :style="{ width: `${bucketWidth(bucket.amount)}%` }"></i>
+              </span>
+            </article>
+          </div>
+        </ArtSectionCard>
+        <ArtSectionCard
+          class="receivable-aging-page__customers"
+          preserve-content-structure
+          title="重点客户应收"
+        >
+          <ElEmpty v-if="!overview.customers.length" description="当前没有未结客户应收" />
+          <ol v-else>
+            <li
+              v-for="(customer, index) in overview.customers.slice(0, 10)"
+              :key="customer.customerId"
             >
-            <strong>{{ formatMoney(customer.amount) }}</strong>
-            <ElTag
-              :type="
-                customer.oldestAgingDays > 90
-                  ? 'danger'
-                  : customer.oldestAgingDays > 30
-                    ? 'warning'
-                    : 'info'
-              "
-              effect="light"
-              round
-            >
-              {{
-                customer.oldestAgingDays > 90
-                  ? '长期挂账'
-                  : customer.oldestAgingDays > 30
-                    ? '需关注'
-                    : '账期内'
-              }}
-            </ElTag>
-          </li>
-        </ol>
-      </ArtSectionCard>
-    </template>
-  </FinanceAccountingWorkspaceShell>
+              <span class="receivable-aging-page__rank">{{ index + 1 }}</span>
+              <div
+                ><strong>{{ customer.customerName }}</strong
+                ><small
+                  >{{ customer.statementCount }} 笔 · 最长 {{ customer.oldestAgingDays }} 天</small
+                ></div
+              >
+              <strong>{{ formatMoney(customer.amount) }}</strong>
+              <ElTag
+                :type="
+                  customer.oldestAgingDays > 90
+                    ? 'danger'
+                    : customer.oldestAgingDays > 30
+                      ? 'warning'
+                      : 'info'
+                "
+                effect="light"
+                round
+              >
+                {{
+                  customer.oldestAgingDays > 90
+                    ? '长期挂账'
+                    : customer.oldestAgingDays > 30
+                      ? '需关注'
+                      : '账期内'
+                }}
+              </ElTag>
+            </li>
+          </ol>
+        </ArtSectionCard>
+      </template>
+    </FinanceAccountingWorkspaceShell>
+  </ArtPermissionGuard>
 </template>
 
 <script setup lang="ts">

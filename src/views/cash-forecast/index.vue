@@ -1,98 +1,100 @@
 <template>
-  <FinanceAccountingWorkspaceShell v-auth="'FinanceCashForecast:View'" class="cash-forecast-page">
-    <BusinessWorkspaceHeader
-      eyebrow="CASH FORECAST"
-      title="资金预测"
-      description="结合可用资金、未结应收、未结应付与近 30 日真实流水，形成 7/15/30 天资金压力前瞻。"
-      icon="ri:funds-line"
-      :tags="[
-        { label: '滚动 30 天', type: 'primary' },
-        { label: '收付联动', type: 'success' },
-        { label: '敏感金额保护', type: 'info' }
-      ]"
-      :metrics="metrics"
-      refreshable
-      refresh-label="刷新资金预测"
-      :refresh-loading="loading"
-      @refresh="loadForecast"
-    />
-
-    <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-      <template #default>
-        <ElButton type="primary" link @click="loadForecast">重新加载</ElButton>
-      </template>
-    </ElAlert>
-
-    <ElSkeleton v-else-if="loading && !forecast" :rows="7" animated />
-
-    <template v-else-if="forecast">
-      <ElAlert
-        :type="pressureMeta[forecast.pressureLevel].type"
-        show-icon
-        :closable="false"
-        :title="pressureMeta[forecast.pressureLevel].title"
-        :description="pressureMeta[forecast.pressureLevel].description"
+  <ArtPermissionGuard permission="FinanceCashForecast:View">
+    <FinanceAccountingWorkspaceShell class="cash-forecast-page">
+      <BusinessWorkspaceHeader
+        eyebrow="CASH FORECAST"
+        title="资金预测"
+        description="结合可用资金、未结应收、未结应付与近 30 日真实流水，形成 7/15/30 天资金压力前瞻。"
+        icon="ri:funds-line"
+        :tags="[
+          { label: '滚动 30 天', type: 'primary' },
+          { label: '收付联动', type: 'success' },
+          { label: '敏感金额保护', type: 'info' }
+        ]"
+        :metrics="metrics"
+        refreshable
+        refresh-label="刷新资金预测"
+        :refresh-loading="loading"
+        @refresh="loadForecast"
       />
 
-      <ArtSectionCard class="cash-forecast-page__workspace" preserve-content-structure>
-        <template #header
-          ><header class="cash-forecast-page__section-header">
-            <div>
-              <ArtSectionTitle :show-line="false">滚动资金曲线</ArtSectionTitle>
-              <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
-            </div>
-            <ElTag :type="pressureMeta[forecast.pressureLevel].tagType" effect="light" round>
-              {{ pressureMeta[forecast.pressureLevel].label }}
-            </ElTag>
-          </header></template
+      <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
+        <template #default>
+          <ElButton type="primary" link @click="loadForecast">重新加载</ElButton>
+        </template>
+      </ElAlert>
+
+      <ElSkeleton v-else-if="loading && !forecast" :rows="7" animated />
+
+      <template v-else-if="forecast">
+        <ElAlert
+          :type="pressureMeta[forecast.pressureLevel].type"
+          show-icon
+          :closable="false"
+          :title="pressureMeta[forecast.pressureLevel].title"
+          :description="pressureMeta[forecast.pressureLevel].description"
+        />
+
+        <ArtSectionCard class="cash-forecast-page__workspace" preserve-content-structure>
+          <template #header
+            ><header class="cash-forecast-page__section-header">
+              <div>
+                <ArtSectionTitle :show-line="false">滚动资金曲线</ArtSectionTitle>
+                <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
+              </div>
+              <ElTag :type="pressureMeta[forecast.pressureLevel].tagType" effect="light" round>
+                {{ pressureMeta[forecast.pressureLevel].label }}
+              </ElTag>
+            </header></template
+          >
+
+          <div class="cash-forecast-page__horizons">
+            <article v-for="item in forecast.horizons" :key="item.days">
+              <div class="cash-forecast-page__horizon-title">
+                <span>{{ item.days }} 天</span>
+                <ArtSvgIcon icon="ri:calendar-schedule-line" />
+              </div>
+              <strong>{{ formatMoney(item.projectedBalance) }}</strong>
+              <dl>
+                <div>
+                  <dt>预计流入</dt>
+                  <dd class="is-inflow">+{{ formatMoney(item.expectedInflow) }}</dd>
+                </div>
+                <div>
+                  <dt>预计流出</dt>
+                  <dd class="is-outflow">-{{ formatMoney(item.expectedOutflow) }}</dd>
+                </div>
+              </dl>
+            </article>
+          </div>
+        </ArtSectionCard>
+
+        <ArtSectionCard
+          class="cash-forecast-page__explain"
+          preserve-content-structure
+          title="预测口径与行动建议"
         >
-
-        <div class="cash-forecast-page__horizons">
-          <article v-for="item in forecast.horizons" :key="item.days">
-            <div class="cash-forecast-page__horizon-title">
-              <span>{{ item.days }} 天</span>
-              <ArtSvgIcon icon="ri:calendar-schedule-line" />
+          <div class="cash-forecast-page__explain-grid">
+            <div>
+              <span><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
+              <strong>{{ formatMoney(forecast.receivableOutstanding) }}</strong>
+              <p>来自待复核、已确认和部分核销客户对账单的未结金额。</p>
             </div>
-            <strong>{{ formatMoney(item.projectedBalance) }}</strong>
-            <dl>
-              <div>
-                <dt>预计流入</dt>
-                <dd class="is-inflow">+{{ formatMoney(item.expectedInflow) }}</dd>
-              </div>
-              <div>
-                <dt>预计流出</dt>
-                <dd class="is-outflow">-{{ formatMoney(item.expectedOutflow) }}</dd>
-              </div>
-            </dl>
-          </article>
-        </div>
-      </ArtSectionCard>
-
-      <ArtSectionCard
-        class="cash-forecast-page__explain"
-        preserve-content-structure
-        title="预测口径与行动建议"
-      >
-        <div class="cash-forecast-page__explain-grid">
-          <div>
-            <span><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
-            <strong>{{ formatMoney(forecast.receivableOutstanding) }}</strong>
-            <p>来自待复核、已确认和部分核销客户对账单的未结金额。</p>
+            <div>
+              <span><ArtSvgIcon icon="ri:arrow-right-up-line" />支出侧</span>
+              <strong>{{ formatMoney(forecast.payableOutstanding) }}</strong>
+              <p>来自待复核、已确认和部分结算承运商对账单的未结金额。</p>
+            </div>
+            <div>
+              <span><ArtSvgIcon icon="ri:line-chart-line" />趋势侧</span>
+              <strong>{{ formatSignedMoney(forecast.historicalNetFlow30d) }}</strong>
+              <p>近 30 日已入账资金流水净额，用于判断预测与近期真实趋势是否背离。</p>
+            </div>
           </div>
-          <div>
-            <span><ArtSvgIcon icon="ri:arrow-right-up-line" />支出侧</span>
-            <strong>{{ formatMoney(forecast.payableOutstanding) }}</strong>
-            <p>来自待复核、已确认和部分结算承运商对账单的未结金额。</p>
-          </div>
-          <div>
-            <span><ArtSvgIcon icon="ri:line-chart-line" />趋势侧</span>
-            <strong>{{ formatSignedMoney(forecast.historicalNetFlow30d) }}</strong>
-            <p>近 30 日已入账资金流水净额，用于判断预测与近期真实趋势是否背离。</p>
-          </div>
-        </div>
-      </ArtSectionCard>
-    </template>
-  </FinanceAccountingWorkspaceShell>
+        </ArtSectionCard>
+      </template>
+    </FinanceAccountingWorkspaceShell>
+  </ArtPermissionGuard>
 </template>
 
 <script setup lang="ts">

@@ -1,118 +1,117 @@
 <template>
-  <FinanceAccountingWorkspaceShell
-    v-auth="'FinanceExceptionCenter:View'"
-    class="financial-exception-page"
-  >
-    <BusinessWorkspaceHeader
-      eyebrow="FINANCIAL EXCEPTION CONTROL"
-      title="财务异常中心"
-      description="统一汇总自动入账、银行对账、费用审核、逾期应收和月结阻断，按风险优先级组织处理顺序。"
-      icon="ri:alarm-warning-line"
-      :tags="[
-        { label: '跨流程汇总', type: 'primary' },
-        { label: '不展示敏感金额', type: 'info' },
-        { label: '风险优先', type: 'warning' }
-      ]"
-      :metrics="metrics"
-      refreshable
-      refresh-label="刷新财务异常"
-      :refresh-loading="loading"
-      @refresh="loadOverview"
-    />
-
-    <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-      <template #default
-        ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
-      >
-    </ElAlert>
-    <ElSkeleton v-else-if="loading && !overview" :rows="8" animated />
-    <template v-else-if="overview">
-      <ElAlert
-        :type="health.type"
-        show-icon
-        :closable="false"
-        :title="health.title"
-        :description="health.description"
+  <ArtPermissionGuard permission="FinanceExceptionCenter:View">
+    <FinanceAccountingWorkspaceShell class="financial-exception-page">
+      <BusinessWorkspaceHeader
+        eyebrow="FINANCIAL EXCEPTION CONTROL"
+        title="财务异常中心"
+        description="统一汇总自动入账、银行对账、费用审核、逾期应收和月结阻断，按风险优先级组织处理顺序。"
+        icon="ri:alarm-warning-line"
+        :tags="[
+          { label: '跨流程汇总', type: 'primary' },
+          { label: '不展示敏感金额', type: 'info' },
+          { label: '风险优先', type: 'warning' }
+        ]"
+        :metrics="metrics"
+        refreshable
+        refresh-label="刷新财务异常"
+        :refresh-loading="loading"
+        @refresh="loadOverview"
       />
 
-      <ArtSectionCard class="financial-exception-page__workspace" preserve-content-structure>
-        <template #header
-          ><header>
-            <div>
-              <ArtSectionTitle :show-line="false">异常处置队列</ArtSectionTitle>
-              <p>相同业务的操作权限仍由目标页面独立校验，更新时间 {{ generatedAt }}</p>
-            </div>
-            <ElRadioGroup v-model="activeCategory" size="small" aria-label="财务异常类别">
-              <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
-              <ElRadioButton
-                v-for="category in categoryOptions"
-                :key="category.value"
-                :value="category.value"
-              >
-                {{ category.label }} {{ categoryCount(category.value) }}
-              </ElRadioButton>
-            </ElRadioGroup>
-          </header></template
+      <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
+        <template #default
+          ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
         >
-
+      </ElAlert>
+      <ElSkeleton v-else-if="loading && !overview" :rows="8" animated />
+      <template v-else-if="overview">
         <ElAlert
-          v-if="overview.truncated"
-          type="warning"
+          :type="health.type"
           show-icon
           :closable="false"
-          :title="`异常数量较多，当前展示 ${overview.returnedIssues} / ${overview.totalIssues} 条`"
-          description="队列已优先返回严重和较新的异常。"
+          :title="health.title"
+          :description="health.description"
         />
-        <ElEmpty v-if="!filteredIssues.length" description="当前分类没有待处理异常" />
-        <ol v-else class="financial-exception-page__issues">
-          <li v-for="issue in filteredIssues" :key="issue.id" :class="`is-${issue.severity}`">
-            <span class="financial-exception-page__signal" aria-hidden="true"></span>
-            <div class="financial-exception-page__issue-main">
+
+        <ArtSectionCard class="financial-exception-page__workspace" preserve-content-structure>
+          <template #header
+            ><header>
               <div>
-                <ElTag :type="categoryMeta[issue.category].type" effect="light" size="small">
-                  {{ categoryMeta[issue.category].label }}
-                </ElTag>
-                <ElTag :type="severityType(issue.severity)" effect="plain" size="small">
-                  {{ severityLabel[issue.severity] }}
-                </ElTag>
+                <ArtSectionTitle :show-line="false">异常处置队列</ArtSectionTitle>
+                <p>相同业务的操作权限仍由目标页面独立校验，更新时间 {{ generatedAt }}</p>
               </div>
-              <strong>{{ issue.title }}</strong>
-              <p v-if="issue.category === 'cost' && costDescription(issue).costType">
-                <span>{{ costDescription(issue).context }}</span>
-                <span aria-hidden="true"> · </span>
-                <ArtDictDisplay
-                  dict-code="fmsPostingWaybillCostType"
-                  :value="costDescription(issue).costType"
-                  display="text"
+              <ElRadioGroup v-model="activeCategory" size="small" aria-label="财务异常类别">
+                <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
+                <ElRadioButton
+                  v-for="category in categoryOptions"
+                  :key="category.value"
+                  :value="category.value"
+                >
+                  {{ category.label }} {{ categoryCount(category.value) }}
+                </ElRadioButton>
+              </ElRadioGroup>
+            </header></template
+          >
+
+          <ElAlert
+            v-if="overview.truncated"
+            type="warning"
+            show-icon
+            :closable="false"
+            :title="`异常数量较多，当前展示 ${overview.returnedIssues} / ${overview.totalIssues} 条`"
+            description="队列已优先返回严重和较新的异常。"
+          />
+          <ElEmpty v-if="!filteredIssues.length" description="当前分类没有待处理异常" />
+          <ol v-else class="financial-exception-page__issues">
+            <li v-for="issue in filteredIssues" :key="issue.id" :class="`is-${issue.severity}`">
+              <span class="financial-exception-page__signal" aria-hidden="true"></span>
+              <div class="financial-exception-page__issue-main">
+                <div>
+                  <ElTag :type="categoryMeta[issue.category].type" effect="light" size="small">
+                    {{ categoryMeta[issue.category].label }}
+                  </ElTag>
+                  <ElTag :type="severityType(issue.severity)" effect="plain" size="small">
+                    {{ severityLabel[issue.severity] }}
+                  </ElTag>
+                </div>
+                <strong>{{ issue.title }}</strong>
+                <p v-if="issue.category === 'cost' && costDescription(issue).costType">
+                  <span>{{ costDescription(issue).context }}</span>
+                  <span aria-hidden="true"> · </span>
+                  <ArtDictDisplay
+                    dict-code="fmsPostingWaybillCostType"
+                    :value="costDescription(issue).costType"
+                    display="text"
+                  />
+                </p>
+                <p v-else>{{ issue.description || '请进入对应业务页面核对异常上下文。' }}</p>
+              </div>
+              <div class="financial-exception-page__evidence">
+                <span>业务编号</span>
+                <BusinessRecordLink
+                  v-if="issue.sourceNo"
+                  :label="issue.sourceNo"
+                  :to="issueDetailPath(issue)"
+                  compact
                 />
-              </p>
-              <p v-else>{{ issue.description || '请进入对应业务页面核对异常上下文。' }}</p>
-            </div>
-            <div class="financial-exception-page__evidence">
-              <span>业务编号</span>
-              <BusinessRecordLink
-                v-if="issue.sourceNo"
-                :label="issue.sourceNo"
-                :to="issueDetailPath(issue)"
-                compact
-              />
-              <strong v-else>--</strong>
-              <small>{{ issue.occurredAt ? formatWithDayjs(issue.occurredAt) : '--' }}</small>
-            </div>
-            <RouterLink
-              v-if="hasAuth(requiredPermission[issue.category])"
-              class="financial-exception-page__route"
-              :to="issue.routePath"
-            >
-              {{ issue.routeLabel }}
-              <ArtSvgIcon icon="ri:arrow-right-line" />
-            </RouterLink>
-            <span v-else class="financial-exception-page__limited">需目标页面权限</span>
-          </li>
-        </ol>
-      </ArtSectionCard>
-    </template>
-  </FinanceAccountingWorkspaceShell>
+                <strong v-else>--</strong>
+                <small>{{ issue.occurredAt ? formatWithDayjs(issue.occurredAt) : '--' }}</small>
+              </div>
+              <RouterLink
+                v-if="hasAuth(requiredPermission[issue.category])"
+                class="financial-exception-page__route"
+                :to="issue.routePath"
+              >
+                {{ issue.routeLabel }}
+                <ArtSvgIcon icon="ri:arrow-right-line" />
+              </RouterLink>
+              <span v-else class="financial-exception-page__limited">需目标页面权限</span>
+            </li>
+          </ol>
+        </ArtSectionCard>
+      </template>
+    </FinanceAccountingWorkspaceShell>
+  </ArtPermissionGuard>
 </template>
 
 <script setup lang="ts">

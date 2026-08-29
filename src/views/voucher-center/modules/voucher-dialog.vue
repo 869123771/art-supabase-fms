@@ -43,18 +43,14 @@
               <ArtSectionTitle :show-line="false">原始凭证附件</ArtSectionTitle>
               <p>支持上传回单、发票、合同或其他记账依据，附件与凭证一并留存。</p>
             </div>
-            <ArtExcelImport
+            <ArtUploadFile
               v-if="canEditAttachments"
-              accept=""
-              :parse-excel="false"
-              :disabled="form.attachmentUploading"
-              :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
-              @file-change="handleAttachmentUpload"
-            >
-              上传附件
-            </ArtExcelImport>
-          </div></template
-        >
+              title="上传附件"
+              :show-file-list="false"
+              :show-tip="false"
+              @upload-success="handleAttachmentUpload"
+            /> </div
+        ></template>
         <ArtTable
           :data="form.data.attachments"
           :columns="attachmentColumns"
@@ -97,13 +93,12 @@
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtExcelImport from '@/components/core/forms/art-excel-import/index.vue'
+  import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import type { ColumnOption } from '@/types'
-  import { uploadAttachment } from '@/api/common'
   import {
     fetchCashFlowAllocations,
     fetchFinancialStatementItems,
@@ -145,7 +140,6 @@
     data: FormData
     items: ComputedRef<FormItem[]>
     rules: FormRules<FormData>
-    attachmentUploading: boolean
   }
 
   const emit = defineEmits<{ success: [mode: SubmitMode] }>()
@@ -206,7 +200,6 @@
 
   const form: UnwrapNestedRefs<FormGroup> = reactive<FormGroup>({
     data: createInitialForm(),
-    attachmentUploading: false,
     items: computed<FormItem[]>(() => [
       {
         label: '账套',
@@ -451,27 +444,20 @@
     }
   }
 
-  async function handleAttachmentUpload(file: File): Promise<void> {
-    form.attachmentUploading = true
-    try {
-      const [resource] = await uploadAttachment(file)
-      if (!resource?.url) throw new Error('附件上传失败')
-      if (form.data.attachments.some((item) => item.url === resource.url)) {
-        ElMessage.info('该附件已在当前凭证中')
-        return
-      }
-      form.data.attachments.push({
-        name: resource.originName || file.name,
-        url: resource.url,
-        fileType: getFileExtension(file.name, resource.suffix),
-        fileSize: resource.sizeInfo
-      })
-      ElMessage.success('附件上传成功')
-    } catch {
-      ElMessage.error('附件上传失败')
-    } finally {
-      form.attachmentUploading = false
+  function handleAttachmentUpload(resource: Api.DataCenter.Resources.ResourceListItem): void {
+    if (!resource.url) return
+    if (form.data.attachments.some((item) => item.url === resource.url)) {
+      ElMessage.info('该附件已在当前凭证中')
+      return
     }
+    const fileName = resource.originName || resource.objectName || '附件'
+    form.data.attachments.push({
+      name: fileName,
+      url: resource.url,
+      fileType: getFileExtension(fileName, resource.suffix),
+      fileSize: resource.sizeInfo
+    })
+    ElMessage.success('附件上传成功')
   }
 
   function removeAttachment(row: Api.Fms.VoucherAttachment): void {
