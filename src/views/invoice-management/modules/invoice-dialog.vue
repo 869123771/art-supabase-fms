@@ -38,11 +38,23 @@
             description-key="partyCode"
             placeholder="请选择往来单位"
             search-placeholder="名称、编码、联系人或电话"
+            empty-text="暂无可选往来单位"
+            :empty-description="
+              form.data.direction === 'output'
+                ? '当前租户没有匹配的启用客户，请先维护客户主数据。'
+                : '当前租户没有匹配的启用承运商，请先维护承运商主数据。'
+            "
             dialog-width="lg"
             show-pagination
             :page-size="10"
             @change="handlePartyChange"
-          />
+          >
+            <template #empty>
+              <FinanceDataSourceEmptyActions
+                :source="form.data.direction === 'output' ? 'customer' : 'carrier'"
+              />
+            </template>
+          </ArtTableSingleSelect>
 
           <div
             v-if="counterpartyResolution.status !== 'idle'"
@@ -95,7 +107,17 @@
           show-selected-panel
           :page-size="10"
           :disabled="!form.data.counterpartyId || !canEditInvoiceField('invoiceAmounts')"
-        />
+          empty-text="暂无可关联对账单"
+          empty-description="请先生成并确认对应往来单位的对账单，再返回关联发票。"
+        >
+          <template #empty>
+            <FinanceDataSourceEmptyActions
+              :source="
+                form.data.direction === 'output' ? 'customer-statement' : 'carrier-statement'
+              "
+            />
+          </template>
+        </ArtTableMultipleSelect>
       </template>
     </ArtForm>
 
@@ -187,6 +209,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

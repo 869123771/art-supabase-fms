@@ -24,9 +24,13 @@
           description-key="carrierCode"
           placeholder="请选择承运商"
           search-placeholder="承运商名称、编码或联系人"
+          empty-text="暂无可选承运商"
+          empty-description="当前租户没有匹配的启用承运商，请先维护承运商主数据。"
           dialog-width="lg"
           @change="handleCriteriaChange"
-        />
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="carrier" /></template>
+        </ArtTableSingleSelect>
       </template>
       <template #costIds>
         <ArtTableMultipleSelect
@@ -47,7 +51,11 @@
           show-selected-panel
           :page-size="10"
           :disabled="!canSelectCost"
-        />
+          empty-text="暂无待对账费用"
+          empty-description="请先在运单成本中完成费用录入和审核；已进入有效对账单的费用不会重复显示。"
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="waybill-cost" /></template>
+        </ArtTableMultipleSelect>
       </template>
     </ArtForm>
     <ElAlert
@@ -68,6 +76,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

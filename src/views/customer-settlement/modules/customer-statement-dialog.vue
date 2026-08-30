@@ -24,11 +24,15 @@
           description-key="customerCode"
           placeholder="请选择客户"
           search-placeholder="客户名称、编码、联系人或电话"
+          empty-text="暂无可选客户"
+          empty-description="当前租户没有匹配的启用客户，请先维护客户主数据。"
           dialog-width="lg"
           show-pagination
           :page-size="10"
           @change="handleCriteriaChange"
-        />
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="customer" /></template>
+        </ArtTableSingleSelect>
       </template>
 
       <template #waybillIds>
@@ -50,7 +54,11 @@
           show-selected-panel
           :page-size="10"
           :disabled="!canSelectWaybill"
-        />
+          empty-text="暂无待对账运单"
+          empty-description="请先完成并签收运单；已进入有效对账单的运单不会重复显示。"
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="waybill" /></template>
+        </ArtTableMultipleSelect>
       </template>
     </ArtForm>
 
@@ -72,6 +80,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

@@ -24,10 +24,14 @@
           description-key="carrierCode"
           placeholder="请选择承运商"
           search-placeholder="承运商名称、编码或联系人"
+          empty-text="暂无可选承运商"
+          empty-description="当前租户没有匹配的启用承运商，请先维护承运商主数据。"
           dialog-width="lg"
           :disabled="!canEditApplicationField('applicationAmounts')"
           @change="handleCarrierChange"
-        />
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="carrier" /></template>
+        </ArtTableSingleSelect>
       </template>
 
       <template #statementIds>
@@ -50,7 +54,11 @@
           :page-size="10"
           :disabled="!form.data.carrierId || !canEditApplicationField('applicationAmounts')"
           @change="handleStatementChange"
-        />
+          empty-text="暂无待付款对账单"
+          empty-description="请先生成并确认承运商对账单；无可申请余额的对账单不会显示。"
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="carrier-statement" /></template>
+        </ArtTableMultipleSelect>
       </template>
 
       <template #basisUrls>
@@ -114,6 +122,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

@@ -33,10 +33,14 @@
           description-key="summary"
           placeholder="请选择运单或输入车牌号检索"
           search-placeholder="运单号、订单号、车牌号、司机"
+          empty-text="暂无可关联运单"
+          empty-description="请先创建并推进运单业务，当前筛选范围内没有可关联的运单。"
           dialog-width="xl"
           show-pagination
           :page-size="10"
-        />
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="waybill" /></template>
+        </ArtTableSingleSelect>
       </template>
 
       <template v-if="canViewExpenseLocation" #locationPicker>
@@ -94,6 +98,7 @@
   } from '@/components/core/forms/art-address-picker/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     DataSelectColumn,
     DataSelectFetchParams,

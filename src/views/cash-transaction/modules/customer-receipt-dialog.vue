@@ -31,12 +31,16 @@
           description-key="customerCode"
           placeholder="请选择收款客户"
           search-placeholder="客户名称、编码、联系人或电话"
+          empty-text="暂无可选客户"
+          empty-description="当前租户没有匹配的启用客户，请先维护客户主数据。"
           dialog-width="lg"
           show-pagination
           :page-size="10"
           :disabled="dialog.mode === 'allocate'"
           @change="handleCustomerChange"
-        />
+        >
+          <template #empty><FinanceDataSourceEmptyActions source="customer" /></template>
+        </ArtTableSingleSelect>
       </template>
 
       <template #statementIds>
@@ -60,7 +64,13 @@
             :page-size="10"
             :disabled="!form.data.customerId"
             @change="handleStatementChange"
-          />
+            empty-text="暂无待核销客户对账单"
+            empty-description="请先生成并确认客户对账单；已结清或无未结金额的对账单不会显示。"
+          >
+            <template #empty
+              ><FinanceDataSourceEmptyActions source="customer-statement"
+            /></template>
+          </ArtTableMultipleSelect>
 
           <div v-if="allocationRows.length" class="receipt-allocation__selected">
             <div class="receipt-allocation__header">
@@ -100,6 +110,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import FinanceDataSourceEmptyActions from '../../components/finance-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,
