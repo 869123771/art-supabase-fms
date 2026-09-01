@@ -17,7 +17,7 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ElTabs v-model="activeTab" class="auto-posting-page__tabs">
+    <ElTabs v-model="activeTab" class="auto-posting-page__tabs" stretch>
       <ElTabPane name="rules">
         <template #label>
           <span class="auto-posting-page__tab-label">

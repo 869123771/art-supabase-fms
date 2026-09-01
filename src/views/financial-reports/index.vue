@@ -28,7 +28,12 @@
       :title="statementNotice"
     />
 
-    <ElTabs v-model="activeType" class="financial-reports-page__tabs" @tab-change="handleTabChange">
+    <ElTabs
+      v-model="activeType"
+      class="financial-reports-page__tabs"
+      stretch
+      @tab-change="handleTabChange"
+    >
       <ElTabPane
         v-for="option in statementOptions"
         :key="String(option.value)"

@@ -25,7 +25,7 @@
       title="报表仅统计已记账及其冲销凭证，已确认期初余额自动纳入期初数；原凭证与冲销凭证均保留，确保账簿结果可审计、可追溯。"
     />
 
-    <ElTabs v-model="activeTab" class="ledger-center-page__tabs">
+    <ElTabs v-model="activeTab" class="ledger-center-page__tabs" stretch>
       <ElTabPane name="balance">
         <template #label>
           <span class="ledger-center-page__tab-label">

@@ -1,1 +1,0 @@
-import{Jn as e,Qt as t,ln as n}from"./file-B7LhqMlj.js";import{t as r}from"./art-permission-guard-Cnt-coGN.js";var i=n({name:`Exception403`,__name:`index`,setup(n){return(n,i)=>(e(),t(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};
