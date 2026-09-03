@@ -72,7 +72,7 @@
               </div>
             </ElTimelineItem>
           </ElTimeline>
-          <ElEmpty v-else description="暂无操作流水" :image-size="72" />
+          <ArtEmptyState v-else title="暂无操作流水" size="compact" :visual-size="72" />
         </section>
       </div>
     </ArtAsyncState>
@@ -80,7 +80,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElButton, ElEmpty, ElTag, ElTimeline, ElTimelineItem } from 'element-plus'
+  import { ElButton, ElTag, ElTimeline, ElTimelineItem } from 'element-plus'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'

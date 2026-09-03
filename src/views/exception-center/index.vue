@@ -61,7 +61,12 @@
             :title="`异常数量较多，当前展示 ${overview.returnedIssues} / ${overview.totalIssues} 条`"
             description="队列已优先返回严重和较新的异常。"
           />
-          <ElEmpty v-if="!filteredIssues.length" description="当前分类没有待处理异常" />
+          <ArtEmptyState
+            v-if="!filteredIssues.length"
+            title="当前分类没有待处理异常"
+            size="compact"
+            :visual-size="72"
+          />
           <ol v-else class="financial-exception-page__issues">
             <li v-for="issue in filteredIssues" :key="issue.id" :class="`is-${issue.severity}`">
               <span class="financial-exception-page__signal" aria-hidden="true"></span>
@@ -116,6 +121,7 @@
 
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric

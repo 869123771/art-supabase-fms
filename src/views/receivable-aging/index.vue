@@ -68,7 +68,12 @@
           preserve-content-structure
           title="重点客户应收"
         >
-          <ElEmpty v-if="!overview.customers.length" description="当前没有未结客户应收" />
+          <ArtEmptyState
+            v-if="!overview.customers.length"
+            title="当前没有未结客户应收"
+            size="compact"
+            :visual-size="72"
+          />
           <ol v-else>
             <li
               v-for="(customer, index) in overview.customers.slice(0, 10)"
@@ -111,6 +116,7 @@
 
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric

@@ -94,13 +94,13 @@
         </ElTableColumn>
       </ElTable>
 
-      <ElEmpty
+      <ArtEmptyState
         v-else
-        :description="isFormula ? '尚未配置计算来源' : '尚未配置科目映射'"
-        :image-size="96"
+        :title="isFormula ? '尚未配置计算来源' : '尚未配置科目映射'"
+        :visual-size="96"
       >
         <ElButton v-if="editable" type="primary" plain @click="addRule"> 添加第一条规则 </ElButton>
-      </ElEmpty>
+      </ArtEmptyState>
     </div>
   </ArtDialog>
 </template>
@@ -109,6 +109,7 @@
   import { ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import {

@@ -48,7 +48,7 @@
         </ol>
       </nav>
 
-      <ElTabs v-model="activeTab" class="waybill-cost__tabs" stretch>
+      <ElTabs v-model="activeTab" class="waybill-cost__tabs">
         <ElTabPane name="expense">
           <template #label>
             <span class="waybill-cost__tab-label">
