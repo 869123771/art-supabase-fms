@@ -38,9 +38,11 @@
           </div>
         </header>
 
-        <ElTable
-          v-loading="loading"
+        <ArtTable
+          :loading="loading"
           :data="items"
+          :pagination="false"
+          :show-table-header="false"
           row-key="id"
           border
           table-layout="fixed"
@@ -108,7 +110,7 @@
               </div>
             </template>
           </ElTableColumn>
-        </ElTable>
+        </ArtTable>
       </section>
     </div>
 
@@ -123,6 +125,7 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
   import StatementItemDialog from './statement-item-dialog.vue'
   import StatementRuleDialog from './statement-rule-dialog.vue'
   import {
