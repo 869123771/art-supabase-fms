@@ -395,9 +395,9 @@
       width: 126,
       formatter: (row) => (
         <ElSelect
-          modelValue={row.direction}
+          v-model={row.direction}
           class="w-full!"
-          onUpdate:modelValue={(value: Api.Fms.BalanceDirection) => updateLineDirection(row, value)}
+          onChange={() => updateLineDirection(row, row.direction)}
         >
           {directionOptions.value.map((item) => (
             <ElOption key={item.value} label={item.label} value={item.value} />
@@ -411,11 +411,11 @@
       minWidth: 230,
       formatter: (row) => (
         <ElSelect
-          modelValue={row.subjectId}
+          v-model={row.subjectId}
           filterable
           class="w-full!"
           placeholder="选择末级科目"
-          onUpdate:modelValue={(value: string) => updateLineSubject(row, value)}
+          onChange={() => updateLineSubject(row, row.subjectId)}
         >
           {subjectOptions.value.map((item) => (
             <ElOption key={item.value} label={item.label} value={item.value} />
@@ -430,11 +430,10 @@
       formatter: (row) =>
         lineSubject(row)?.cashFlowRequired ? (
           <ElSelect
-            modelValue={row.cashFlowItemId ?? ''}
+            v-model={row.cashFlowItemId}
             filterable
             class="w-full!"
             placeholder="现金科目必选"
-            onUpdate:modelValue={(value: string) => updateLine(row, { cashFlowItemId: value })}
           >
             {cashFlowOptions(row).map((item) => (
               <ElOption key={item.value} label={item.label} value={item.value} />
@@ -449,13 +448,7 @@
       label: '金额口径',
       width: 170,
       formatter: (row) => (
-        <ElSelect
-          modelValue={row.amountKey}
-          class="w-full!"
-          onUpdate:modelValue={(value: Api.Fms.PostingAmountKey) =>
-            updateLine(row, { amountKey: value })
-          }
-        >
+        <ElSelect v-model={row.amountKey} class="w-full!">
           {amountKeyOptions.value.map((item) => (
             <ElOption key={item.value} label={item.label} value={item.value} />
           ))}
@@ -468,15 +461,12 @@
       width: 130,
       formatter: (row) => (
         <ElInputNumber
-          modelValue={row.amountMultiplier}
+          v-model={row.amountMultiplier}
           min={0.000001}
           max={999999}
           precision={6}
           controlsPosition="right"
           class="w-full!"
-          onUpdate:modelValue={(value: number | undefined) =>
-            updateLine(row, { amountMultiplier: Number(value ?? 1) })
-          }
         />
       )
     },
@@ -485,12 +475,7 @@
       label: '分录摘要',
       minWidth: 180,
       formatter: (row) => (
-        <ElInput
-          modelValue={row.summary ?? ''}
-          maxlength={120}
-          placeholder="默认使用事件摘要"
-          onUpdate:modelValue={(value: string) => updateLine(row, { summary: value })}
-        />
+        <ElInput v-model={row.summary} maxlength={120} placeholder="默认使用事件摘要" />
       )
     },
     {

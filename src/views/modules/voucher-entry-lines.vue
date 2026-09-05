@@ -211,10 +211,10 @@
           row.summary || '—'
         ) : (
           <ElInput
-            modelValue={row.summary}
+            v-model={row.summary}
             maxlength={120}
             placeholder="分录摘要"
-            onUpdate:modelValue={(value: string) => updateLine(row, { summary: value })}
+            onChange={() => updateLine(row, { summary: row.summary })}
           />
         )
     },
@@ -230,11 +230,11 @@
             : row.subjectNameSnapshot || '—'
         return (
           <ElSelect
-            modelValue={row.subjectId}
+            v-model={row.subjectId}
             filterable
             placeholder="选择末级科目"
             class="w-full!"
-            onUpdate:modelValue={(value: string) => handleSubjectChange(row, value)}
+            onChange={() => handleSubjectChange(row, row.subjectId)}
           >
             {subjectOptions.value.map((item) => (
               <ElOption key={item.value} label={item.label} value={item.value} />
@@ -255,11 +255,9 @@
                 '—')
               ) : (
                 <ElSelect
-                  modelValue={row.entryDirection ?? 'debit'}
+                  v-model={row.entryDirection}
                   class="w-full!"
-                  onUpdate:modelValue={(value: Api.Fms.BalanceDirection) =>
-                    handleDirectionChange(row, value)
-                  }
+                  onChange={() => handleDirectionChange(row, row.entryDirection ?? 'debit')}
                 >
                   {props.directionOptions.map((item) => (
                     <ElOption key={item.value} label={item.label} value={item.value} />
@@ -294,16 +292,13 @@
             {configs.map((config) => (
               <ElSelect
                 key={config.auxiliaryTypeId}
-                modelValue={row.auxiliaryValues[config.auxiliaryTypeId]}
+                v-model={row.auxiliaryValues[config.auxiliaryTypeId]}
                 filterable
                 clearable={!config.isRequired}
                 placeholder={`${config.auxiliaryType?.typeName ?? '核算维度'}${config.isRequired ? '*' : ''}`}
-                onUpdate:modelValue={(value?: string) =>
+                onChange={() =>
                   updateLine(row, {
-                    auxiliaryValues: {
-                      ...row.auxiliaryValues,
-                      [config.auxiliaryTypeId]: value || ''
-                    }
+                    auxiliaryValues: { ...row.auxiliaryValues }
                   })
                 }
               >
@@ -339,14 +334,14 @@
         return (
           <div class="voucher-entry-lines__currency">
             <ElSelect
-              modelValue={row.currencyId}
+              v-model={row.currencyId}
               clearable
               placeholder="币种"
-              onUpdate:modelValue={(value?: string) =>
+              onChange={() =>
                 updateLine(row, {
-                  currencyId: value || null,
-                  originalAmount: value ? row.originalAmount : 0,
-                  exchangeRate: value ? row.exchangeRate : 1
+                  currencyId: row.currencyId || null,
+                  originalAmount: row.currencyId ? row.originalAmount : 0,
+                  exchangeRate: row.currencyId ? row.exchangeRate : 1
                 })
               }
             >
@@ -355,15 +350,13 @@
               ))}
             </ElSelect>
             <ElInputNumber
-              modelValue={row.originalAmount}
+              v-model={row.originalAmount}
               min={0}
               precision={2}
               controls={false}
               disabled={!row.currencyId}
               placeholder="原币金额"
-              onUpdate:modelValue={(value?: number) =>
-                handleOriginalAmountChange(row, Number(value ?? 0))
-              }
+              onChange={() => handleOriginalAmountChange(row, Number(row.originalAmount ?? 0))}
             />
           </div>
         )
@@ -382,13 +375,13 @@
           )
         ) : (
           <ElInputNumber
-            modelValue={row.exchangeRate}
+            v-model={row.exchangeRate}
             min={0.0000000001}
             precision={6}
             controls={false}
             disabled={!row.currencyId}
             class="w-full!"
-            onUpdate:modelValue={(value?: number) => handleRateChange(row, Number(value ?? 1))}
+            onChange={() => handleRateChange(row, Number(row.exchangeRate ?? 1))}
           />
         )
     },
@@ -403,14 +396,12 @@
           `${Number(row.quantity).toLocaleString('zh-CN')} ${subject.unitName ?? ''}`
         ) : (
           <ElInputNumber
-            modelValue={row.quantity}
+            v-model={row.quantity}
             min={0}
             precision={4}
             controls={false}
             class="w-full!"
-            onUpdate:modelValue={(value?: number) =>
-              updateLine(row, { quantity: Number(value ?? 0) })
-            }
+            onChange={() => updateLine(row, { quantity: Number(row.quantity ?? 0) })}
           />
         )
       }
@@ -422,21 +413,24 @@
             label: '默认金额',
             width: 150,
             align: 'right' as const,
-            formatter: (row: Line) =>
-              props.readonly ? (
-                formatMoney(Math.max(Number(row.debitAmount || 0), Number(row.creditAmount || 0)))
-              ) : (
+            formatter: (row: Line) => {
+              if (props.readonly) {
+                return formatMoney(
+                  Math.max(Number(row.debitAmount || 0), Number(row.creditAmount || 0))
+                )
+              }
+              const amountField = row.entryDirection === 'credit' ? 'creditAmount' : 'debitAmount'
+              return (
                 <ElInputNumber
-                  modelValue={Math.max(Number(row.debitAmount || 0), Number(row.creditAmount || 0))}
+                  v-model={row[amountField]}
                   min={0}
                   precision={2}
                   controls={false}
                   class="w-full!"
-                  onUpdate:modelValue={(value?: number) =>
-                    handleTemplateAmountChange(row, Number(value ?? 0))
-                  }
+                  onChange={() => handleTemplateAmountChange(row, Number(row[amountField] ?? 0))}
                 />
               )
+            }
           }
         ]
       : [
@@ -450,15 +444,15 @@
                 formatMoney(row.debitAmount)
               ) : (
                 <ElInputNumber
-                  modelValue={row.debitAmount}
+                  v-model={row.debitAmount}
                   min={0}
                   precision={2}
                   controls={false}
                   class="w-full!"
-                  onUpdate:modelValue={(value?: number) =>
+                  onChange={() =>
                     updateLine(row, {
-                      debitAmount: Number(value ?? 0),
-                      creditAmount: Number(value ?? 0) > 0 ? 0 : row.creditAmount
+                      debitAmount: Number(row.debitAmount ?? 0),
+                      creditAmount: Number(row.debitAmount ?? 0) > 0 ? 0 : row.creditAmount
                     })
                   }
                 />
@@ -474,15 +468,15 @@
                 formatMoney(row.creditAmount)
               ) : (
                 <ElInputNumber
-                  modelValue={row.creditAmount}
+                  v-model={row.creditAmount}
                   min={0}
                   precision={2}
                   controls={false}
                   class="w-full!"
-                  onUpdate:modelValue={(value?: number) =>
+                  onChange={() =>
                     updateLine(row, {
-                      creditAmount: Number(value ?? 0),
-                      debitAmount: Number(value ?? 0) > 0 ? 0 : row.debitAmount
+                      creditAmount: Number(row.creditAmount ?? 0),
+                      debitAmount: Number(row.creditAmount ?? 0) > 0 ? 0 : row.debitAmount
                     })
                   }
                 />

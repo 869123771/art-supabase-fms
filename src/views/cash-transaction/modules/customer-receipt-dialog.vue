@@ -444,18 +444,16 @@
       prop: 'allocationAmount',
       label: '本次核销',
       width: 180,
-      formatter: (row) =>
-        h(ElInputNumber, {
-          modelValue: numericValue(selection.allocationAmounts[row.id]),
-          min: 0,
-          max: Math.min(numericValue(row.outstandingAmount), allocationLimit.value),
-          precision: 2,
-          controlsPosition: 'right',
-          class: 'w-full!',
-          'onUpdate:modelValue': (value: number | undefined) => {
-            selection.allocationAmounts[row.id] = round(numericValue(value), 2)
-          }
-        })
+      formatter: (row) => (
+        <ElInputNumber
+          v-model={selection.allocationAmounts[row.id]}
+          min={0}
+          max={Math.min(numericValue(row.outstandingAmount), allocationLimit.value)}
+          precision={2}
+          controlsPosition="right"
+          class="w-full!"
+        />
+      )
     }
   ]
 

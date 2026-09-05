@@ -260,14 +260,14 @@
       width: 180,
       formatter: (r) => (
         <ElInputNumber
-          modelValue={Number(selection.amounts[r.id] ?? 0)}
+          v-model={selection.amounts[r.id]}
           min={0}
           max={Math.min(Number(r.outstandingAmount), limit.value)}
           precision={2}
           controlsPosition="right"
           class="w-full!"
-          onUpdate:modelValue={(v) => {
-            selection.amounts[r.id] = round(Number(v ?? 0))
+          onChange={() => {
+            selection.amounts[r.id] = round(Number(selection.amounts[r.id] ?? 0))
           }}
         />
       )

@@ -297,13 +297,13 @@
       width: 58,
       fixed: 'left',
       align: 'center',
-      formatter: (row) => (
-        <ElCheckbox
-          modelValue={selectedRowIds.value.includes(row.rowId)}
-          disabled={!isSelectable(row)}
-          onChange={(checked) => toggleRow(row, Boolean(checked))}
-        />
-      )
+      formatter: (row) => {
+        const selected = computed({
+          get: () => selectedRowIds.value.includes(row.rowId),
+          set: (checked: boolean) => toggleRow(row, checked)
+        })
+        return <ElCheckbox v-model={selected.value} disabled={!isSelectable(row)} />
+      }
     },
     { prop: 'sourceRow', label: '源行', width: 66, align: 'center' },
     {

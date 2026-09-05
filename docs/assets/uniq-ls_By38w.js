@@ -1,0 +1,1 @@
+import{c as e}from"./art-form-DPNy6S_R.js";function t(t){return t&&t.length?e(t):[]}export{t};

@@ -405,7 +405,7 @@
           <span>***</span>
         ) : (
           <ElInputNumber
-            modelValue={Number(selection.amounts[row.id] ?? 0)}
+            v-model={selection.amounts[row.id]}
             min={0}
             max={Math.min(
               sensitiveNumberValue(row.outstandingAmount),
@@ -415,8 +415,8 @@
             controlsPosition="right"
             class="w-full!"
             disabled={!canEditApplicationField('applicationAmounts')}
-            onUpdate:modelValue={(value) => {
-              selection.amounts[row.id] = round(Number(value ?? 0))
+            onChange={() => {
+              selection.amounts[row.id] = round(Number(selection.amounts[row.id] ?? 0))
             }}
           />
         )
