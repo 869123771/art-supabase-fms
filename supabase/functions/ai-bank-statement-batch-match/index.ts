@@ -117,8 +117,8 @@ Deno.serve(async (req) => {
       existingReferenceResult,
       { data: threshold }
     ] = await Promise.all([
-      admin.from('tms_customer').select('id,customer_name').eq('tenant_id', appUser.tenant_id).limit(2000),
-      admin.from('tms_carrier').select('id,company_name').eq('tenant_id', appUser.tenant_id).limit(2000),
+      admin.from('mdm_customer').select('id,customer_name').eq('tenant_id', appUser.tenant_id).limit(2000),
+      admin.from('mdm_carrier').select('id,company_name').eq('tenant_id', appUser.tenant_id).limit(2000),
       authClient.rpc('tms_list_customer_statement_allocatable_secure', {
         p_customer_id: null,
         p_keyword: null,

@@ -1,3 +1,4 @@
+import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
@@ -123,9 +124,7 @@ export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {})
     .range(from, to)
   if (keyword) {
     const value = keyword.trim()
-    query = query.or(
-      `item_code.ilike.%${value}%,item_name.ilike.%${value}%,remark.ilike.%${value}%`
-    )
+    query = query.or(buildOrIlikeFilter(['item_code', 'item_name', 'remark'], value))
   }
   if (tenantId) query = query.eq('tenant_id', tenantId)
   if (typeof isEnabled === 'boolean') query = query.eq('is_enabled', isEnabled)
@@ -465,7 +464,7 @@ export async function fetchWaybillExpenseOcrRunList(params: OcrRunSearch) {
   if (keyword) {
     const value = keyword.trim()
     query = query.or(
-      `model.ilike.%${value}%,error_code.ilike.%${value}%,error_message.ilike.%${value}%,create_by.ilike.%${value}%`
+      buildOrIlikeFilter(['model', 'error_code', 'error_message', 'create_by'], value)
     )
   }
   query = applyDateRange(query, 'started_at', params.createTimeRange, {
