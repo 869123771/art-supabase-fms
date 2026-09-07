@@ -43,60 +43,15 @@
           </div>
         </header>
 
-        <ElTable
+        <ArtTable
+          ref="allocationTableRefs"
           :data="allocationsFor(line.lineNo)"
+          :columns="allocationColumns(line)"
+          :pagination="false"
           table-layout="fixed"
           border
           empty-text="尚未添加归集项目"
-        >
-          <ElTableColumn label="现金流量项目" min-width="280">
-            <template #default="{ row }">
-              <ElSelect
-                v-model="row.statementItemId"
-                filterable
-                class="!w-full"
-                placeholder="请选择现金流量项目"
-                :disabled="readonly"
-              >
-                <ElOption
-                  v-for="option in itemOptions(line)"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="归集金额" width="180">
-            <template #default="{ row }">
-              <ElInputNumber
-                v-model="row.amount"
-                :min="0.01"
-                :max="lineAmount(line)"
-                :precision="2"
-                :step="100"
-                controls-position="right"
-                class="!w-full"
-                :disabled="readonly"
-              />
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="备注" min-width="180">
-            <template #default="{ row }">
-              <ElInput
-                v-model="row.remark"
-                maxlength="200"
-                placeholder="可选"
-                :disabled="readonly"
-              />
-            </template>
-          </ElTableColumn>
-          <ElTableColumn v-if="!readonly" label="操作" width="78" fixed="right" align="center">
-            <template #default="{ row }">
-              <ElButton type="danger" link @click="removeAllocation(row)">删除</ElButton>
-            </template>
-          </ElTableColumn>
-        </ElTable>
+        />
 
         <footer>
           <ElButton
@@ -115,12 +70,14 @@
   </ArtSectionCard>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { ElMessage } from 'element-plus'
+  import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtTable, { type ArtTableExpose } from '@/components/core/tables/art-table/index.vue'
+  import type { ColumnOption } from '@/types'
   import { useUserStore } from '@/store/modules/user'
   import { formatCurrencyValue } from '@/utils/ui'
 
@@ -140,6 +97,7 @@
   )
   const model = defineModel<Draft[]>({ default: () => [] })
   const { getDictMap } = storeToRefs(useUserStore())
+  const allocationTableRefs = ref<ArtTableExpose[]>([])
 
   const cashLines = computed(() => props.lines.filter((line) => subjectFor(line)?.cashFlowRequired))
 
@@ -208,6 +166,88 @@
     if (index >= 0) model.value.splice(index, 1)
   }
 
+  function allocationColumns(line: VoucherLine): ColumnOption<Draft>[] {
+    return [
+      {
+        prop: 'statementItemId',
+        label: '现金流量项目',
+        minWidth: 280,
+        required: true,
+        requiredMessage: ({ rowIndex }) =>
+          `分录 ${line.lineNo} 的第 ${rowIndex + 1} 行未选择现金流量项目`,
+        formatter: (row) => (
+          <ElSelect
+            v-model={row.statementItemId}
+            filterable
+            class="w-full!"
+            placeholder="请选择现金流量项目"
+            disabled={props.readonly}
+          >
+            {itemOptions(line).map((option) => (
+              <ElOption key={option.value} label={option.label} value={option.value} />
+            ))}
+          </ElSelect>
+        )
+      },
+      {
+        prop: 'amount',
+        label: '归集金额',
+        width: 180,
+        required: true,
+        requiredMessage: ({ rowIndex }) =>
+          `分录 ${line.lineNo} 的第 ${rowIndex + 1} 行归集金额必须大于 0`,
+        rules: [
+          {
+            validator: ({ value }) => Number(value) > 0,
+            message: ({ rowIndex }) =>
+              `分录 ${line.lineNo} 的第 ${rowIndex + 1} 行归集金额必须大于 0`
+          }
+        ],
+        formatter: (row) => (
+          <ElInputNumber
+            v-model={row.amount}
+            min={0.01}
+            max={lineAmount(line)}
+            precision={2}
+            step={100}
+            controlsPosition="right"
+            class="w-full!"
+            disabled={props.readonly}
+          />
+        )
+      },
+      {
+        prop: 'remark',
+        label: '备注',
+        minWidth: 180,
+        formatter: (row) => (
+          <ElInput
+            v-model={row.remark}
+            maxlength={200}
+            placeholder="可选"
+            disabled={props.readonly}
+          />
+        )
+      },
+      ...(props.readonly
+        ? []
+        : [
+            {
+              prop: 'operation',
+              label: '操作',
+              width: 78,
+              fixed: 'right' as const,
+              align: 'center' as const,
+              formatter: (row: Draft) => (
+                <ElButton type="danger" link onClick={() => removeAllocation(row)}>
+                  删除
+                </ElButton>
+              )
+            }
+          ])
+    ]
+  }
+
   function dictLabel(code: string, value: unknown): string {
     return (
       (getDictMap.value[code] ?? []).find((item) => String(item.value) === String(value))?.label ??
@@ -215,16 +255,19 @@
     )
   }
 
-  function validate(requireComplete = true): boolean {
+  async function validate(requireComplete = true): Promise<boolean> {
     if (!cashLines.value.length) return true
     if (!props.statementItems.length) {
       if (!requireComplete) return true
       ElMessage.warning('请先初始化现金流量表项目')
       return false
     }
-    if (model.value.some((item) => !item.statementItemId || Number(item.amount) <= 0)) {
-      ElMessage.warning('请完整填写现金流量项目和归集金额')
-      return false
+    for (const tableRef of allocationTableRefs.value) {
+      const tableValidation = await tableRef.validate()
+      if (!tableValidation.valid) {
+        ElMessage.warning(tableValidation.firstError?.message || '请完整填写现金流量归集明细')
+        return false
+      }
     }
     for (const line of cashLines.value) {
       const allocated = allocatedAmount(line.lineNo)

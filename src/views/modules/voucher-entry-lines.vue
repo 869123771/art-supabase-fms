@@ -13,6 +13,7 @@
     </template>
 
     <ArtTable
+      ref="tableRef"
       :data="modelValue"
       :columns="columns"
       :pagination="false"
@@ -42,8 +43,11 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import ArtTable from '@/components/core/tables/art-table/index.vue'
-  import type { ColumnOption } from '@/types'
+  import ArtTable, {
+    type ArtTableExpose,
+    type ArtTableValidationResult
+  } from '@/components/core/tables/art-table/index.vue'
+  import type { ColumnOption, TableColumnValidationContext } from '@/types'
   import { formatCurrencyValue } from '@/utils/ui'
 
   defineOptions({ name: 'FmsVoucherEntryLines' })
@@ -69,6 +73,7 @@
     directionOptions: () => []
   })
   const emit = defineEmits<{ 'update:modelValue': [value: Line[]] }>()
+  const tableRef = ref<ArtTableExpose>()
 
   const subjectOptions = computed(() =>
     props.subjects
@@ -205,6 +210,8 @@
     {
       prop: 'summary',
       label: '摘要',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录缺少摘要`,
       minWidth: 170,
       formatter: (row) =>
         props.readonly ? (
@@ -221,6 +228,8 @@
     {
       prop: 'subjectId',
       label: '会计科目',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录未选择会计科目`,
       minWidth: 220,
       formatter: (row) => {
         const subject = subjectFor(row)
@@ -270,6 +279,16 @@
     {
       prop: 'auxiliaryValues',
       label: '辅助核算',
+      required: true,
+      rules: [
+        {
+          validator: ({ row }) =>
+            (subjectFor(row)?.auxiliaryConfigs ?? []).every(
+              (config) => !config.isRequired || Boolean(row.auxiliaryValues[config.auxiliaryTypeId])
+            ),
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录缺少必填核算维度`
+        }
+      ],
       minWidth: 210,
       formatter: (row) => {
         const configs = subjectFor(row)?.auxiliaryConfigs ?? []
@@ -322,6 +341,12 @@
     {
       prop: 'currencyId',
       label: '外币 / 原币',
+      rules: [
+        {
+          validator: ({ row }) => !row.currencyId || Number(row.originalAmount) > 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录原币金额必须大于 0`
+        }
+      ],
       minWidth: 180,
       formatter: (row) => {
         const subject = subjectFor(row)
@@ -365,6 +390,12 @@
     {
       prop: 'exchangeRate',
       label: '汇率',
+      rules: [
+        {
+          validator: ({ row, value }) => !row.currencyId || Number(value) > 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录汇率必须大于 0`
+        }
+      ],
       width: 120,
       formatter: (row) =>
         props.readonly ? (
@@ -437,6 +468,15 @@
           {
             prop: 'debitAmount',
             label: '借方金额',
+            required: true,
+            rules: [
+              {
+                validator: ({ row }: TableColumnValidationContext<Line>) =>
+                  Number(row.debitAmount > 0) + Number(row.creditAmount > 0) === 1,
+                message: ({ rowIndex }: TableColumnValidationContext<Line>) =>
+                  `第 ${rowIndex + 1} 条分录只能填写一侧借贷金额`
+              }
+            ],
             width: 145,
             align: 'right' as const,
             formatter: (row: Line) =>
@@ -502,7 +542,11 @@
     return formatCurrencyValue(Number(value || 0))
   }
 
-  defineExpose({ addLine, isBalanced, totalDebit, totalCredit })
+  const validate = async (): Promise<ArtTableValidationResult> =>
+    (await tableRef.value?.validate()) ?? { valid: true, errors: [] }
+  const clearValidate = (): void => tableRef.value?.clearValidate()
+
+  defineExpose({ addLine, isBalanced, totalDebit, totalCredit, validate, clearValidate })
 </script>
 
 <style scoped lang="scss">

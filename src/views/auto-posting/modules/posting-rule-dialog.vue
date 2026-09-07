@@ -32,6 +32,7 @@
         </template>
 
         <ArtTable
+          ref="lineTableRef"
           :data="form.lines"
           :columns="lineColumns"
           :pagination="false"
@@ -58,7 +59,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import ArtTable from '@/components/core/tables/art-table/index.vue'
+  import ArtTable, { type ArtTableExpose } from '@/components/core/tables/art-table/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchFinancialStatementItems, fetchPostingRuleDetail, savePostingRule } from '@fms/api'
@@ -125,6 +126,7 @@
   const dialogRef = ref<ArtDialogExpose<Rule | undefined>>()
   const auxiliaryDialogRef = ref<AuxiliaryDialogExpose>()
   const formRef = ref<FormExpose>()
+  const lineTableRef = ref<ArtTableExpose>()
   const context = reactive<DialogContext>({
     accountSet: { label: '', value: '', status: 'draft', tenantId: '' },
     subjects: [],
@@ -408,6 +410,8 @@
     {
       prop: 'subjectId',
       label: '会计科目',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录未选择会计科目`,
       minWidth: 230,
       formatter: (row) => (
         <ElSelect
@@ -426,6 +430,12 @@
     {
       prop: 'cashFlowItemId',
       label: '现金流量项目',
+      rules: [
+        {
+          validator: ({ row, value }) => !lineSubject(row)?.cashFlowRequired || Boolean(value),
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录未选择现金流量项目`
+        }
+      ],
       minWidth: 240,
       formatter: (row) =>
         lineSubject(row)?.cashFlowRequired ? (
@@ -446,6 +456,8 @@
     {
       prop: 'amountKey',
       label: '金额口径',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录未选择金额口径`,
       width: 170,
       formatter: (row) => (
         <ElSelect v-model={row.amountKey} class="w-full!">
@@ -458,6 +470,14 @@
     {
       prop: 'amountMultiplier',
       label: '倍率',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录倍率必须大于 0`,
+      rules: [
+        {
+          validator: ({ value }) => Number(value) > 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录倍率必须大于 0`
+        }
+      ],
       width: 130,
       formatter: (row) => (
         <ElInputNumber
@@ -501,20 +521,14 @@
     }
   ])
 
-  function validateLines(): boolean {
+  async function validateLines(): Promise<boolean> {
     if (form.lines.length < 2) {
       ElMessage.warning('制证规则至少需要两条分录')
       return false
     }
-    const invalidIndex = form.lines.findIndex(
-      (line) =>
-        !line.subjectId ||
-        !line.amountKey ||
-        Number(line.amountMultiplier) <= 0 ||
-        (lineSubject(line)?.cashFlowRequired && !line.cashFlowItemId)
-    )
-    if (invalidIndex >= 0) {
-      ElMessage.warning(`请完整填写第 ${invalidIndex + 1} 条制证分录`)
+    const tableValidation = await lineTableRef.value?.validate()
+    if (tableValidation && !tableValidation.valid) {
+      ElMessage.warning(tableValidation.firstError?.message || '请完整填写制证分录')
       return false
     }
     if (!form.lines.some((line) => line.direction === 'debit')) {
@@ -542,7 +556,7 @@
     } catch {
       return false
     }
-    if (!validateLines()) return false
+    if (!(await validateLines())) return false
     const [sourceType, eventCode] = form.data.sourceEvent.split(':') as [
       Api.Fms.PostingSourceType,
       string
@@ -634,7 +648,10 @@
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate()
+      onOpen: () => {
+        formRef.value?.clearValidate()
+        lineTableRef.value?.clearValidate()
+      }
     })
   }
 

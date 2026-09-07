@@ -146,8 +146,14 @@
   const { getDictMap } = storeToRefs(useUserStore())
   const dialogRef = ref<ArtDialogExpose<Voucher | undefined>>()
   const formRef = ref<FormExpose>()
-  const lineEditorRef = ref<{ isBalanced: boolean }>()
-  const cashFlowPanelRef = ref<{ validate: (requireComplete?: boolean) => boolean }>()
+  const lineEditorRef = ref<{
+    isBalanced: boolean
+    validate: () => Promise<
+      import('@/components/core/tables/art-table/index.vue').ArtTableValidationResult
+    >
+    clearValidate: () => void
+  }>()
+  const cashFlowPanelRef = ref<{ validate: (requireComplete?: boolean) => Promise<boolean> }>()
   const cashFlowDrafts = ref<Api.Fms.VoucherCashFlowAllocationDraft[]>([])
   const submitMode = ref<SubmitMode>('save')
   const fieldAccess = ref<Api.Fms.VoucherFieldAccessMap>({
@@ -323,30 +329,14 @@
       : [])
   ])
 
-  function subjectFor(line: Api.Fms.VoucherLineRecord): Api.Fms.SubjectRecord | undefined {
-    return context.subjects.find((item) => item.id === line.subjectId)
-  }
-
-  function validateLines(): boolean {
+  async function validateLines(): Promise<boolean> {
     if (form.data.lines.length < 2) {
       ElMessage.warning('凭证至少需要两条分录')
       return false
     }
-    const invalidIndex = form.data.lines.findIndex((line) => {
-      const subject = subjectFor(line)
-      const amountCount = Number(line.debitAmount > 0) + Number(line.creditAmount > 0)
-      if (!subject || !line.summary.trim() || amountCount !== 1) return true
-      if (
-        (subject.auxiliaryConfigs ?? []).some(
-          (config) => config.isRequired && !line.auxiliaryValues[config.auxiliaryTypeId]
-        )
-      )
-        return true
-      if (line.currencyId && (line.originalAmount <= 0 || line.exchangeRate <= 0)) return true
-      return false
-    })
-    if (invalidIndex >= 0) {
-      ElMessage.warning(`请完整填写第 ${invalidIndex + 1} 条分录的摘要、科目、核算维度和金额`)
+    const tableValidation = await lineEditorRef.value?.validate()
+    if (tableValidation && !tableValidation.valid) {
+      ElMessage.warning(tableValidation.firstError?.message || '请完整填写凭证分录')
       return false
     }
     const debit = form.data.lines.reduce((sum, line) => sum + Number(line.debitAmount || 0), 0)
@@ -364,8 +354,11 @@
     } catch {
       return false
     }
-    if (!validateLines()) return false
-    if (amountEditable.value && !cashFlowPanelRef.value?.validate(submitMode.value === 'submit'))
+    if (!(await validateLines())) return false
+    if (
+      amountEditable.value &&
+      !(await cashFlowPanelRef.value?.validate(submitMode.value === 'submit'))
+    )
       return false
     try {
       const payload = cloneDeep(toRaw(form.data))
@@ -537,7 +530,10 @@
       fullscreen: false,
       dialogProps: { closeOnClickModal: false },
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate()
+      onOpen: () => {
+        formRef.value?.clearValidate()
+        lineEditorRef.value?.clearValidate()
+      }
     })
   }
 

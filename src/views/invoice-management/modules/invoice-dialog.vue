@@ -165,6 +165,7 @@
       title="对账单关联金额"
     >
       <ArtTable
+        ref="linkedStatementTableRef"
         :data="selection.statements"
         :columns="linkedStatementColumns"
         :pagination="false"
@@ -305,6 +306,8 @@
   const dialogRef = ref<ArtDialogExpose<Invoice | undefined>>()
   const formRef = ref<FormExpose>()
   const statementSelectRef = ref<ArtDataSelectExpose>()
+  const linkedStatementTableRef =
+    ref<import('@/components/core/tables/art-table/index.vue').ArtTableExpose>()
   const ocrPanelRef = ref<InvoiceOcrPanelExpose>()
   const counterpartyCreateDialogRef = ref<CounterpartyCreateDialogExpose>()
   const ocrArtifactId = ref<string>()
@@ -600,6 +603,12 @@
         label: '本次关联',
         width: 190,
         align: 'right',
+        rules: [
+          {
+            validator: ({ row }) => Number(selection.linkAmounts[String(row.statementId)] ?? 0) > 0,
+            message: ({ rowIndex }) => `第 ${rowIndex + 1} 条对账单关联金额必须大于 0`
+          }
+        ],
         useSlot: true
       }
     )
@@ -1138,7 +1147,11 @@
       }))
     }
     if (canEditAmounts) {
-      if (statementLinks.some((item) => item.linkedAmount <= 0)) return false
+      const linkValidation = await linkedStatementTableRef.value?.validate()
+      if (linkValidation && !linkValidation.valid) {
+        ElMessage.warning(linkValidation.firstError?.message || '请完善对账单关联金额')
+        return false
+      }
       const linkedAmountTotal = statementLinks.reduce((total, item) => total + item.linkedAmount, 0)
       if (linkedAmountTotal > sensitiveNumberValue(form.data.totalAmount) + 0.01) {
         ElMessage.warning('关联对账金额不能超过发票价税合计')

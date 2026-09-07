@@ -24,75 +24,17 @@
         title="现金流量表明细由凭证现金分录归集，不使用科目余额映射。"
       />
 
-      <ElTable
+      <ArtTable
         v-if="rows.length"
+        ref="ruleTableRef"
         :data="rows"
+        :columns="ruleColumns"
         row-key="rowKey"
+        :pagination="false"
         border
         table-layout="fixed"
         max-height="56vh"
-      >
-        <ElTableColumn type="index" label="#" width="54" align="center" />
-        <ElTableColumn :label="isFormula ? '来源项目' : '会计科目'" min-width="260">
-          <template #default="{ row }">
-            <ElSelect
-              v-model="row.sourceId"
-              filterable
-              :disabled="!editable"
-              class="!w-full"
-              :placeholder="isFormula ? '请选择来源项目' : '请选择会计科目'"
-            >
-              <ElOption
-                v-for="option in sourceOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn v-if="!isFormula" label="取数方向" width="170">
-          <template #default="{ row }">
-            <ElSelect v-model="row.mappingDirection" class="!w-full" :disabled="!editable">
-              <ElOption
-                v-for="option in directionOptions"
-                :key="String(option.value)"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="系数" width="150">
-          <template #default="{ row }">
-            <ElInputNumber
-              v-model="row.factor"
-              :min="-1000"
-              :max="1000"
-              :precision="4"
-              :step="1"
-              controls-position="right"
-              class="!w-full"
-              :disabled="!editable"
-            />
-          </template>
-        </ElTableColumn>
-        <ElTableColumn v-if="!isFormula" label="备注" min-width="190">
-          <template #default="{ row }">
-            <ElInput
-              v-model="row.remark"
-              maxlength="200"
-              placeholder="可选"
-              :disabled="!editable"
-            />
-          </template>
-        </ElTableColumn>
-        <ElTableColumn v-if="editable" label="操作" width="80" fixed="right" align="center">
-          <template #default="{ $index }">
-            <ElButton type="danger" link @click="removeRule($index)">删除</ElButton>
-          </template>
-        </ElTableColumn>
-      </ElTable>
+      />
 
       <ArtEmptyState
         v-else
@@ -105,13 +47,15 @@
   </ArtDialog>
 </template>
 
-<script setup lang="ts">
-  import { ElMessage } from 'element-plus'
+<script setup lang="tsx">
+  import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtTable, { type ArtTableExpose } from '@/components/core/tables/art-table/index.vue'
+  import type { ColumnOption } from '@/types'
   import {
     fetchFinancialStatementFormulas,
     saveFinancialStatementFormulas,
@@ -138,6 +82,7 @@
   const items = ref<Item[]>([])
   const subjects = ref<Api.Fms.SubjectRecord[]>([])
   const rows = ref<RuleRow[]>([])
+  const ruleTableRef = ref<ArtTableExpose>()
   const editable = ref(false)
 
   const isFormula = computed(() => currentItem.value?.calculationMethod === 'formula')
@@ -183,13 +128,110 @@
     rows.value.splice(index, 1)
   }
 
-  function validateRows(): boolean {
-    if (rows.value.some((row) => !row.sourceId)) {
-      ElMessage.warning(isFormula.value ? '请选择全部来源项目' : '请选择全部会计科目')
-      return false
-    }
-    if (rows.value.some((row) => !Number.isFinite(row.factor) || row.factor === 0)) {
-      ElMessage.warning('取数系数不能为 0')
+  const ruleColumns = computed<ColumnOption<RuleRow>[]>(() => [
+    { type: 'globalIndex', label: '#', width: 54, align: 'center' },
+    {
+      prop: 'sourceId',
+      label: isFormula.value ? '来源项目' : '会计科目',
+      minWidth: 260,
+      required: true,
+      requiredMessage: ({ rowIndex }) =>
+        `第 ${rowIndex + 1} 行未选择${isFormula.value ? '来源项目' : '会计科目'}`,
+      formatter: (row) => (
+        <ElSelect
+          v-model={row.sourceId}
+          filterable
+          disabled={!editable.value}
+          class="w-full!"
+          placeholder={isFormula.value ? '请选择来源项目' : '请选择会计科目'}
+        >
+          {sourceOptions.value.map((option) => (
+            <ElOption key={option.value} label={option.label} value={option.value} />
+          ))}
+        </ElSelect>
+      )
+    },
+    ...(!isFormula.value
+      ? [
+          {
+            prop: 'mappingDirection',
+            label: '取数方向',
+            width: 170,
+            required: true,
+            formatter: (row: RuleRow) => (
+              <ElSelect v-model={row.mappingDirection} class="w-full!" disabled={!editable.value}>
+                {directionOptions.value.map((option) => (
+                  <ElOption key={String(option.value)} label={option.label} value={option.value} />
+                ))}
+              </ElSelect>
+            )
+          }
+        ]
+      : []),
+    {
+      prop: 'factor',
+      label: '系数',
+      width: 150,
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 行取数系数不能为 0`,
+      rules: [
+        {
+          validator: ({ value }) => Number.isFinite(Number(value)) && Number(value) !== 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 行取数系数不能为 0`
+        }
+      ],
+      formatter: (row) => (
+        <ElInputNumber
+          v-model={row.factor}
+          min={-1000}
+          max={1000}
+          precision={4}
+          step={1}
+          controlsPosition="right"
+          class="w-full!"
+          disabled={!editable.value}
+        />
+      )
+    },
+    ...(!isFormula.value
+      ? [
+          {
+            prop: 'remark',
+            label: '备注',
+            minWidth: 190,
+            formatter: (row: RuleRow) => (
+              <ElInput
+                v-model={row.remark}
+                maxlength={200}
+                placeholder="可选"
+                disabled={!editable.value}
+              />
+            )
+          }
+        ]
+      : []),
+    ...(editable.value
+      ? [
+          {
+            prop: 'operation',
+            label: '操作',
+            width: 80,
+            fixed: 'right' as const,
+            align: 'center' as const,
+            formatter: (row: RuleRow) => (
+              <ElButton type="danger" link onClick={() => removeRule(rows.value.indexOf(row))}>
+                删除
+              </ElButton>
+            )
+          }
+        ]
+      : [])
+  ])
+
+  async function validateRows(): Promise<boolean> {
+    const tableValidation = await ruleTableRef.value?.validate()
+    if (tableValidation && !tableValidation.valid) {
+      ElMessage.warning(tableValidation.firstError?.message || '请完整填写取数规则')
       return false
     }
     const keys = rows.value.map((row) =>
@@ -203,7 +245,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
-    if (!editable.value || !currentItem.value || !validateRows()) return false
+    if (!editable.value || !currentItem.value || !(await validateRows())) return false
     try {
       if (isFormula.value) {
         await saveFinancialStatementFormulas(
@@ -238,6 +280,7 @@
     items.value = statementItems
     subjects.value = subjectList
     rows.value = []
+    ruleTableRef.value?.clearValidate()
     editable.value = canEdit
 
     if (item.calculationMethod === 'formula') {
