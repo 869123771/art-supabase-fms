@@ -70,8 +70,8 @@
   import {
     canEditField,
     canViewField,
-    formatSensitiveNumber,
-    mergeFieldAccessMaps
+    mergeFieldAccessMaps,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { financeRouteNames } from '@/router/business-paths'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -234,8 +234,7 @@
   })
 
   function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   const columnsFactory = (): ColumnOption<CashTransaction>[] => [

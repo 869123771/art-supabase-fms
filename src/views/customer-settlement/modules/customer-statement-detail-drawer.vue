@@ -47,7 +47,7 @@
   import type { ColumnOption } from '@/types'
   import { fetchCustomerStatementDetail } from '@fms/api'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, formatSensitiveNumber } from '@/utils/field-permission'
+  import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCustomerStatementDetailDrawer' })
 
@@ -60,8 +60,7 @@
   const loadError = shallowRef<Error | null>(null)
 
   const formatMoney = (value?: number | string | null): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   const canView = (field: Api.Fms.CustomerStatementFieldKey): boolean =>

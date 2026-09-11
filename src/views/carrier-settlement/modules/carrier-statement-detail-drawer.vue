@@ -39,7 +39,7 @@
   import type { ColumnOption } from '@/types'
   import { fetchCarrierStatementDetail } from '@fms/api'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, formatSensitiveNumber } from '@/utils/field-permission'
+  import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCarrierStatementDetailDrawer' })
   type Statement = Api.Fms.CarrierStatementRecord
@@ -49,8 +49,7 @@
   const detail = ref<Statement>()
   const loadError = shallowRef<Error | null>(null)
   const formatMoney = (value?: number | string | null): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
   const canView = (field: Api.Fms.CarrierStatementFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)

@@ -17,10 +17,10 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ElTabs v-model="activeTab" class="auto-posting-page__tabs">
+    <ElTabs v-model="activeTab" class="auto-posting-page__tabs accounting-workspace-tabs">
       <ElTabPane name="rules">
         <template #label>
-          <span class="auto-posting-page__tab-label">
+          <span class="auto-posting-page__tab-label accounting-workspace-tab-label">
             <ArtSvgIcon icon="ri:flow-chart" />
             <span>
               <strong>制证规则</strong>
@@ -50,7 +50,7 @@
 
       <ElTabPane name="events">
         <template #label>
-          <span class="auto-posting-page__tab-label">
+          <span class="auto-posting-page__tab-label accounting-workspace-tab-label">
             <ArtSvgIcon icon="ri:pulse-line" />
             <span>
               <strong>事件监控</strong>
@@ -86,6 +86,8 @@
 </template>
 
 <script setup lang="tsx">
+  import '../modules/accounting-workspace-tabs.scss'
+
   import { ElButton, ElTag } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -687,17 +689,7 @@
 </script>
 
 <style scoped lang="scss">
-  @use '../modules/accounting-workspace.scss' as accounting;
-
   .auto-posting-page {
-    &__tabs {
-      @include accounting.accounting-workspace-tabs;
-    }
-
-    &__tab-label {
-      @include accounting.accounting-workspace-tab-label;
-    }
-
     &__code {
       font-weight: 600;
       font-variant-numeric: tabular-nums;

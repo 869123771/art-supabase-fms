@@ -1,4 +1,12 @@
 import { normalizeOcrRawText } from 'https://raw.githubusercontent.com/869123771/art-supabase-pro/e1297b558a4856b89910d9991d397e22fb7a992a/supabase/functions/_shared/ai-ocr-text.ts'
+import {
+  isOcrRecord as isRecord,
+  normalizeOcrConfidence as confidenceValue,
+  normalizeOcrDate as normalizeDate,
+  normalizeOcrNonNegativeNumber as numberValue,
+  normalizeOcrStringArray as stringArray,
+  normalizeOcrTextValue as textValue
+} from './ai-ocr-values.ts'
 
 export const AI_INVOICE_OCR_FIELDS = [
   'invoiceType',
@@ -77,13 +85,14 @@ const TEXT_FIELDS = [
   'sellerTaxNumber'
 ] as const
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
 function numericValue(value: unknown): unknown {
   if (typeof value !== 'string' || !value.trim()) return value
-  const parsed = Number(value.trim().replace(/[￥¥,，\s]/g, '').replace(/%$/, ''))
+  const parsed = Number(
+    value
+      .trim()
+      .replace(/[￥¥,，\s]/g, '')
+      .replace(/%$/, '')
+  )
   return Number.isFinite(parsed) ? parsed : value
 }
 
@@ -144,51 +153,13 @@ export function coerceAiInvoiceOcrProviderPayload(
   }
 }
 
-function textValue(value: unknown, maxLength = 300): string | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim()
-  return normalized ? normalized.slice(0, maxLength) : null
-}
-
-function numberValue(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') return null
-  const normalized = Number(value)
-  return Number.isFinite(normalized) && normalized >= 0 ? normalized : null
-}
-
-function confidenceValue(value: unknown): number {
-  return Math.min(1, Math.max(0, numberValue(value) ?? 0))
-}
-
-function stringArray(value: unknown, maxItems = 20): string[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .map((item) => textValue(item, 500))
-    .filter((item): item is string => Boolean(item))
-    .slice(0, maxItems)
-}
-
-function normalizeDate(value: unknown): string | null {
-  const source = textValue(value, 40)
-  if (!source) return null
-  const match = source.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/)
-  if (!match) return null
-  const month = match[2].padStart(2, '0')
-  const day = match[3].padStart(2, '0')
-  const normalized = `${match[1]}-${month}-${day}`
-  const date = new Date(`${normalized}T00:00:00Z`)
-  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized
-    ? null
-    : normalized
-}
-
 function normalizeInvoiceType(value: unknown): string | null {
   const source = textValue(value, 40)
   if (!source) return null
   const aliases: Record<string, string> = {
-    '增值税专用发票': 'vat_special',
-    '增值税普通发票': 'vat_ordinary',
-    '电子发票': 'electronic'
+    增值税专用发票: 'vat_special',
+    增值税普通发票: 'vat_ordinary',
+    电子发票: 'electronic'
   }
   const normalized = aliases[source] ?? source
   return INVOICE_TYPES.has(normalized) ? normalized : null

@@ -7,6 +7,9 @@ const allowedSourceRoots = new Set(['api', 'integrations', 'types', 'utils', 'vi
 const allowedRootFiles = new Set(['index.ts', 'main.ts'])
 const sourceExtensions = new Set(['.ts', '.tsx', '.vue'])
 const allowedFunctionSharedFiles = new Set([
+  'ai-edge-user-context-policy.ts',
+  'ai-edge-user-context.ts',
+  'ai-ocr-values.ts',
   'ai-bank-statement-batch-contract.ts',
   'ai-cash-voucher-ocr-contract.ts',
   'ai-invoice-ocr-contract.ts',

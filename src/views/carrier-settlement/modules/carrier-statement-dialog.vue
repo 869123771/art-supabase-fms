@@ -90,7 +90,7 @@
   } from '@fms/api'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import { formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCarrierStatementDialog' })
   type EligibleCost = Api.Fms.CarrierStatementEligibleCost
@@ -134,8 +134,7 @@
     )
   })
   const formatMoney = (value?: number | string | null): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
   const selectedAmountSummary = computed(() => {
     if (amountAccess.value === 'hidden') return ''

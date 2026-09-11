@@ -70,7 +70,11 @@
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchInvoiceDetail } from '@fms/api'
-  import { canViewField, formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import {
+    canViewField,
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceInvoiceDetailDrawer' })
 
@@ -188,18 +192,15 @@
   })
 
   function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   function formatPercent(value: unknown): string {
-    const formatted = formatSensitiveNumber(value as Api.Fms.SensitiveNumber)
-    return formatted === '***' || formatted === '--' ? formatted : `${formatted}%`
+    return formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { suffix: '%' })
   }
 
   function formatStatementMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   async function loadDetail(id: string): Promise<void> {

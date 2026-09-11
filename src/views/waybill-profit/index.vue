@@ -37,7 +37,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElTag, ElTooltip } from 'element-plus'
+  import { ElTag } from 'element-plus'
+  import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExcelColumn,
@@ -54,9 +55,9 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import {
     canViewField,
-    formatSensitiveNumber,
     isMaskedValue,
-    mergeFieldAccessMaps
+    mergeFieldAccessMaps,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceWaybillProfit' })
@@ -125,11 +126,10 @@
   ])
 
   const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    const formatted = formatSensitiveNumber(value, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+    return formatSensitiveNumberWithAffix(value, {
+      prefix: '¥',
+      numberFormat: { minimumFractionDigits: 2, maximumFractionDigits: 2 }
     })
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
   }
 
   const columnsFactory = (): ColumnOption<WaybillProfit>[] => [
@@ -200,16 +200,16 @@
               isMaskedValue(row.totalCostAmount) ? (
                 <ElTag type="info">已脱敏</ElTag>
               ) : Number(row.totalCostAmount) > 0 ? (
-                <ElTooltip
+                <ArtTooltip
                   content={`已审核成本 ${formatMoney(row.totalCostAmount)}`}
                   placement="top"
                 >
                   <ElTag type="success">已核成本</ElTag>
-                </ElTooltip>
+                </ArtTooltip>
               ) : (
-                <ElTooltip content="尚无审核通过的费用，当前利润仅供参考" placement="top">
+                <ArtTooltip content="尚无审核通过的费用，当前利润仅供参考" placement="top">
                   <ElTag type="warning">未核成本</ElTag>
-                </ElTooltip>
+                </ArtTooltip>
               )
           }
         ]

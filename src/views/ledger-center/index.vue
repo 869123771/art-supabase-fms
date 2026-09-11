@@ -25,10 +25,10 @@
       title="报表仅统计已记账及其冲销凭证，已确认期初余额自动纳入期初数；原凭证与冲销凭证均保留，确保账簿结果可审计、可追溯。"
     />
 
-    <ElTabs v-model="activeTab" class="ledger-center-page__tabs">
+    <ElTabs v-model="activeTab" class="ledger-center-page__tabs accounting-workspace-tabs">
       <ElTabPane name="balance">
         <template #label>
-          <span class="ledger-center-page__tab-label">
+          <span class="ledger-center-page__tab-label accounting-workspace-tab-label">
             <ArtSvgIcon icon="ri:scales-3-line" />
             <span>
               <strong>科目余额表</strong>
@@ -59,7 +59,7 @@
 
       <ElTabPane name="general">
         <template #label>
-          <span class="ledger-center-page__tab-label">
+          <span class="ledger-center-page__tab-label accounting-workspace-tab-label">
             <ArtSvgIcon icon="ri:book-2-line" />
             <span>
               <strong>总账</strong>
@@ -90,7 +90,7 @@
 
       <ElTabPane name="subsidiary">
         <template #label>
-          <span class="ledger-center-page__tab-label">
+          <span class="ledger-center-page__tab-label accounting-workspace-tab-label">
             <ArtSvgIcon icon="ri:file-list-3-line" />
             <span>
               <strong>明细 / 辅助账</strong>
@@ -124,6 +124,8 @@
 </template>
 
 <script setup lang="tsx">
+  import '../modules/accounting-workspace-tabs.scss'
+
   import { ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -1192,21 +1194,13 @@
 </script>
 
 <style scoped lang="scss">
-  @use '../modules/accounting-workspace.scss' as accounting;
-
   .ledger-center-page {
-    &__tabs {
-      @include accounting.accounting-workspace-tabs(640px, 540px);
-    }
+    --accounting-workspace-mobile-min-height: 540px;
 
     &__subject,
     &__period {
       display: flex;
       min-width: 0;
-    }
-
-    &__tab-label {
-      @include accounting.accounting-workspace-tab-label;
     }
 
     &__subject {

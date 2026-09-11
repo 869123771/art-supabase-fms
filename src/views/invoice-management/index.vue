@@ -69,9 +69,9 @@
   import { formatWithDayjs } from '@/utils/time'
   import {
     canViewField,
-    formatSensitiveNumber,
     getFieldAccess,
-    mergeFieldAccessMaps
+    mergeFieldAccessMaps,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { financePaths } from '@/router/business-paths'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -217,8 +217,7 @@
   })
 
   const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   const renderStatusActions = (row: Invoice) => {

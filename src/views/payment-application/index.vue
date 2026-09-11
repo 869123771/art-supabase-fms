@@ -69,9 +69,9 @@
   import { financeRouteNames } from '@/router/business-paths'
   import {
     canViewField,
-    formatSensitiveNumber,
     getFieldAccess,
-    mergeFieldAccessMaps
+    mergeFieldAccessMaps,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -198,8 +198,7 @@
   })
 
   const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   const columnsFactory = (): ColumnOption<Application>[] => [

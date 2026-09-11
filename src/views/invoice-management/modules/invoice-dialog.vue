@@ -235,8 +235,8 @@
   import {
     canEditField,
     canViewField,
-    formatSensitiveNumber,
-    getFieldAccess
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { toInvoiceOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
@@ -821,8 +821,9 @@
   }
 
   function formatStatementMoney(value: unknown): string {
-    const formatted = formatSensitiveNumber(value as Api.Fms.SensitiveNumber | null | undefined)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber | null | undefined, {
+      prefix: '¥'
+    })
   }
 
   function getAvailableAmount(row: Record<string, unknown>): number {

@@ -145,8 +145,8 @@
   import {
     canEditField,
     canViewField,
-    formatSensitiveNumber,
-    getFieldAccess
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinancePaymentApplicationDialog' })
@@ -430,8 +430,7 @@
     return Number.isFinite(numericValue) ? numericValue : 0
   }
   const money = (value?: Api.Fms.SensitiveNumber): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   async function fetchCarrierSelectorData(params: DataSelectFetchParams) {

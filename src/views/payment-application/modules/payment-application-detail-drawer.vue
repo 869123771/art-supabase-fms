@@ -72,7 +72,11 @@
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchCarrierPaymentApplicationDetail } from '@fms/api'
-  import { canViewField, formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import {
+    canViewField,
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinancePaymentApplicationDetailDrawer' })
 
@@ -162,8 +166,7 @@
   ])
 
   function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   async function loadDetail(id: string): Promise<void> {

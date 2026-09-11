@@ -90,7 +90,7 @@
         >
           <ArtSvgIcon icon="ri:add-line" />录入余额
         </ElButton>
-        <ElTooltip
+        <ArtTooltip
           v-if="hasAuth('FinanceOpeningBalance:Confirm') && summary.status === 'draft'"
           :disabled="canConfirmOpeningBalance"
           :content="confirmOpeningBalanceHint"
@@ -107,7 +107,7 @@
               确认并锁定
             </ElButton>
           </span>
-        </ElTooltip>
+        </ArtTooltip>
         <ElButton
           v-if="hasAuth('FinanceOpeningBalance:Reopen') && summary.status === 'confirmed'"
           plain
@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElButton, ElTag, ElTooltip } from 'element-plus'
+  import { ElButton, ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric

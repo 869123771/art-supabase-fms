@@ -57,7 +57,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElTag, ElTooltip } from 'element-plus'
+  import { ElTag } from 'element-plus'
+  import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
@@ -75,8 +76,8 @@
   import {
     canEditField,
     canViewField,
-    formatSensitiveNumber,
-    getFieldAccess
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
 
@@ -111,8 +112,7 @@
   const directionLabel = computed(() => (detail.data?.direction === 'payment' ? '付款' : '收款'))
 
   function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   function formatDateTime(value?: string | null): string {
@@ -257,17 +257,17 @@
       fixed: 'right',
       formatter: (row) =>
         row.isActive && canEditField(detail.data?.fieldAccess, 'transactionAmounts') ? (
-          <ElTooltip content="撤销核销" placement="top">
+          <ArtTooltip content="撤销核销" placement="top">
             <ArtButtonTable
               icon="ri:arrow-go-back-line"
               iconClass="bg-error/12 text-error"
               onClick={() => void handleReverse(row)}
             />
-          </ElTooltip>
+          </ArtTooltip>
         ) : (
-          <ElTooltip content={row.reverseReason || '核销已撤销'} placement="top">
+          <ArtTooltip content={row.reverseReason || '核销已撤销'} placement="top">
             <ElTag type="info">查看</ElTag>
-          </ElTooltip>
+          </ArtTooltip>
         )
     }
   ])

@@ -184,7 +184,7 @@
         </span>
         <div>
           <ElButton @click="api.handleClose()">取消</ElButton>
-          <ElTooltip
+          <ArtTooltip
             :disabled="isPlatformSuper"
             content="仅平台超级管理员可批量入账"
             placement="top"
@@ -199,7 +199,7 @@
                 确认入账 {{ selectedRows.length ? `(${selectedRows.length})` : '' }}
               </ElButton>
             </span>
-          </ElTooltip>
+          </ArtTooltip>
         </div>
       </div>
     </template>

@@ -39,7 +39,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import { executeCarrierPaymentApplication, fetchFundAccountOptions } from '@fms/api'
-  import { formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
 
   defineOptions({ name: 'FinancePaymentApplicationExecuteDialog' })
@@ -164,8 +164,7 @@
   })
 
   function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   async function handleSubmit(): Promise<boolean> {

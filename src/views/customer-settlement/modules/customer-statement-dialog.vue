@@ -94,7 +94,7 @@
   } from '@fms/api'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
-  import { formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
 
   defineOptions({ name: 'FinanceCustomerStatementDialog' })
@@ -149,8 +149,7 @@
   })
 
   const formatMoney = (value?: number | string | null): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '***' || formatted === '--' ? formatted : `¥${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   const selectedAmountSummary = computed(() => {

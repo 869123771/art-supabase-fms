@@ -48,10 +48,10 @@
         </ol>
       </nav>
 
-      <ElTabs v-model="activeTab" class="waybill-cost__tabs">
+      <ElTabs v-model="activeTab" class="waybill-cost__tabs accounting-workspace-tabs">
         <ElTabPane name="expense">
           <template #label>
-            <span class="waybill-cost__tab-label">
+            <span class="waybill-cost__tab-label accounting-workspace-tab-label">
               <ArtSvgIcon icon="ri:file-list-3-line" />
               <span>
                 <strong>运单费用台账</strong>
@@ -83,7 +83,7 @@
 
         <ElTabPane name="reimbursement">
           <template #label>
-            <span class="waybill-cost__tab-label">
+            <span class="waybill-cost__tab-label accounting-workspace-tab-label">
               <ArtSvgIcon icon="ri:secure-payment-line" />
               <span>
                 <strong>费用报销与支付</strong>
@@ -125,6 +125,8 @@
 </template>
 
 <script setup lang="tsx">
+  import '../modules/accounting-workspace-tabs.scss'
+
   import { ElMessage } from 'element-plus'
   import type { ComputedRef } from 'vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
@@ -1231,8 +1233,6 @@
 </script>
 
 <style scoped lang="scss">
-  @use '../modules/accounting-workspace.scss' as accounting;
-
   .waybill-cost {
     display: flex;
     flex-direction: column;
@@ -1348,14 +1348,6 @@
       flex: 0 0 auto;
       margin-left: auto;
       color: var(--art-text-gray-300);
-    }
-
-    &__tabs {
-      @include accounting.accounting-workspace-tabs;
-    }
-
-    &__tab-label {
-      @include accounting.accounting-workspace-tab-label;
     }
 
     :deep(.waybill-cost__row-actions) {
