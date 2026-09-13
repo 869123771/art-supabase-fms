@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
@@ -578,12 +579,12 @@
         effectiveFrom: form.data.effectiveFrom || null,
         effectiveTo: form.data.effectiveTo || null,
         isEnabled: form.data.isEnabled,
-        remark: form.data.remark.trim() || null,
+        remark: normalizeNullableText(form.data.remark),
         lines: form.lines.map((line, index) => ({
           ...line,
           lineNo: index + 1,
           amountMultiplier: Number(line.amountMultiplier),
-          summary: line.summary?.trim() || null,
+          summary: normalizeNullableText(line.summary),
           auxiliaryBindings: { ...line.auxiliaryBindings }
         }))
       })

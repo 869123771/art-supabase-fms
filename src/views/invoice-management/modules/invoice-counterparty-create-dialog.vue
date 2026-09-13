@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import { ElMessage, type FormRules } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -149,7 +150,7 @@
       const { data } = await createInvoiceCounterpartyFromOcr({
         artifactId: form.data.artifactId,
         name: form.data.name.trim(),
-        taxNo: form.data.taxNo?.trim() || null,
+        taxNo: normalizeNullableText(form.data.taxNo),
         carrierType: form.data.direction === 'input' ? form.data.carrierType : null
       })
       if (!data) return false

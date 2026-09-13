@@ -279,7 +279,7 @@
       key: 'posted',
       label: canViewField(summary.fieldAccess, 'voucherAmounts') ? '本期过账额' : '本期已过账',
       value: canViewField(summary.fieldAccess, 'voucherAmounts')
-        ? formatMoney(summary.currentPeriodPostedAmount)
+        ? formatSensitiveNumber(summary.currentPeriodPostedAmount)
         : summary.postedCount,
       description: canViewField(summary.fieldAccess, 'voucherAmounts')
         ? `累计已过账 ${summary.postedCount} 张`
@@ -337,7 +337,7 @@
             label: '凭证金额',
             width: 135,
             align: 'right' as const,
-            formatter: (row: Voucher) => formatMoney(row.totalDebit)
+            formatter: (row: Voucher) => formatSensitiveNumber(row.totalDebit)
           }
         ]
       : []),
@@ -577,10 +577,6 @@
       await nextTick()
       await Promise.all([tableQueryRef.value?.getData(), loadSummary()])
     }
-  }
-
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumber(value)
   }
 
   onMounted(() => void loadAccountSets())

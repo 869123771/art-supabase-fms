@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { FormRules } from 'element-plus'
@@ -278,20 +279,20 @@
               drawerName: form.data.drawerName?.trim() || '',
               payeeName: form.data.payeeName?.trim() || '',
               acceptorName: form.data.acceptorName?.trim() || '',
-              counterpartyName: form.data.counterpartyName?.trim() || null
+              counterpartyName: normalizeNullableText(form.data.counterpartyName)
             }
           : {}),
         ...(canEdit('billAmounts') ? { faceAmount: Number(form.data.faceAmount) } : {}),
         ...(canEdit('billReferences')
           ? {
-              externalBillNo: form.data.externalBillNo?.trim() || null,
+              externalBillNo: normalizeNullableText(form.data.externalBillNo),
               sourceType: form.data.sourceType || null,
               sourceId: form.data.sourceId || null,
-              sourceNo: form.data.sourceNo?.trim() || null,
+              sourceNo: normalizeNullableText(form.data.sourceNo),
               attachmentIds: form.data.attachmentIds ?? []
             }
           : {}),
-        remark: form.data.remark?.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       }
       await saveCommercialBill(payload)
       emit('success', form.data.id ? 'edit' : 'add')

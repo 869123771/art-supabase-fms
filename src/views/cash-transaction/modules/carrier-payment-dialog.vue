@@ -92,6 +92,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { ElInputNumber, ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -511,15 +512,15 @@
         })
       else {
         const { data: transactionId } = await createCarrierPayment({
-          transactionNo: form.transactionNo.trim() || null,
+          transactionNo: normalizeNullableText(form.transactionNo),
           carrierId: form.carrierId,
           fundAccountId: form.fundAccountId,
           transactionDate: form.transactionDate,
           amount: Number(form.amount),
           paymentMethod: form.paymentMethod,
-          bankReference: form.bankReference.trim() || null,
+          bankReference: normalizeNullableText(form.bankReference),
           voucherUrls: [...form.voucherUrls],
-          remark: form.remark.trim() || null,
+          remark: normalizeNullableText(form.remark),
           allocations: allocations()
         })
         await recordOcrReview(transactionId)
@@ -602,7 +603,7 @@
         payeeName: selection.carriers[0]?.companyName ?? null,
         transactionDate: form.transactionDate,
         amount: Number(form.amount),
-        bankReference: form.bankReference.trim() || null,
+        bankReference: normalizeNullableText(form.bankReference),
         paymentMethod: form.paymentMethod,
         statementIds: [...form.statementIds]
       }

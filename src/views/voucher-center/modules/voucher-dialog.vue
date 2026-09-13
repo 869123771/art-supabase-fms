@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import dayjs from 'dayjs'
   import { cloneDeep } from 'lodash-es'
@@ -385,7 +386,7 @@
             voucherLineId: lineIdByNo.get(item.voucherLineNo) ?? '',
             statementItemId: item.statementItemId,
             amount: Number(item.amount),
-            remark: item.remark?.trim() || null
+            remark: normalizeNullableText(item.remark)
           }))
         )
       }

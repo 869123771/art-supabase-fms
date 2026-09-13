@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { createFriendlySupabaseError, normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
@@ -60,7 +61,7 @@ const toInvoiceListRpcParams = (
     p_record_id: params.recordId || null,
     p_issue_date_start: params.issueDateRange?.[0] || null,
     p_issue_date_end: params.issueDateRange?.[1] || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose
   }
@@ -103,7 +104,7 @@ export async function fetchInvoiceableStatementList(params: InvoiceableSearchPar
         p_counterparty_id: counterpartyId,
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_keyword: String(keyword ?? '').trim() || null,
+        p_keyword: normalizeNullableText(String(keyword ?? '')),
         p_include_fully_invoiced: Boolean(includeFullyInvoiced)
       }),
     { showErrorMessage: true }

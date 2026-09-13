@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -325,7 +326,7 @@
           ? { amount: form.data.amount, feeAmount: form.data.feeAmount }
           : {}),
         ...(canEdit('bankReference')
-          ? { bankReference: form.data.bankReference?.trim() || null }
+          ? { bankReference: normalizeNullableText(form.data.bankReference) }
           : {})
       }
       await saveFundTransfer(payload)

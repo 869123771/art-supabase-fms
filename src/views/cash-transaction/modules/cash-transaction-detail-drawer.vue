@@ -57,6 +57,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+
   import { ElTag } from 'element-plus'
   import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -72,7 +74,6 @@
     reverseCarrierCashAllocation,
     reverseCashAllocation
   } from '@fms/api'
-  import { formatWithDayjs } from '@/utils/time'
   import {
     canEditField,
     canViewField,
@@ -115,9 +116,7 @@
     return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
-  function formatDateTime(value?: string | null): string {
-    return value ? (formatWithDayjs(value, 'YYYY-MM-DD HH:mm') ?? '-') : '-'
-  }
+  const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm', emptyText: '-' })
 
   const descriptionItems = computed<ArtDescriptionItem<CashTransaction>[]>(() => [
     {

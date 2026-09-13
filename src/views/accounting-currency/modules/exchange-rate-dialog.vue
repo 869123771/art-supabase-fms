@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
@@ -123,8 +124,8 @@
         rateDate: form.data.rateDate,
         rateType: form.data.rateType,
         directRate: Number(form.data.directRate),
-        source: form.data.source?.trim() || null,
-        remark: form.data.remark?.trim() || null
+        source: normalizeNullableText(form.data.source),
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true

@@ -200,6 +200,9 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCnyCurrencyValue as formatMoney } from '@/utils/ui/format'
+
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage, type FormRules } from 'element-plus'
@@ -813,13 +816,6 @@
     )
   }
 
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return `¥${Number(value ?? 0).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
-
   function formatStatementMoney(value: unknown): string {
     return formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber | null | undefined, {
       prefix: '¥'
@@ -1193,10 +1189,10 @@
     if (!ocrArtifactId.value || !invoiceId) return
     const finalPayload = {
       invoiceType: form.data.invoiceType,
-      invoiceTitle: form.data.invoiceTitle.trim() || null,
-      taxNumber: form.data.taxNumber.trim() || null,
-      invoiceCode: form.data.invoiceCode.trim() || null,
-      invoiceNo: form.data.invoiceNo.trim() || null,
+      invoiceTitle: normalizeNullableText(form.data.invoiceTitle),
+      taxNumber: normalizeNullableText(form.data.taxNumber),
+      invoiceCode: normalizeNullableText(form.data.invoiceCode),
+      invoiceNo: normalizeNullableText(form.data.invoiceNo),
       issueDate: form.data.issueDate,
       taxRate: Number(form.data.taxRate),
       amountExcludingTax: Number(form.data.amountExcludingTax),

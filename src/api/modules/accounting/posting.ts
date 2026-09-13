@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
 type PostingRule = Api.Fms.SecurePostingRuleRecord
@@ -41,7 +42,7 @@ export async function fetchPostingRuleList(params: Api.Fms.PostingRuleSearchPara
         p_source_type: sourceType || null,
         p_event_code: eventCode || null,
         p_is_enabled: typeof isEnabled === 'boolean' ? isEnabled : null,
-        p_keyword: keyword?.trim() || null
+        p_keyword: normalizeNullableText(keyword)
       }),
     {
       ignoreCheck: true,
@@ -97,7 +98,7 @@ export async function fetchPostingEventList(params: Api.Fms.PostingEventSearchPa
         p_event_code: eventCode || null,
         p_date_from: dateFrom || null,
         p_date_to: dateTo || null,
-        p_keyword: params.keyword?.trim() || null
+        p_keyword: normalizeNullableText(params.keyword)
       }),
     { ignoreCheck: true, showErrorMessage: true }
   )

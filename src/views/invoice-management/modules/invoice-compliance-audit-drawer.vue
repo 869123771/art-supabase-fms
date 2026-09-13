@@ -239,6 +239,8 @@
 </template>
 
 <script setup lang="ts">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
@@ -247,7 +249,6 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { analyzeInvoiceComplianceByAi } from '@fms/api'
-  import { formatWithDayjs } from '@/utils/time'
   import { formatCurrencyValue } from '@/utils/ui'
 
   defineOptions({ name: 'FinanceInvoiceComplianceAuditDrawer' })
@@ -375,9 +376,7 @@
     return formatCurrencyValue(value)
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') || '-'
-  }
+  const formatTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm:ss', emptyText: '-' })
 
   defineExpose({ handleOpen })
 </script>

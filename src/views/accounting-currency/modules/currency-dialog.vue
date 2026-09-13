@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -137,12 +138,12 @@
         accountSetId: form.data.accountSetId,
         currencyCode: form.data.currencyCode.trim().toUpperCase(),
         currencyName: form.data.currencyName.trim(),
-        symbol: form.data.symbol?.trim() || null,
+        symbol: normalizeNullableText(form.data.symbol),
         decimalPlaces: form.data.decimalPlaces,
         isBase: form.data.isBase,
         isEnabled: form.data.isBase || form.data.isEnabled,
         sort: form.data.sort,
-        remark: form.data.remark?.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true

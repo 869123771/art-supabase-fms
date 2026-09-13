@@ -252,6 +252,8 @@
 </template>
 
 <script setup lang="ts">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { UnwrapNestedRefs } from 'vue'
@@ -261,7 +263,6 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { analyzeWaybillCostByAi } from '@fms/api'
-  import { formatWithDayjs } from '@/utils/time'
 
   defineOptions({ name: 'FinanceWaybillCostAuditDrawer' })
 
@@ -416,9 +417,7 @@
     return value === null ? '数据不足' : `${Math.round(value * 1_000) / 10}%`
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') || '-'
-  }
+  const formatTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm:ss', emptyText: '-' })
 
   defineExpose({ handleOpen })
 </script>

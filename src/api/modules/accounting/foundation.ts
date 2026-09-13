@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
 type AccountSet = Api.Fms.AccountSetRecord
@@ -36,7 +37,7 @@ export async function fetchAccountSetList(params: AccountSetSearchParams = {}) {
       supabase.rpc('fms_list_account_sets_secure', {
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_status: status || null,
         p_tenant_id: tenantId || null
       }),

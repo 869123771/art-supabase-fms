@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import { ElMessage, type FormRules } from 'element-plus'
@@ -176,11 +177,11 @@
     }
     try {
       const { data } = await executeCarrierPaymentApplication({
-        transactionNo: form.data.transactionNo.trim() || null,
+        transactionNo: normalizeNullableText(form.data.transactionNo),
         applicationId: application.value.id,
         fundAccountId: form.data.fundAccountId,
         transactionDate: form.data.transactionDate,
-        bankReference: form.data.bankReference.trim() || null,
+        bankReference: normalizeNullableText(form.data.bankReference),
         voucherUrls: [...form.data.voucherUrls]
       })
       emit('success', data)

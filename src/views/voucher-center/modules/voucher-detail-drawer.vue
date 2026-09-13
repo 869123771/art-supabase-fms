@@ -34,8 +34,8 @@
             empty-text="暂无会计分录"
           />
           <div v-if="canViewAmounts" class="voucher-detail__totals">
-            <strong>借方合计 {{ formatMoney(detail.totalDebit) }}</strong>
-            <strong>贷方合计 {{ formatMoney(detail.totalCredit) }}</strong>
+            <strong>借方合计 {{ formatSensitiveNumber(detail.totalDebit) }}</strong>
+            <strong>贷方合计 {{ formatSensitiveNumber(detail.totalCredit) }}</strong>
           </div>
         </section>
 
@@ -171,21 +171,21 @@
             width: 120,
             align: 'right' as const,
             formatter: (row: Line) =>
-              row.currencyCodeSnapshot ? formatMoney(row.originalAmount) : '—'
+              row.currencyCodeSnapshot ? formatSensitiveNumber(row.originalAmount) : '—'
           },
           {
             prop: 'debitAmount',
             label: '借方金额',
             width: 135,
             align: 'right' as const,
-            formatter: (row: Line) => formatMoney(row.debitAmount)
+            formatter: (row: Line) => formatSensitiveNumber(row.debitAmount)
           },
           {
             prop: 'creditAmount',
             label: '贷方金额',
             width: 135,
             align: 'right' as const,
-            formatter: (row: Line) => formatMoney(row.creditAmount)
+            formatter: (row: Line) => formatSensitiveNumber(row.creditAmount)
           }
         ]
       : [])
@@ -229,10 +229,6 @@
       reverse: '凭证冲销',
       reversal_create: '生成冲销凭证'
     }[action]
-  }
-
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumber(value)
   }
 
   function formatTime(value: string): string {

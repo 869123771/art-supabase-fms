@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { fetchAccountSetIdentities } from '@fms/api/modules/accounting/foundation'
 
@@ -78,7 +79,7 @@ export async function fetchFundAccountList(params: Api.Fms.FundAccountSearchPara
         p_account_set_id: accountSetId || null,
         p_account_type: accountType || null,
         p_status: status || null,
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_tenant_id: tenantId || null
       }),
     { showErrorMessage: true }
@@ -153,7 +154,7 @@ export async function fetchFundLedgerList(params: Api.Fms.FundLedgerSearchParams
         p_direction: params.direction || null,
         p_source_type: params.sourceType || null,
         p_status: params.status || null,
-        p_keyword: params.keyword?.trim() || null,
+        p_keyword: normalizeNullableText(params.keyword),
         p_entry_start_date: params.entryDateRange?.[0] || null,
         p_entry_end_date: params.entryDateRange?.[1] || null,
         p_tenant_id: null
@@ -187,7 +188,7 @@ export async function fetchFundTransferList(params: Api.Fms.FundTransferSearchPa
         p_source_account_id: sourceAccountId || null,
         p_target_account_id: targetAccountId || null,
         p_status: status || null,
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_transfer_start_date: params.transferDateRange?.[0] || null,
         p_transfer_end_date: params.transferDateRange?.[1] || null,
         p_tenant_id: null
@@ -264,7 +265,7 @@ export async function fetchBankReconciliationList(
         p_account_set_id: accountSetId || null,
         p_fund_account_id: fundAccountId || null,
         p_status: status || null,
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_statement_start_date: params.statementDateRange?.[0] || null,
         p_statement_end_date: params.statementDateRange?.[1] || null,
         p_tenant_id: null

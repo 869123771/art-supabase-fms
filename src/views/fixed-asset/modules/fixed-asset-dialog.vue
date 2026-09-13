@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -291,19 +292,19 @@
           ? {
               departmentId: form.departmentId || null,
               employeeId: form.employeeId || null,
-              location: form.location?.trim() || null
+              location: normalizeNullableText(form.location)
             }
           : {}),
         ...(canEdit('assetReferences')
           ? {
-              specification: form.specification?.trim() || null,
-              serialNo: form.serialNo?.trim() || null,
+              specification: normalizeNullableText(form.specification),
+              serialNo: normalizeNullableText(form.serialNo),
               sourceType: form.sourceType || null,
               sourceId: form.sourceId || null,
-              sourceNo: form.sourceNo?.trim() || null
+              sourceNo: normalizeNullableText(form.sourceNo)
             }
           : {}),
-        remark: form.remark?.trim() || null
+        remark: normalizeNullableText(form.remark)
       }
       await saveFixedAsset(payload)
       emit('success')

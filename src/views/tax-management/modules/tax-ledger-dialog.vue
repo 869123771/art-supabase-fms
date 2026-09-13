@@ -15,6 +15,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { FormRules } from 'element-plus'
@@ -94,7 +95,7 @@
       await saveTaxLedgerLine(periodId.value, {
         ...form,
         sourceType: form.sourceType.trim(),
-        sourceNo: form.sourceNo?.trim() || null
+        sourceNo: normalizeNullableText(form.sourceNo)
       })
       emit('success')
       return true

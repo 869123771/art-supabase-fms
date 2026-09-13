@@ -98,6 +98,8 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCnyCurrencyValue as formatMoney } from '@/utils/ui/format'
+
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage } from 'element-plus'
@@ -164,13 +166,6 @@
       { label: '流水号', value: voucher.bankReference || '未识别', empty: !voucher.bankReference }
     ]
   })
-
-  function formatMoney(value?: number | null): string {
-    return `¥${Number(value ?? 0).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
 
   async function handleAnalyze(): Promise<void> {
     if (!imageUrls.value.length || analyzing.value) return

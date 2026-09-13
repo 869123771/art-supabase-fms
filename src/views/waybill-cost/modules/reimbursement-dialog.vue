@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { uniq } from 'lodash-es'
   import { useMediaQuery } from '@vueuse/core'
@@ -364,15 +365,15 @@
     }
     try {
       await createExpenseReimbursement({
-        reimbursementNo: form.data.reimbursementNo.trim() || null,
+        reimbursementNo: normalizeNullableText(form.data.reimbursementNo),
         costIds: state.expenses.flatMap((item) => (item.id ? [item.id] : [])),
         payeeName: form.data.payeeName.trim(),
-        payeeBank: form.data.payeeBank.trim() || null,
-        payeeAccount: form.data.payeeAccount.trim() || null,
+        payeeBank: normalizeNullableText(form.data.payeeBank),
+        payeeAccount: normalizeNullableText(form.data.payeeAccount),
         plannedPaymentDate: form.data.plannedPaymentDate,
         paymentMethod: form.data.paymentMethod,
         basisUrls: [...form.data.basisUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true

@@ -113,6 +113,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import { useMediaQuery } from '@vueuse/core'
@@ -512,7 +513,7 @@
     try {
       await saveCarrierPaymentApplication({
         id: form.data.id,
-        applicationNo: form.data.applicationNo.trim() || null,
+        applicationNo: normalizeNullableText(form.data.applicationNo),
         carrierId: form.data.carrierId,
         plannedPaymentDate: form.data.plannedPaymentDate,
         amount: canEditApplicationField('applicationAmounts')
@@ -520,7 +521,7 @@
           : null,
         paymentMethod: form.data.paymentMethod,
         basisUrls: [...form.data.basisUrls],
-        remark: form.data.remark.trim() || null,
+        remark: normalizeNullableText(form.data.remark),
         allocations: buildAllocations()
       })
       emit('success')

@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { startWorkflow } from '@/api/workflow'
 
@@ -28,7 +29,7 @@ const toListRpcParams = (
     p_record_id: params.recordId || null,
     p_planned_payment_date_start: params.plannedPaymentDateRange?.[0] || null,
     p_planned_payment_date_end: params.plannedPaymentDateRange?.[1] || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose
   }

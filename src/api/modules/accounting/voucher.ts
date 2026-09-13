@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 type Voucher = Api.Fms.SecureVoucherRecord
 type VoucherSearchParams = Api.Fms.VoucherSearchParams
@@ -30,7 +31,7 @@ function toVoucherListRpcParams(
     p_status: status || null,
     p_voucher_type: voucherType || null,
     p_source_type: sourceType || null,
-    p_keyword: keyword?.trim() || null,
+    p_keyword: normalizeNullableText(keyword),
     p_voucher_start_date: params.voucherDateRange?.[0] || null,
     p_voucher_end_date: params.voucherDateRange?.[1] || null,
     p_ids: ids?.length ? ids : null,
@@ -135,7 +136,7 @@ export async function fetchVoucherTemplateList(params: VoucherTemplateSearchPara
         p_account_set_id: accountSetId || null,
         p_voucher_type: voucherType || null,
         p_is_enabled: typeof isEnabled === 'boolean' ? isEnabled : null,
-        p_keyword: keyword?.trim() || null
+        p_keyword: normalizeNullableText(keyword)
       }),
     { showErrorMessage: true }
   )

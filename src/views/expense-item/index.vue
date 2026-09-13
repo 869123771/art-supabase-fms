@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { formatTenantLabel as resolveTenantLabel } from '@/utils/tenant-display'
+
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -248,13 +250,6 @@
 
   function handleSaved(type: 'add' | 'edit'): void {
     void (type === 'add' ? tableRef.value?.refreshCreate() : tableRef.value?.refreshUpdate())
-  }
-
-  function resolveTenantLabel(row: ExpenseItem): string {
-    const tenantName = row.tenant?.tenantName?.trim()
-    const tenantCode = row.tenant?.tenantCode?.trim()
-    if (tenantName && tenantCode) return `${tenantName}（${tenantCode}）`
-    return tenantName || tenantCode || row.tenantId || '未识别租户'
   }
 
   async function loadTenantOptions(): Promise<void> {

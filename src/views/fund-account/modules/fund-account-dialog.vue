@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -304,12 +305,12 @@
         ...form.data,
         accountCode: form.data.accountCode.trim().toUpperCase(),
         accountName: form.data.accountName.trim(),
-        bankName: isBank.value ? form.data.bankName?.trim() || null : null,
-        bankBranch: isBank.value ? form.data.bankBranch?.trim() || null : null,
-        accountNo: form.data.accountNo?.trim() || null,
+        bankName: isBank.value ? normalizeNullableText(form.data.bankName) : null,
+        bankBranch: isBank.value ? normalizeNullableText(form.data.bankBranch) : null,
+        accountNo: normalizeNullableText(form.data.accountNo),
         onlineBankingEnabled: isBank.value && form.data.onlineBankingEnabled,
         reconciliationEnabled: form.data.accountType !== 'cash' && form.data.reconciliationEnabled,
-        remark: form.data.remark?.trim() || null,
+        remark: normalizeNullableText(form.data.remark),
         openingBalance: Number(form.data.openingBalance ?? 0),
         frozenBalance: Number(form.data.frozenBalance ?? 0)
       }

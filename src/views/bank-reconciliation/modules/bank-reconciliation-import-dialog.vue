@@ -108,6 +108,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
@@ -291,15 +292,15 @@
       if (!validateLines()) return false
       await importBankReconciliation({
         ...form.data,
-        importedFileName: form.data.importedFileName?.trim() || null,
-        remark: form.data.remark?.trim() || null,
+        importedFileName: normalizeNullableText(form.data.importedFileName),
+        remark: normalizeNullableText(form.data.remark),
         lines: form.data.lines.map((line) => ({
           ...line,
-          counterpartyName: line.counterpartyName?.trim() || null,
-          counterpartyAccount: line.counterpartyAccount?.trim() || null,
-          bankReference: line.bankReference?.trim() || null,
-          bankSerialNo: line.bankSerialNo?.trim() || null,
-          bankMemo: line.bankMemo?.trim() || null
+          counterpartyName: normalizeNullableText(line.counterpartyName),
+          counterpartyAccount: normalizeNullableText(line.counterpartyAccount),
+          bankReference: normalizeNullableText(line.bankReference),
+          bankSerialNo: normalizeNullableText(line.bankSerialNo),
+          bankMemo: normalizeNullableText(line.bankMemo)
         }))
       })
       emit('success')

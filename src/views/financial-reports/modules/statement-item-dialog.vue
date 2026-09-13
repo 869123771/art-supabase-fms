@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -210,7 +211,7 @@
           form.data.calculationMethod === 'mapping'
             ? form.data.cashFlowDirection
             : null,
-        remark: form.data.remark?.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true

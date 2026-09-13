@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
 
@@ -28,7 +29,7 @@ const toListRpcParams = (
     p_carrier_id: params.carrierId || null,
     p_record_id: params.recordId || null,
     p_status: params.status || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_period_start: params.periodRange?.[0] || null,
     p_period_end: params.periodRange?.[1] || null,
     p_ids: params.ids?.length ? params.ids : null,
@@ -75,7 +76,7 @@ export async function fetchCarrierStatementEligibleCosts(params: EligibleSearchP
         p_carrier_id: params.carrierId,
         p_period_start: params.periodStart,
         p_period_end: params.periodEnd,
-        p_keyword: String(params.keyword ?? '').trim() || null,
+        p_keyword: normalizeNullableText(String(params.keyword ?? '')),
         p_from: Math.max(params.from ?? 0, 0),
         p_to: Math.max(params.to ?? 9, params.from ?? 0)
       }),

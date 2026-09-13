@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -142,7 +143,7 @@
       ...toRaw(form.data),
       typeCode: form.data.typeCode.trim().toUpperCase(),
       typeName: form.data.typeName.trim(),
-      remark: form.data.remark?.trim() || null
+      remark: normalizeNullableText(form.data.remark)
     }
   }
 

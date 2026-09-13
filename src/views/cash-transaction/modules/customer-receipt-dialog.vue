@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { ElInputNumber, type FormRules } from 'element-plus'
   import { round, toNumber } from 'lodash-es'
@@ -626,15 +627,15 @@
         })
       } else {
         const { data: transactionId } = await createCustomerReceipt({
-          transactionNo: form.data.transactionNo.trim() || null,
+          transactionNo: normalizeNullableText(form.data.transactionNo),
           customerId: form.data.customerId,
           fundAccountId: form.data.fundAccountId,
           transactionDate: form.data.transactionDate,
           amount: numericValue(form.data.amount),
           paymentMethod: form.data.paymentMethod,
-          bankReference: form.data.bankReference.trim() || null,
+          bankReference: normalizeNullableText(form.data.bankReference),
           voucherUrls: [...form.data.voucherUrls],
-          remark: form.data.remark.trim() || null,
+          remark: normalizeNullableText(form.data.remark),
           allocations: buildAllocations()
         })
         await recordOcrReview(transactionId)
@@ -722,7 +723,7 @@
         payeeName: ocrResult.value.voucher.payeeName,
         transactionDate: form.data.transactionDate,
         amount: numericValue(form.data.amount),
-        bankReference: form.data.bankReference.trim() || null,
+        bankReference: normalizeNullableText(form.data.bankReference),
         paymentMethod: form.data.paymentMethod,
         statementIds: [...form.data.statementIds]
       }

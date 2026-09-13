@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -44,7 +45,7 @@ export async function fetchFixedAssetList(params: Api.Fms.FixedAssetSearchParams
         p_account_set_id: accountSetId || null,
         p_category_id: categoryId || null,
         p_status: status || null,
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_tenant_id: null
       }),
     { showErrorMessage: true }

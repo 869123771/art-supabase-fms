@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -326,12 +327,12 @@
       balanceDirection: form.data.balanceDirection,
       isEnabled: form.data.isEnabled,
       allowQuantity: form.data.allowQuantity,
-      unitName: form.data.allowQuantity ? form.data.unitName?.trim() || null : null,
+      unitName: form.data.allowQuantity ? normalizeNullableText(form.data.unitName) : null,
       allowForeignCurrency: form.data.allowForeignCurrency,
       allowPeriodEndRevaluation: canRevalue.value && form.data.allowPeriodEndRevaluation,
       cashFlowRequired: form.data.cashFlowRequired,
       sort: form.data.sort,
-      remark: form.data.remark?.trim() || null,
+      remark: normalizeNullableText(form.data.remark),
       auxiliaryConfigs: form.data.auxiliaryTypeIds.map((auxiliaryTypeId, index) => ({
         auxiliaryTypeId,
         isRequired: form.data.requiredAuxiliaryTypeIds.includes(auxiliaryTypeId),

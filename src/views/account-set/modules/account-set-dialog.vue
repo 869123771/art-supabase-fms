@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -298,7 +299,7 @@
       legalEntityName: form.data.legalEntityName.trim(),
       unifiedSocialCreditCode: form.data.unifiedSocialCreditCode?.trim().toUpperCase() || null,
       baseCurrencyCode: form.data.baseCurrencyCode.trim().toUpperCase(),
-      remark: form.data.remark?.trim() || null
+      remark: normalizeNullableText(form.data.remark)
     }
     delete payload.fieldAccess
     if (isEdit.value && !canEditSensitiveField('taxRegistration')) {

@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import { cloneDeep } from 'lodash-es'
   import { ElAlert, ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
@@ -299,14 +300,14 @@
         sort: form.data.sort
       }
       if (canEditNarrative.value) {
-        payload.summary = form.data.summary.trim() || null
-        payload.remark = form.data.remark.trim() || null
+        payload.summary = normalizeNullableText(form.data.summary)
+        payload.remark = normalizeNullableText(form.data.remark)
       }
       if (canEditEntries.value) {
         payload.voucherType = form.data.voucherType
         payload.lines = cloneDeep(form.lines).map((line, index) => ({
           lineNo: index + 1,
-          summary: line.summary.trim() || null,
+          summary: normalizeNullableText(line.summary),
           subjectId: line.subjectId,
           entryDirection: line.entryDirection ?? 'debit',
           defaultAmount: Math.max(Number(line.debitAmount || 0), Number(line.creditAmount || 0)),

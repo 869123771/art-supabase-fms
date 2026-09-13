@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
@@ -53,7 +54,7 @@ const toCostListRpcParams = (
     p_settlement_status: params.settlementStatus || null,
     p_occurred_on_start: params.occurredOnRange?.[0] || null,
     p_occurred_on_end: params.occurredOnRange?.[1] || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose
   }
@@ -69,14 +70,14 @@ const createCostWritePayload = (params: WaybillCost) => ({
     params.quantity === null || params.quantity === undefined ? null : Number(params.quantity),
   unitPrice:
     params.unitPrice === null || params.unitPrice === undefined ? null : Number(params.unitPrice),
-  providerName: params.providerName?.trim() || null,
+  providerName: normalizeNullableText(params.providerName),
   payeeName: params.payeeName || null,
-  paymentChannel: params.paymentChannel?.trim() || null,
-  invoiceNo: params.invoiceNo?.trim() || null,
-  meterNo: params.meterNo?.trim() || null,
-  expenseLocation: params.expenseLocation?.trim() || null,
-  expenseRegion: params.expenseRegion?.trim() || null,
-  expenseRegionAdcode: params.expenseRegionAdcode?.trim() || null,
+  paymentChannel: normalizeNullableText(params.paymentChannel),
+  invoiceNo: normalizeNullableText(params.invoiceNo),
+  meterNo: normalizeNullableText(params.meterNo),
+  expenseLocation: normalizeNullableText(params.expenseLocation),
+  expenseRegion: normalizeNullableText(params.expenseRegion),
+  expenseRegionAdcode: normalizeNullableText(params.expenseRegionAdcode),
   expenseLongitude:
     params.expenseLongitude === null || params.expenseLongitude === undefined
       ? null
@@ -85,10 +86,10 @@ const createCostWritePayload = (params: WaybillCost) => ({
     params.expenseLatitude === null || params.expenseLatitude === undefined
       ? null
       : Number(params.expenseLatitude),
-  expenseCoordinateSystem: params.expenseCoordinateSystem?.trim() || null,
-  expenseCoordinateSource: params.expenseCoordinateSource?.trim() || null,
+  expenseCoordinateSystem: normalizeNullableText(params.expenseCoordinateSystem),
+  expenseCoordinateSource: normalizeNullableText(params.expenseCoordinateSource),
   expenseCoordinateStatus: params.expenseCoordinateStatus?.trim() || 'pending',
-  expenseGeocodeProvider: params.expenseGeocodeProvider?.trim() || null,
+  expenseGeocodeProvider: normalizeNullableText(params.expenseGeocodeProvider),
   expenseGeocodedAt: params.expenseGeocodedAt || null,
   carrierId: params.carrierId || null,
   driverId: params.driverId || null,
@@ -109,7 +110,7 @@ const createExpenseItemWritePayload = (params: ExpenseItem) => ({
   reimbursementAllowed: params.isSelectable && Boolean(params.reimbursementAllowed),
   isEnabled: Boolean(params.isEnabled),
   sort: Number(params.sort || 0),
-  remark: params.remark?.trim() || null
+  remark: normalizeNullableText(params.remark)
 })
 
 export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {}) {
@@ -240,7 +241,7 @@ export async function fetchFinanceWaybillOptions(params: WaybillOptionSearchPara
       supabase.rpc('tms_list_waybill_cost_options_secure', {
         p_from: Math.max(params.from ?? 0, 0),
         p_to: Math.max(params.to ?? 999, params.from ?? 0),
-        p_keyword: String(params.keyword ?? '').trim() || null,
+        p_keyword: normalizeNullableText(String(params.keyword ?? '')),
         p_order_id: params.orderId || null
       }),
     { showErrorMessage: true }
@@ -333,7 +334,7 @@ export async function fetchExpenseReimbursementList(params: ReimbursementSearch)
       supabase.rpc('tms_list_expense_reimbursements_secure', {
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_keyword: params.keyword?.trim() || null,
+        p_keyword: normalizeNullableText(params.keyword),
         p_status: params.status || null,
         p_payment_method: params.paymentMethod || null,
         p_planned_payment_date_start: params.plannedPaymentDateRange?.[0] || null,
@@ -486,7 +487,7 @@ const toProfitListRpcParams = (
   return {
     p_from: from,
     p_to: Math.max(requestedTo ?? 9, from),
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_waybill_status: params.waybillStatus || null,
     p_completed_at_start: params.completedAtRange?.[0]
       ? `${params.completedAtRange[0]}T00:00:00`

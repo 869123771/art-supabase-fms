@@ -73,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -335,12 +336,12 @@
     }
 
     const payload: CreatePayload = {
-      statementNo: form.statementNo.trim() || null,
+      statementNo: normalizeNullableText(form.statementNo),
       customerId: form.customerId,
       periodStart: form.periodRange[0],
       periodEnd: form.periodRange[1],
       waybillIds: [...form.waybillIds],
-      remark: form.remark.trim() || null
+      remark: normalizeNullableText(form.remark)
     }
 
     try {

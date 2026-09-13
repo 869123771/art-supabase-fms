@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import dayjs from 'dayjs'
 
 export type Invoice = Api.Fms.InvoiceRecord
@@ -88,9 +89,9 @@ export function buildInvoicePayload({
     invoiceType: form.invoiceType,
     customerId: form.direction === 'output' ? form.counterpartyId : null,
     carrierId: form.direction === 'input' ? form.counterpartyId : null,
-    invoiceTitle: form.invoiceTitle.trim() || null,
-    taxNumber: form.taxNumber.trim() || null,
-    invoiceCode: form.invoiceCode.trim() || null,
+    invoiceTitle: normalizeNullableText(form.invoiceTitle),
+    taxNumber: normalizeNullableText(form.taxNumber),
+    invoiceCode: normalizeNullableText(form.invoiceCode),
     invoiceNo: normalizeInvoiceNo(form.invoiceNo) || null,
     issueDate: form.issueDate,
     taxRate: finiteNumber(form.taxRate),
@@ -98,7 +99,7 @@ export function buildInvoicePayload({
     taxAmount: finiteNumber(form.taxAmount),
     totalAmount: finiteNumber(form.totalAmount),
     attachments: form.attachments,
-    remark: form.remark.trim() || null,
+    remark: normalizeNullableText(form.remark),
     statementLinks
   }
 }

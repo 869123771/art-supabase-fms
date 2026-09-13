@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
@@ -37,7 +38,7 @@ const toCashListRpcParams = (
     p_record_id: params.recordId || null,
     p_transaction_date_start: params.dateRange?.[0] || null,
     p_transaction_date_end: params.dateRange?.[1] || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose
   }
@@ -79,7 +80,7 @@ export async function fetchCustomerStatementAllocatableList(
     () =>
       supabase.rpc('tms_list_customer_statement_allocatable_secure', {
         p_customer_id: customerId,
-        p_keyword: String(keyword ?? '').trim() || null,
+        p_keyword: normalizeNullableText(String(keyword ?? '')),
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from)
       }),
@@ -100,7 +101,7 @@ export async function fetchCarrierStatementAllocatableList(params: CarrierAlloca
     () =>
       supabase.rpc('tms_list_carrier_statement_allocatable_secure', {
         p_carrier_id: carrierId,
-        p_keyword: String(keyword ?? '').trim() || null,
+        p_keyword: normalizeNullableText(String(keyword ?? '')),
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from)
       }),

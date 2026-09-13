@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -21,7 +22,7 @@ export async function fetchCommercialBillList(params: Api.Fms.CommercialBillSear
         p_direction: direction || null,
         p_bill_type: billType || null,
         p_status: status || null,
-        p_keyword: keyword?.trim() || null,
+        p_keyword: normalizeNullableText(keyword),
         p_due_start_date: params.dueDateRange?.[0] || null,
         p_due_end_date: params.dueDateRange?.[1] || null,
         p_tenant_id: null

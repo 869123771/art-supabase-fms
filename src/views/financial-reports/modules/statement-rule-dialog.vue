@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -259,7 +260,7 @@
             subjectId: row.sourceId,
             mappingDirection: row.mappingDirection,
             factor: row.factor,
-            remark: row.remark.trim() || null
+            remark: normalizeNullableText(row.remark)
           }))
         )
       }

@@ -41,6 +41,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import { ElMessage, type FormRules } from 'element-plus'
@@ -226,14 +227,14 @@
     if (!state.reimbursement) return false
     try {
       await executeExpenseReimbursement({
-        paymentNo: form.data.paymentNo.trim() || null,
+        paymentNo: normalizeNullableText(form.data.paymentNo),
         reimbursementId: state.reimbursement.id,
         fundAccountId: form.data.fundAccountId,
         amount: Number(form.data.amount),
         paymentDate: form.data.paymentDate,
-        bankReference: form.data.bankReference.trim() || null,
+        bankReference: normalizeNullableText(form.data.bankReference),
         voucherUrls: [...form.data.voucherUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true
