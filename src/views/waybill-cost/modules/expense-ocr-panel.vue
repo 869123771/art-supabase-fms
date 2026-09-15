@@ -124,7 +124,11 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/assets/styles/core/ai-surface-mixins' as ai;
+
   .expense-ocr {
+    @include ai.surface;
+
     padding: var(--art-space-4);
     margin-bottom: var(--art-space-4);
 
@@ -168,22 +172,11 @@
     }
 
     &__icon {
-      display: grid;
-      flex: 0 0 40px;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      font-size: 20px;
-      color: rgb(var(--ui-primary));
-      background: rgb(var(--ui-primary) / 10%);
-      border-radius: var(--el-border-radius-base);
+      @include ai.identity-icon(40px, 20px);
     }
 
     &__eyebrow {
-      font-size: 11px;
-      font-weight: 700;
-      color: rgb(var(--ui-primary));
-      letter-spacing: 0.04em;
+      @include ai.eyebrow;
     }
 
     &__body {
@@ -199,17 +192,16 @@
       min-width: 0;
 
       > span {
+        @include ai.capability-item;
+
         flex: 1;
         gap: var(--art-space-2);
         min-width: 0;
         padding: var(--art-space-3);
-        background: rgb(var(--ui-primary) / 4%);
-        border: 1px solid rgb(var(--ui-primary) / 12%);
         border-radius: var(--el-border-radius-base);
 
         > svg {
-          flex: 0 0 auto;
-          color: rgb(var(--ui-primary));
+          @include ai.capability-icon;
         }
 
         > span {
@@ -234,6 +226,14 @@
           font-size: 11px;
           color: var(--art-text-gray-500);
         }
+      }
+
+      > :nth-child(2) {
+        --ai-capability-color: #d97706;
+      }
+
+      > :nth-child(3) {
+        --ai-capability-color: #059669;
       }
     }
 

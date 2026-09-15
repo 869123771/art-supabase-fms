@@ -252,11 +252,13 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/assets/styles/core/ai-surface-mixins' as ai;
+
   .invoice-ocr-panel {
+    @include ai.surface;
+
     padding: 14px 16px;
     margin-bottom: 16px;
-    overflow: hidden;
-    box-shadow: inset 3px 0 0 rgb(var(--ui-primary) / 72%);
 
     &__header,
     &__identity,
@@ -292,23 +294,11 @@
     }
 
     &__icon {
-      display: grid;
-      flex: 0 0 38px;
-      place-items: center;
-      width: 38px;
-      height: 38px;
-      font-size: 19px;
-      color: rgb(var(--ui-primary));
-      background: rgb(var(--ui-primary) / 10%);
-      border: 1px solid rgb(var(--ui-primary) / 14%);
-      border-radius: var(--el-border-radius-base);
+      @include ai.identity-icon(38px, 19px);
     }
 
     &__eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgb(var(--ui-primary));
-      letter-spacing: 0.04em;
+      @include ai.eyebrow;
     }
 
     &__body {
@@ -367,21 +357,28 @@
     }
 
     &__guide-item {
+      @include ai.capability-item;
+
       display: flex;
       gap: 8px;
       align-items: flex-start;
       min-width: 0;
       min-height: 76px;
       padding: 10px;
-      background: rgb(var(--ui-primary) / 3%);
-      border: 1px solid rgb(var(--ui-primary) / 10%);
       border-radius: var(--custom-radius, 8px);
 
       > svg {
-        flex: 0 0 auto;
+        @include ai.capability-icon;
+
         margin-top: 2px;
-        font-size: 16px;
-        color: rgb(var(--ui-primary));
+      }
+
+      &:nth-child(2) {
+        --ai-capability-color: #d97706;
+      }
+
+      &:nth-child(3) {
+        --ai-capability-color: #059669;
       }
 
       strong {
