@@ -580,10 +580,6 @@
 
     &__refresh {
       flex: none;
-
-      .art-svg-icon {
-        margin-right: 5px;
-      }
     }
 
     &__score {

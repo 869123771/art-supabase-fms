@@ -470,10 +470,6 @@
       gap: 20px;
       align-items: flex-start;
       justify-content: space-between;
-
-      .art-svg-icon {
-        margin-right: 5px;
-      }
     }
 
     &__identity {
