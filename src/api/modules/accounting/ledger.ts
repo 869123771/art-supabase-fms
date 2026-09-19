@@ -18,7 +18,7 @@ export async function fetchSubjectBalanceReport(params: Api.Fms.SubjectBalanceRe
         p_subject_id: params.subjectId || null,
         p_hide_zero: params.hideZero ?? false
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     ...result,
@@ -39,7 +39,7 @@ export async function fetchGeneralLedgerReport(
         p_period_from: params.periodFrom ?? 1,
         p_period_to: params.periodTo ?? 12
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     ...result,
@@ -60,7 +60,7 @@ export async function fetchSubsidiaryLedgerReport(params: Api.Fms.SubsidiaryLedg
         p_auxiliary_type_id: params.auxiliaryTypeId || null,
         p_auxiliary_item_id: params.auxiliaryItemId || null
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     ...result,

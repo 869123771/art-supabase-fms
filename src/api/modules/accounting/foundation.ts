@@ -148,7 +148,7 @@ export async function fetchAccountingPeriodList(accountSetId: string) {
         .select('*')
         .eq('account_set_id', accountSetId)
         .order('start_date', { ascending: true }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -174,7 +174,7 @@ export async function fetchAccountingFoundationSummary(accountSetId: string) {
       supabase
         .rpc('fms_accounting_foundation_summary', { p_account_set_id: accountSetId })
         .single(),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

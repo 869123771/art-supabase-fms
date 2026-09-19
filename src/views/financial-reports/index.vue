@@ -441,11 +441,11 @@
         fixed: 'left',
         formatter: (row) => (
           <div
-            class="financial-reports-page__item"
+            class="flex min-w-0 flex-col gap-[3px]"
             style={{ paddingLeft: `${Math.max(row.itemLevel - 1, 0) * 16}px` }}
           >
-            <div>
-              <strong>{row.itemName}</strong>
+            <div class="flex min-w-0 items-center gap-2">
+              <strong class="truncate">{row.itemName}</strong>
               {row.displayStyle !== 'normal' ? (
                 <ElTag
                   size="small"
@@ -456,7 +456,9 @@
                 </ElTag>
               ) : null}
             </div>
-            <small translate="no">{row.itemCode}</small>
+            <small class="truncate text-[11px] text-[var(--art-text-gray-500)]" translate="no">
+              {row.itemCode}
+            </small>
           </div>
         )
       },
@@ -639,32 +641,6 @@
     &__table {
       flex: 1 1 auto;
       min-height: 0;
-    }
-
-    &__item {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      min-width: 0;
-
-      > div {
-        display: flex;
-        gap: var(--art-space-2);
-        align-items: center;
-        min-width: 0;
-      }
-
-      strong,
-      small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      small {
-        font-size: 11px;
-        color: var(--art-text-gray-500);
-      }
     }
 
     :deep(.financial-reports-page__row--subtotal td) {

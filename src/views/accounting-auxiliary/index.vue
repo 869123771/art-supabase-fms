@@ -386,7 +386,7 @@
       prop: 'itemCode',
       label: '项目编码',
       minWidth: 150,
-      formatter: (row) => <strong class="accounting-auxiliary-page__code">{row.itemCode}</strong>
+      formatter: (row) => <strong class="tabular-nums text-theme">{row.itemCode}</strong>
     },
     { prop: 'itemName', label: '项目名称', minWidth: 180, showOverflowTooltip: true },
     {
@@ -415,9 +415,9 @@
       fixed: 'right',
       formatter: (row) => {
         if (row.externalEntityId)
-          return <span class="accounting-auxiliary-page__readonly">源数据维护</span>
+          return <span class="text-[var(--art-text-gray-500)]">源数据维护</span>
         return (
-          <div class="accounting-auxiliary-page__actions">
+          <div class="flex items-center gap-2.5">
             <ArtButtonTable
               type="edit"
               permission="FinanceAccountingAuxiliary:Edit"
@@ -612,8 +612,7 @@
       gap: 0;
     }
 
-    &__scope,
-    &__actions {
+    &__scope {
       display: flex;
       gap: 10px;
       align-items: center;
@@ -800,15 +799,6 @@
 
     &__item-search {
       margin-bottom: 12px;
-    }
-
-    &__code {
-      font-variant-numeric: tabular-nums;
-      color: var(--theme-color);
-    }
-
-    &__readonly {
-      color: var(--art-text-gray-500);
     }
   }
 

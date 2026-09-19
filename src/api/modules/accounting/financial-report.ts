@@ -65,7 +65,7 @@ export async function fetchFinancialStatementReport(
         p_period_from: params.periodFrom ?? 1,
         p_period_to: params.periodTo ?? 12
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     data: result.data?.records ?? [],
@@ -132,7 +132,7 @@ export async function saveFinancialStatementFormulas(
 export async function fetchCashFlowAllocations(voucherId: string) {
   return await responseHandle<Api.Fms.CashFlowAllocationRecord[]>(
     () => supabase.rpc('fms_list_cash_flow_allocations_secure', { p_voucher_id: voucherId }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

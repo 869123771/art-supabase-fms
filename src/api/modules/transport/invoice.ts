@@ -254,7 +254,7 @@ export async function resolveInvoiceCounterparty(artifactId: string) {
       supabase.rpc('resolve_tms_invoice_counterparty', {
         p_artifact_id: artifactId
       }),
-    { ignoreCheck: true, showErrorMessage: false }
+    { showErrorMessage: false }
   )
 }
 

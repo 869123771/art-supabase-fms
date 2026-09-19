@@ -424,7 +424,7 @@
       width: 140,
       fixed: 'right',
       formatter: (row) => (
-        <div class="auto-posting-page__actions">
+        <div class="flex items-center">
           {hasAuth('FinanceAutoPosting:Edit') &&
           canEditField(row.fieldAccess, 'ruleConfiguration') ? (
             <ElButton link type="primary" onClick={() => void openRuleDialog(row)}>
@@ -553,7 +553,7 @@
       width: 150,
       fixed: 'right',
       formatter: (row) => (
-        <div class="auto-posting-page__actions">
+        <div class="flex items-center">
           {hasAuth('FinanceAutoPosting:View') ? (
             <ElButton
               link
@@ -694,11 +694,6 @@
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       color: var(--el-color-primary);
-    }
-
-    &__actions {
-      display: flex;
-      align-items: center;
     }
 
     @media (width <= 640px) {

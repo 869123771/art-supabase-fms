@@ -63,7 +63,7 @@ export async function fetchTaxSummary(accountSetId?: string) {
         p_account_set_id: accountSetId || null,
         p_tenant_id: null
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

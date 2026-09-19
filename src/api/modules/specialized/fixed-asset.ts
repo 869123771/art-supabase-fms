@@ -29,7 +29,6 @@ export async function fetchAssetCategoryList(accountSetId?: string) {
         p_tenant_id: null
       }),
     {
-      ignoreCheck: true,
       showErrorMessage: true
     }
   )
@@ -101,7 +100,7 @@ export async function fetchFixedAssetSummary(accountSetId?: string, periodId?: s
         p_period_id: periodId || null,
         p_tenant_id: null
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

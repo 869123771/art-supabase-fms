@@ -223,7 +223,7 @@
       width: 140,
       fixed: 'right',
       formatter: (row) => (
-        <div class="voucher-template-page__actions">
+        <div class="flex items-center">
           {hasAuth('FinanceVoucherTemplate:Edit') ? (
             <ElButton link type="primary" onClick={() => void openDialog(row)}>
               编辑
@@ -312,11 +312,6 @@
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       color: var(--el-color-primary);
-    }
-
-    &__actions {
-      display: flex;
-      align-items: center;
     }
   }
 </style>

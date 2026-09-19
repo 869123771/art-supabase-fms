@@ -360,7 +360,7 @@
       width: 330,
       fixed: 'right',
       formatter: (row) => (
-        <div class="voucher-center-page__actions">
+        <div class="flex items-center whitespace-nowrap">
           {hasAuth('FinanceVoucherCenter:View') ? (
             <ElButton link type="primary" onClick={() => void drawerRef.value?.handleOpen(row)}>
               查看
@@ -598,12 +598,6 @@
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       color: var(--el-color-primary);
-    }
-
-    &__actions {
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
     }
   }
 </style>

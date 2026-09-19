@@ -57,7 +57,7 @@ async function enrichFundAccounts(rows: FundAccount[]): Promise<FundAccount[]> {
           .from('fms_currency')
           .select('id, currency_code, currency_name, symbol')
           .in('id', currencyIds),
-      { ignoreCheck: true, showErrorMessage: true }
+      { showErrorMessage: true }
     )
   ])
   const accountSetMap = new Map((accountSets.data ?? []).map((item) => [item.id, item]))

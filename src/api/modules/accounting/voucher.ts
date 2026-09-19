@@ -122,7 +122,7 @@ export async function transitionVoucher(
 export async function fetchVoucherSummary(accountSetId: string) {
   return await responseHandle<Api.Fms.VoucherSummary>(
     () => supabase.rpc('fms_voucher_summary_secure', { p_account_set_id: accountSetId }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

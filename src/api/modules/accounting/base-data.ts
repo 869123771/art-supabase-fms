@@ -52,7 +52,7 @@ export async function fetchSubjectList(accountSetId: string) {
         .select(SUBJECT_SELECT)
         .eq('account_set_id', accountSetId)
         .order('subject_code', { ascending: true }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -87,7 +87,7 @@ export async function fetchCurrencyList(accountSetId: string) {
         .eq('account_set_id', accountSetId)
         .order('is_base', { ascending: false })
         .order('sort', { ascending: true }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -114,7 +114,7 @@ export async function fetchExchangeRateList(accountSetId: string) {
         .select('*, currency:fms_currency(id, currency_code, currency_name)')
         .eq('account_set_id', accountSetId)
         .order('rate_date', { ascending: false }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -134,7 +134,7 @@ export async function fetchAuxiliaryTypeList(accountSetId: string) {
         .eq('account_set_id', accountSetId)
         .order('sort', { ascending: true })
         .order('type_code', { ascending: true }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -186,7 +186,6 @@ export async function fetchAuxiliaryItemList(accountSetId: string, auxiliaryType
     .order('item_code', { ascending: true })
   if (auxiliaryTypeId) query = query.eq('auxiliary_type_id', auxiliaryTypeId)
   return await responseHandle<AuxiliaryItem[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
@@ -213,7 +212,7 @@ export async function fetchOpeningBalanceList(accountSetId: string, fiscalYear: 
         p_account_set_id: accountSetId,
         p_fiscal_year: fiscalYear
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     ...result,
@@ -251,7 +250,7 @@ export async function fetchOpeningBalanceSummary(accountSetId: string, fiscalYea
         p_account_set_id: accountSetId,
         p_fiscal_year: fiscalYear
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

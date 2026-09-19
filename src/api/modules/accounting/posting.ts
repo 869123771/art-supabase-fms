@@ -45,7 +45,6 @@ export async function fetchPostingRuleList(params: Api.Fms.PostingRuleSearchPara
         p_keyword: normalizeNullableText(keyword)
       }),
     {
-      ignoreCheck: true,
       showErrorMessage: true
     }
   )
@@ -100,7 +99,7 @@ export async function fetchPostingEventList(params: Api.Fms.PostingEventSearchPa
         p_date_to: dateTo || null,
         p_keyword: normalizeNullableText(params.keyword)
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     ...result,
@@ -128,6 +127,6 @@ export async function retryPostingEvent(id: string) {
 export async function processPendingPostingEvents(limit = 50) {
   return await responseHandle<Api.Fms.PostingEventProcessResult[]>(
     () => supabase.rpc('process_pending_fms_posting_events_secure', { p_limit: limit }),
-    { ignoreCheck: true, showMessage: true, message: '待处理事件批量处理完成' }
+    { showMessage: true, message: '待处理事件批量处理完成' }
   )
 }

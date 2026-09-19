@@ -132,7 +132,6 @@ export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {})
   if (parentId === null) query = query.is('parent_id', null)
   else if (parentId) query = query.eq('parent_id', parentId)
   return await responseHandle<ExpenseItem[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
@@ -473,7 +472,6 @@ export async function fetchWaybillExpenseOcrRunList(params: OcrRunSearch) {
     endOfDay: true
   })
   return await responseHandle<OcrRun[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
