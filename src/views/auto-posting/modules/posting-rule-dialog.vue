@@ -529,7 +529,6 @@
     }
     const tableValidation = await lineTableRef.value?.validate()
     if (tableValidation && !tableValidation.valid) {
-      ElMessage.warning(tableValidation.firstError?.message || '请完整填写制证分录')
       return false
     }
     if (!form.lines.some((line) => line.direction === 'debit')) {

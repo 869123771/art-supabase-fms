@@ -265,7 +265,6 @@
     for (const tableRef of allocationTableRefs.value) {
       const tableValidation = await tableRef.validate()
       if (!tableValidation.valid) {
-        ElMessage.warning(tableValidation.firstError?.message || '请完整填写现金流量归集明细')
         return false
       }
     }

@@ -1146,7 +1146,6 @@
     if (canEditAmounts) {
       const linkValidation = await linkedStatementTableRef.value?.validate()
       if (linkValidation && !linkValidation.valid) {
-        ElMessage.warning(linkValidation.firstError?.message || '请完善对账单关联金额')
         return false
       }
       const linkedAmountTotal = statementLinks.reduce((total, item) => total + item.linkedAmount, 0)

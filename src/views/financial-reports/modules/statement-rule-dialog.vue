@@ -232,7 +232,6 @@
   async function validateRows(): Promise<boolean> {
     const tableValidation = await ruleTableRef.value?.validate()
     if (tableValidation && !tableValidation.valid) {
-      ElMessage.warning(tableValidation.firstError?.message || '请完整填写取数规则')
       return false
     }
     const keys = rows.value.map((row) =>

@@ -1,1 +1,0 @@
-import{l as e}from"./art-form-nLcGFyBy.js";function t(t){return t&&t.length?e(t):[]}export{t};

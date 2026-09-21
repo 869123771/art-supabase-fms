@@ -337,7 +337,6 @@
     }
     const tableValidation = await lineEditorRef.value?.validate()
     if (tableValidation && !tableValidation.valid) {
-      ElMessage.warning(tableValidation.firstError?.message || '请完整填写凭证分录')
       return false
     }
     const debit = form.data.lines.reduce((sum, line) => sum + Number(line.debitAmount || 0), 0)
