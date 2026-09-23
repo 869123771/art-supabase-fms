@@ -1,1 +1,0 @@
-import{f as e}from"./art-form-BR8p4PyN.js";function t(t){return t&&t.length?e(t):[]}export{t};

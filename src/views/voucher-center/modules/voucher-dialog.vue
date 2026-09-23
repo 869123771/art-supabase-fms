@@ -48,7 +48,7 @@
               title="上传附件"
               :show-file-list="false"
               :show-tip="false"
-              @upload-success="handleAttachmentUpload"
+              @resource-change="handleAttachmentUpload"
             /> </div
         ></template>
         <ArtTable
@@ -437,7 +437,9 @@
     }
   }
 
-  function handleAttachmentUpload(resource: Api.DataCenter.Resources.ResourceListItem): void {
+  function handleAttachmentUpload(resources: Api.DataCenter.Resources.ResourceListItem[]): void {
+    const resource = resources[0]
+    if (!resource) return
     if (!resource.url) return
     if (form.data.attachments.some((item) => item.url === resource.url)) {
       ElMessage.info('该附件已在当前凭证中')
@@ -450,7 +452,7 @@
       fileType: getFileExtension(fileName, resource.suffix),
       fileSize: resource.sizeInfo
     })
-    ElMessage.success('附件上传成功')
+    ElMessage.success('附件已添加')
   }
 
   function removeAttachment(row: Api.Fms.VoucherAttachment): void {
