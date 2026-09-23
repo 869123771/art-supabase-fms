@@ -27,7 +27,14 @@
             添加流水
           </ElButton>
         </div>
-        <ElTable :data="form.data.lines" border table-layout="fixed" max-height="360">
+        <ArtTable
+          :pagination="false"
+          :show-table-header="false"
+          :data="form.data.lines"
+          border
+          table-layout="fixed"
+          max-height="360"
+        >
           <ElTableColumn type="index" label="#" width="48" align="center" />
           <ElTableColumn label="交易日期" width="150">
             <template #default="{ row }">
@@ -101,13 +108,14 @@
               </ElButton>
             </template>
           </ElTableColumn>
-        </ElTable>
+        </ArtTable>
       </section>
     </div>
   </ArtDialog>
 </template>
 
 <script setup lang="ts">
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'

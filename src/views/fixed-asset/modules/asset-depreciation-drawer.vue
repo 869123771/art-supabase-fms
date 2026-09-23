@@ -37,7 +37,13 @@
           >计算本期折旧</ElButton
         >
       </section>
-      <ElTable :data="runs" row-key="id" @row-click="selectRun">
+      <ArtTable
+        :pagination="false"
+        :show-table-header="false"
+        :data="runs"
+        row-key="id"
+        @row-click="selectRun"
+      >
         <ElTableColumn prop="runNo" label="批次号" min-width="150" />
         <ElTableColumn label="期间" min-width="120"
           ><template #default="{ row }">{{
@@ -68,10 +74,16 @@
             ></template
           ></ElTableColumn
         >
-      </ElTable>
+      </ArtTable>
       <section v-if="selectedRun" class="depreciation-workbench__lines">
         <strong>{{ selectedRun.runNo }} · 折旧明细</strong>
-        <ElTable :data="lines" size="small" max-height="300">
+        <ArtTable
+          :pagination="false"
+          :show-table-header="false"
+          :data="lines"
+          size="small"
+          max-height="300"
+        >
           <ElTableColumn label="资产" min-width="190"
             ><template #default="{ row }"
               >{{ row.asset?.assetNo }} · {{ row.asset?.assetName }}</template
@@ -92,13 +104,14 @@
               formatProtectedAmount(row.closingAccumulatedDepreciation)
             }}</template></ElTableColumn
           >
-        </ElTable>
+        </ArtTable>
       </section>
     </div>
   </ArtDrawer>
 </template>
 
 <script setup lang="ts">
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'

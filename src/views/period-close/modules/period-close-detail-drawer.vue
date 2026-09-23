@@ -19,7 +19,7 @@
         ><article
           ><span>阻断</span><strong>{{ formatProtectedCount(run.blockingCount) }}</strong></article
         ></div
-      ><ElTable :data="checks" row-key="id"
+      ><ArtTable :pagination="false" :show-table-header="false" :data="checks" row-key="id"
         ><ElTableColumn prop="checkName" label="检查项目" min-width="170" /><ElTableColumn
           v-if="canViewDiagnostics"
           label="结果"
@@ -48,12 +48,13 @@
               row.isBlocking ? '阻断' : '提醒'
             }}</ElTag></template
           ></ElTableColumn
-        ></ElTable
+        ></ArtTable
       ></div
     ></ArtDrawer
   >
 </template>
 <script setup lang="ts">
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'

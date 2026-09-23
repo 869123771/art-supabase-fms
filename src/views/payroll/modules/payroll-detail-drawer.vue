@@ -26,7 +26,7 @@
             >新增员工</ElButton
           ></div
         ></div
-      ><ElTable :data="lines" row-key="id"
+      ><ArtTable :pagination="false" :show-table-header="false" :data="lines" row-key="id"
         ><ElTableColumn
           v-if="canViewIdentity"
           prop="employeeNoSnapshot"
@@ -69,11 +69,12 @@
               >删除</ElButton
             ></template
           ></ElTableColumn
-        ></ElTable
+        ></ArtTable
       ><PayrollLineDialog ref="lineDialogRef" @success="reload" /></div
   ></ArtDrawer>
 </template>
 <script setup lang="ts">
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'

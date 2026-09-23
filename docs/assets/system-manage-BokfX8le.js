@@ -1,0 +1,1 @@
+import{S as e,U as t}from"./user-lOcCU5rF.js";import"./tenantScope-BZG5XFf1.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=t();new e({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});
