@@ -48,6 +48,7 @@
               title="上传附件"
               :show-file-list="false"
               :show-tip="false"
+              inline
               @resource-change="handleAttachmentUpload"
             /> </div
         ></template>
@@ -109,8 +110,8 @@
     saveVoucher,
     transitionVoucher
   } from '@fms/api'
-  import { renderAttachmentLink } from '@/components/core/media/art-file-viewer/render'
-  import { downloadAttachment, getFileExtension } from '@/utils/file'
+  import { attachmentTableLink } from '@/components/core/media/art-file-viewer/table-link'
+  import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
   import VoucherEntryLines from '@fms/views/modules/voucher-entry-lines.vue'
   import CashFlowAllocationPanel from './cash-flow-allocation-panel.vue'
@@ -305,29 +306,28 @@
       label: '附件名称',
       minWidth: 240,
       showOverflowTooltip: true,
-      formatter: renderAttachmentLink
+      link: attachmentTableLink
     },
     { prop: 'fileType', label: '格式', width: 100 },
     { prop: 'fileSize', label: '大小', width: 110 },
-    ...(canEditAttachments.value
-      ? [
-          {
-            prop: 'operation',
-            label: '操作',
-            width: 96,
-            formatter: (row: Api.Fms.VoucherAttachment) => (
-              <div class="flex items-center">
-                <ArtIconButton icon="ri:download-2-line" onClick={() => downloadAttachment(row)} />
-                <ArtIconButton
-                  icon="ri:delete-bin-5-line"
-                  tone="danger"
-                  onClick={() => removeAttachment(row)}
-                />
-              </div>
-            )
-          }
-        ]
-      : [])
+    {
+      prop: 'operation',
+      label: '操作',
+      width: canEditAttachments.value ? 120 : 80,
+      formatter: (row: Api.Fms.VoucherAttachment) => (
+        <div class="flex items-center">
+          <ArtIconButton icon="ri:eye-line" label="查看附件" onClick={() => viewAttachment(row)} />
+          <ArtIconButton icon="ri:download-2-line" onClick={() => downloadAttachment(row)} />
+          {canEditAttachments.value ? (
+            <ArtIconButton
+              icon="ri:delete-bin-5-line"
+              tone="danger"
+              onClick={() => removeAttachment(row)}
+            />
+          ) : null}
+        </div>
+      )
+    }
   ])
 
   async function validateLines(): Promise<boolean> {
@@ -570,6 +570,11 @@
     &__section-header {
       margin-bottom: var(--art-space-3);
 
+      :deep(.art-section-title) {
+        width: auto;
+        margin: 0;
+      }
+
       p {
         margin: 4px 0 0;
         font-size: 13px;
@@ -586,6 +591,10 @@
       &__section-header,
       &__footer {
         flex-wrap: wrap;
+      }
+
+      &__section-header {
+        justify-content: flex-start;
       }
 
       :deep(.art-form .el-col) {

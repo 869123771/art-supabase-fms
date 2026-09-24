@@ -211,6 +211,10 @@
         prop: 'period',
         label: '会计期间',
         minWidth: 130,
+        link: {
+          permission: 'FinanceTaxManagement:View',
+          onClick: (row) => void drawerRef.value?.handleOpen(row)
+        },
         formatter: (row) =>
           row.period ? `${row.period.fiscalYear} 年第 ${row.period.periodNo} 期` : '--'
       },

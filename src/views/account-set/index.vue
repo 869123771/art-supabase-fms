@@ -186,6 +186,10 @@
         label: '账套',
         minWidth: 230,
         fixed: 'left',
+        link: {
+          permission: 'FinanceAccountSet:View',
+          onClick: (row) => void periodDrawerRef.value?.handleOpen(row)
+        },
         formatter: (row) => (
           <div class="account-set-identity">
             <div>

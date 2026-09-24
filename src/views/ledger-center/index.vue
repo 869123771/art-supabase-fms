@@ -717,6 +717,7 @@
         label: '科目',
         minWidth: 250,
         fixed: 'left',
+        link: { permission: 'FinanceLedgerCenter:View', onClick: openGeneralLedger },
         formatter: (row) => (
           <div
             class="ledger-center-page__subject"
@@ -816,6 +817,7 @@
         label: '会计期间',
         minWidth: 150,
         fixed: 'left',
+        link: { permission: 'FinanceLedgerCenter:View', onClick: openSubsidiaryLedger },
         formatter: (row) => (
           <div class="ledger-center-page__period">
             <strong>第 {row.periodNo} 期</strong>

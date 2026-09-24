@@ -189,7 +189,16 @@
   ])
   function columnsFactory(): ColumnOption<Row>[] {
     return [
-      { prop: 'runNo', label: '批次号', minWidth: 160, fixed: 'left' },
+      {
+        prop: 'runNo',
+        label: '批次号',
+        minWidth: 160,
+        fixed: 'left',
+        link: {
+          permission: 'FinancePeriodClose:View',
+          onClick: (row) => void drawerRef.value?.handleOpen(row)
+        }
+      },
       {
         prop: 'period',
         label: '会计期间',

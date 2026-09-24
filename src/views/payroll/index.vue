@@ -196,7 +196,16 @@
   ])
   function columnsFactory(): ColumnOption<Run>[] {
     return [
-      { prop: 'runNo', label: '批次号', minWidth: 160, fixed: 'left' },
+      {
+        prop: 'runNo',
+        label: '批次号',
+        minWidth: 160,
+        fixed: 'left',
+        link: {
+          permission: 'FinancePayroll:View',
+          onClick: (row) => void drawerRef.value?.handleOpen(row)
+        }
+      },
       {
         prop: 'payrollMonth',
         label: '薪资月份',

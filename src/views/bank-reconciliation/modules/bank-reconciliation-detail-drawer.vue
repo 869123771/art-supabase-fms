@@ -163,7 +163,12 @@
 
   const lineColumns = computed<ColumnOption<Line>[]>(() => [
     { prop: 'lineNo', label: '#', width: 54, align: 'center' },
-    { prop: 'transactionDate', label: '交易日期', width: 112 },
+    {
+      prop: 'transactionDate',
+      label: '交易日期',
+      width: 112,
+      link: { onClick: (row) => void loadMatches(row) }
+    },
     {
       prop: 'direction',
       label: '方向',
