@@ -115,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
@@ -138,6 +139,7 @@
   const emit = defineEmits<{ success: [] }>()
   const { getDictMap } = storeToRefs(useUserStore())
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetId = ref('')
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
@@ -319,21 +321,30 @@
   }
 
   async function handleOpen(): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
+    accountSetOptions.value = []
     accountSetId.value = ''
     accountOptions.value = []
     Object.assign(form.data, createInitialForm())
     await dialogRef.value?.handleOpen(undefined, {
       title: '导入银行对账单',
       confirmText: '导入并开始对账',
+      loading: true,
+      loadingText: '正在加载账套…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          accountSetOptions.value = data ?? []
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
   }
 
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>
 
 <style scoped lang="scss">

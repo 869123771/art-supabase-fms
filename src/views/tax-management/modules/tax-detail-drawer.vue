@@ -125,12 +125,22 @@
     }
   }
   async function handleOpen(row: Api.Fms.TaxPeriodRecord) {
-    period.value = (await fetchTaxPeriodDetail(row.id)).data ?? row
-    await reload()
+    period.value = row
+    lines.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: '税务期间详情',
       size: 'xl',
       contentHeight: 'calc(100vh - 132px)',
+      loading: true,
+      loadingText: '正在加载税务明细…',
+      onOpen: async (_data, api) => {
+        try {
+          period.value = (await fetchTaxPeriodDetail(row.id)).data ?? row
+          await reload()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }

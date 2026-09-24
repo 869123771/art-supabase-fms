@@ -14,6 +14,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -23,6 +24,7 @@
   defineOptions({ name: 'FinancePeriodCloseStartDialog' })
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const periodOptions = ref<Array<{ label: string; value: string }>>([])
@@ -80,17 +82,27 @@
     }
   }
   async function handleOpen() {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    form.accountSetId = accountSetOptions.value[0]?.value ?? ''
-    await loadPeriods()
+    accountSetOptions.value = []
+    form.accountSetId = ''
     await dialogRef.value?.handleOpen(undefined, {
       title: '执行月末关账检查',
       confirmText: '开始检查',
+      loading: true,
+      loadingText: '正在加载账套与会计期间…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          accountSetOptions.value = data ?? []
+          form.accountSetId = accountSetOptions.value[0]?.value ?? ''
+          await loadPeriods()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

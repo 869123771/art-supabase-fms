@@ -594,52 +594,64 @@
     }
   }
 
-  async function handleOpen(dialogContext: DialogContext, row?: Rule): Promise<void> {
+  async function handleOpen(
+    dialogContext: Omit<DialogContext, 'cashFlowItems'>,
+    row?: Rule,
+    loadContext?: () => Promise<Omit<DialogContext, 'cashFlowItems'> | undefined>
+  ): Promise<void> {
     Object.assign(context, dialogContext)
-    const { data: cashFlowItems } = await fetchFinancialStatementItems(
-      context.accountSet.value,
-      'cash_flow_statement'
-    )
-    context.cashFlowItems = cashFlowItems ?? []
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
     form.lines = [createLine(1, 'debit'), createLine(2, 'credit')]
-    if (row?.id) {
-      const { data } = await fetchPostingRuleDetail(row.id)
-      if (!data) return
-      if (!canEditField(data.fieldAccess, 'ruleConfiguration')) {
-        ElMessage.warning('当前账号无权编辑该规则的制证配置')
-        return
+    const prepare = async (): Promise<boolean> => {
+      if (loadContext) {
+        const loaded = await loadContext()
+        if (!loaded) return false
+        Object.assign(context, loaded)
       }
-      if (
-        !data.voucherType ||
-        data.voucherType === '***' ||
-        !data.submissionMode ||
-        data.submissionMode === '***'
-      ) {
-        ElMessage.warning('规则配置已受字段权限保护，无法进入编辑')
-        return
+      const { data: cashFlowItems } = await fetchFinancialStatementItems(
+        context.accountSet.value,
+        'cash_flow_statement'
+      )
+      context.cashFlowItems = cashFlowItems ?? []
+      if (row?.id) {
+        const { data } = await fetchPostingRuleDetail(row.id)
+        if (!data) return false
+        if (!canEditField(data.fieldAccess, 'ruleConfiguration')) {
+          ElMessage.warning('当前账号无权编辑该规则的制证配置')
+          return false
+        }
+        if (
+          !data.voucherType ||
+          data.voucherType === '***' ||
+          !data.submissionMode ||
+          data.submissionMode === '***'
+        ) {
+          ElMessage.warning('规则配置已受字段权限保护，无法进入编辑')
+          return false
+        }
+        Object.assign(form.data, {
+          id: data.id,
+          accountSetId: data.accountSetId,
+          ruleCode: data.ruleCode,
+          ruleName: data.ruleName,
+          sourceEvent: `${data.sourceType}:${data.eventCode}`,
+          voucherType: data.voucherType,
+          submissionMode: data.submissionMode,
+          costTypeCondition: String(data.matchConditions?.cost_type ?? ''),
+          priority: data.priority,
+          effectiveFrom: data.effectiveFrom ?? '',
+          effectiveTo: data.effectiveTo ?? '',
+          isEnabled: data.isEnabled,
+          remark: data.remark ?? ''
+        })
+        form.lines = (data.lines ?? []).map((line, index) => ({
+          ...line,
+          lineNo: index + 1,
+          amountMultiplier: Number(line.amountMultiplier),
+          auxiliaryBindings: { ...line.auxiliaryBindings }
+        }))
       }
-      Object.assign(form.data, {
-        id: data.id,
-        accountSetId: data.accountSetId,
-        ruleCode: data.ruleCode,
-        ruleName: data.ruleName,
-        sourceEvent: `${data.sourceType}:${data.eventCode}`,
-        voucherType: data.voucherType,
-        submissionMode: data.submissionMode,
-        costTypeCondition: String(data.matchConditions?.cost_type ?? ''),
-        priority: data.priority,
-        effectiveFrom: data.effectiveFrom ?? '',
-        effectiveTo: data.effectiveTo ?? '',
-        isEnabled: data.isEnabled,
-        remark: data.remark ?? ''
-      })
-      form.lines = (data.lines ?? []).map((line, index) => ({
-        ...line,
-        lineNo: index + 1,
-        amountMultiplier: Number(line.amountMultiplier),
-        auxiliaryBindings: { ...line.auxiliaryBindings }
-      }))
+      return true
     }
     await dialogRef.value?.handleOpen(row, {
       title: row ? `编辑自动入账规则 · ${row.ruleCode}` : '新增自动入账规则',
@@ -647,10 +659,20 @@
       contentMaxHeight: '78vh',
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },
+      loading: true,
+      loadingText: '正在加载入账规则…',
       onConfirm: handleSubmit,
-      onOpen: () => {
-        formRef.value?.clearValidate()
-        lineTableRef.value?.clearValidate()
+      onOpen: async (_openData, api) => {
+        try {
+          if (!(await prepare())) {
+            await api.handleClose()
+            return
+          }
+          formRef.value?.clearValidate()
+          lineTableRef.value?.clearValidate()
+        } finally {
+          api.setLoading(false)
+        }
       }
     })
   }

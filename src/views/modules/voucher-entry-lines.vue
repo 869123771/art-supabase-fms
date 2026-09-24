@@ -43,6 +43,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtTable, {
     type ArtTableExpose,
     type ArtTableValidationResult
@@ -234,9 +235,14 @@
       formatter: (row) => {
         const subject = subjectFor(row)
         if (props.readonly)
-          return subject
-            ? `${subject.subjectCode} ${subject.subjectName}`
-            : row.subjectNameSnapshot || '—'
+          return subject ? (
+            <BusinessTableIdentityCell
+              primary={subject.subjectName}
+              secondary={subject.subjectCode}
+            />
+          ) : (
+            row.subjectNameSnapshot || '—'
+          )
         return (
           <ElSelect
             v-model={row.subjectId}

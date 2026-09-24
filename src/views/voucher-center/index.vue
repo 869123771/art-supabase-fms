@@ -98,7 +98,11 @@
   }
 
   interface DialogExpose {
-    handleOpen: (context: DialogContext, row?: Voucher) => Promise<void>
+    handleOpen: (
+      context: DialogContext,
+      row?: Voucher,
+      loadContext?: () => Promise<DialogContext | undefined>
+    ) => Promise<void>
   }
 
   interface ActionDialogExpose {
@@ -518,8 +522,15 @@
       }))
     )
       return
-    const context = await loadEntryContext()
-    if (context) await dialogRef.value?.handleOpen(context, row)
+    const accountSet = table.accountSetOptions.find(
+      (item) => item.value === table.searchQuery.accountSetId
+    )
+    if (!accountSet) return
+    const context =
+      entryContext.value?.accountSet.value === accountSet.value
+        ? entryContext.value
+        : { accountSet, subjects: [], currencies: [], auxiliaryItems: [], templates: [] }
+    await dialogRef.value?.handleOpen(context, row, loadEntryContext)
   }
 
   function canOpenEdit(row: Voucher): boolean {

@@ -120,11 +120,7 @@
     }
     runId.value = run.id
     currentLine.value = line
-    const { data } = await fetchPayrollEmployeeOptions(run.id)
-    employeeOptions.value = (data ?? []).map((item) => ({
-      label: `${item.employeeName}（${item.employeeNo}）`,
-      value: item.id
-    }))
+    employeeOptions.value = []
     Object.assign(form, {
       employeeId: line?.employeeId || '',
       grossAmount: toFiniteNumber(line?.grossAmount),
@@ -135,8 +131,21 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: line ? `编辑薪资 · ${line.employeeNameSnapshot}` : '新增员工薪资',
       confirmText: '保存明细',
+      loading: true,
+      loadingText: '正在加载员工选项…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_openData, api) => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchPayrollEmployeeOptions(run.id)
+          employeeOptions.value = (data ?? []).map((item) => ({
+            label: `${item.employeeName}（${item.employeeNo}）`,
+            value: item.id
+          }))
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

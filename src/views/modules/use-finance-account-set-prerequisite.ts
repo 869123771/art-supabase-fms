@@ -1,6 +1,10 @@
 import { financeRouteNames } from '@/router/business-paths'
 import { useArtFeedback } from '@/hooks/core/useArtFeedback'
 import { fetchAccountingReadiness } from '@fms/api'
+import type { FinancePrerequisiteOverlay } from './finance-prerequisite-overlay'
+
+export { createFinancePrerequisiteOverlay } from './finance-prerequisite-overlay'
+export type { FinancePrerequisiteOverlay } from './finance-prerequisite-overlay'
 
 interface FinanceAccountSetPrerequisiteOptions {
   actionLabel: string
@@ -99,8 +103,27 @@ export function useFinanceAccountSetPrerequisite() {
 
   async function runWithAccountSet(
     options: FinanceAccountSetPrerequisiteOptions,
-    action: () => void | Promise<void>
+    action: () => void | Promise<void>,
+    overlay?: FinancePrerequisiteOverlay
   ): Promise<boolean> {
+    if (options.available && options.foundationRequired && options.accountSetId && overlay) {
+      const opening = Promise.resolve(action())
+      void opening.catch(() => undefined)
+      overlay.setPrerequisiteLoading(true)
+      try {
+        if (!(await ensureAccountSet(options))) {
+          await overlay.dismiss()
+          return false
+        }
+        await opening
+        return true
+      } catch (error) {
+        await overlay.dismiss()
+        throw error
+      } finally {
+        overlay.setPrerequisiteLoading(false)
+      }
+    }
     if (!(await ensureAccountSet(options))) return false
     await action()
     return true

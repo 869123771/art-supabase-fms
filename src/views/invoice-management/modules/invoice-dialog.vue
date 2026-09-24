@@ -1213,7 +1213,7 @@
   }
 
   async function handleOpen(row?: Invoice, ocrContext?: InvoiceOcrContext): Promise<void> {
-    await Promise.all([resetForm(), invoiceRecordNumber.loadRule()])
+    await resetForm()
     if (row) fieldAccess.value = row.fieldAccess ?? {}
     if (ocrContext) form.data.direction = ocrContext.direction
     await dialogRef.value?.handleOpen(row, {
@@ -1223,15 +1223,13 @@
         : '发票可以关联一个或多个已确认对账单，未关联金额会进入财务工作台待办',
       confirmText: row ? '保存修改' : '保存草稿',
       contentMaxHeight: '76vh',
-      loading: Boolean(row),
+      loading: true,
+      loadingText: '正在准备发票…',
       onOpen: async (_data, api) => {
-        if (ocrContext) {
-          await handleApplyOcrResult(ocrContext.result)
-          return
-        }
-        if (!row) return
         try {
-          await loadDetail(row.id)
+          await invoiceRecordNumber.loadRule()
+          if (ocrContext) await handleApplyOcrResult(ocrContext.result)
+          else if (row) await loadDetail(row.id)
         } finally {
           api.setLoading(false)
         }

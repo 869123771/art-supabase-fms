@@ -55,7 +55,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import FundExecutionDialog, {
     type FundExecutionOptions,
     type FundExecutionPayload
@@ -91,14 +94,16 @@
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const { getDictMap } = storeToRefs(useUserStore())
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: (row?: Run) => Promise<void> }>()
+  const dialogRef = ref<{ handleOpen: (row?: Run) => Promise<void> } & FinancePrerequisiteOverlay>()
   const drawerRef = ref<{ handleOpen: (row: Run) => Promise<void> }>()
-  const fundExecutionRef = ref<{
-    handleOpen: (
-      options: FundExecutionOptions,
-      onSubmit: (payload: FundExecutionPayload) => Promise<void>
-    ) => Promise<void>
-  }>()
+  const fundExecutionRef = ref<
+    {
+      handleOpen: (
+        options: FundExecutionOptions,
+        onSubmit: (payload: FundExecutionPayload) => Promise<void>
+      ) => Promise<void>
+    } & FinancePrerequisiteOverlay
+  >()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currentRows = ref<Run[]>([])
   const listFieldAccess = ref<Api.Fms.PayrollFieldAccessMap>({})
@@ -190,7 +195,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen()
+          () => dialogRef.value?.handleOpen(),
+          dialogRef.value
         )
     }
   ])
@@ -382,7 +388,8 @@
               async (payload) => {
                 await actPayrollRun(row.id, 'pay', payload)
               }
-            )
+            ),
+          fundExecutionRef.value
         )
         return
       } else {

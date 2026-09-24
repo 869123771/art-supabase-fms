@@ -327,15 +327,25 @@
     }
   }
 
-  async function handleOpen(dialogContext: DialogContext, row?: Template): Promise<void> {
+  async function handleOpen(
+    dialogContext: DialogContext,
+    row?: Template,
+    loadContext?: () => Promise<DialogContext | undefined>
+  ): Promise<void> {
     Object.assign(context, dialogContext)
     fieldAccess.value = {}
     detailLineCount.value = 0
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
     form.lines = [createLine(1, 'debit'), createLine(2, 'credit')]
-    if (row?.id) {
+    const prepare = async (): Promise<boolean> => {
+      if (loadContext) {
+        const loaded = await loadContext()
+        if (!loaded) return false
+        Object.assign(context, loaded)
+      }
+      if (!row?.id) return true
       const { data } = await fetchVoucherTemplateDetail(row.id)
-      if (!data) return
+      if (!data) return false
       fieldAccess.value = data.fieldAccess ?? {}
       detailLineCount.value = data.lineCount ?? 0
       Object.assign(form.data, {
@@ -369,6 +379,7 @@
         creditAmount: line.entryDirection === 'credit' ? Number(line.defaultAmount || 0) : 0,
         entryDirection: line.entryDirection
       }))
+      return true
     }
     await dialogRef.value?.handleOpen(row, {
       title: row ? `编辑凭证模板 · ${row.templateCode}` : '新增凭证模板',
@@ -376,8 +387,20 @@
       contentMaxHeight: '78vh',
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },
+      loading: Boolean(row?.id || loadContext),
+      loadingText: '正在加载凭证模板…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate()
+      onOpen: async (_openData, api) => {
+        try {
+          if (!(await prepare())) {
+            await api.handleClose()
+            return
+          }
+          formRef.value?.clearValidate()
+        } finally {
+          api.setLoading(false)
+        }
+      }
     })
   }
 

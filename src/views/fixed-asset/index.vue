@@ -58,7 +58,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../modules/accounting-select-text'
   import type { ColumnOption } from '@/types'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
@@ -103,10 +106,14 @@
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const { getDictMap } = storeToRefs(useUserStore())
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: (row?: Asset) => Promise<void> }>()
+  const dialogRef = ref<
+    { handleOpen: (row?: Asset) => Promise<void> } & FinancePrerequisiteOverlay
+  >()
   const disposalDialogRef = ref<{ handleOpen: (row: Asset) => Promise<void> }>()
-  const categoryDialogRef = ref<{ handleOpen: () => Promise<void> }>()
-  const depreciationRef = ref<{ handleOpen: (accountSetId?: string) => Promise<void> }>()
+  const categoryDialogRef = ref<{ handleOpen: () => Promise<void> } & FinancePrerequisiteOverlay>()
+  const depreciationRef = ref<
+    { handleOpen: (accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
+  >()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const categoryOptions = ref<Array<{ label: string; value: string }>>([])
   const currentRows = ref<Asset[]>([])
@@ -227,7 +234,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen()
+          () => dialogRef.value?.handleOpen(),
+          dialogRef.value
         )
     },
     {
@@ -244,7 +252,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => categoryDialogRef.value?.handleOpen()
+          () => categoryDialogRef.value?.handleOpen(),
+          categoryDialogRef.value
         )
     },
     {
@@ -261,7 +270,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => depreciationRef.value?.handleOpen(table.search.accountSetId)
+          () => depreciationRef.value?.handleOpen(table.search.accountSetId),
+          depreciationRef.value
         )
     }
   ])

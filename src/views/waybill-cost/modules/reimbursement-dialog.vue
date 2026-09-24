@@ -396,7 +396,7 @@
       return
     }
 
-    await Promise.all([resetForm(), reimbursementNumber.loadRule()])
+    await resetForm()
     state.expenses = cloneReimbursementExpenses(expenses)
     const fallbackPayee =
       expenses.find((item) => item.payeeName)?.payeeName ||
@@ -411,6 +411,15 @@
         subtitle: '报销审批通过后由出纳登记付款，付款完成即逐笔核销运单费用',
         confirmText: '生成报销单',
         contentMaxHeight: '78vh',
+        loading: true,
+        loadingText: '正在加载编号规则…',
+        onOpen: async (_openData, api) => {
+          try {
+            await reimbursementNumber.loadRule()
+          } finally {
+            api.setLoading(false)
+          }
+        },
         onConfirm: handleSubmit,
         onReset: () => void resetForm(),
         dialogProps: { appendToBody: true, closeOnClickModal: false }

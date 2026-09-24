@@ -55,7 +55,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import FundExecutionDialog, {
     type FundExecutionOptions,
     type FundExecutionPayload
@@ -89,14 +92,16 @@
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const { getDictMap } = storeToRefs(useUserStore())
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: (row?: Row) => Promise<void> }>()
+  const dialogRef = ref<{ handleOpen: (row?: Row) => Promise<void> } & FinancePrerequisiteOverlay>()
   const drawerRef = ref<{ handleOpen: (row: Row) => Promise<void> }>()
-  const fundExecutionRef = ref<{
-    handleOpen: (
-      options: FundExecutionOptions,
-      onSubmit: (payload: FundExecutionPayload) => Promise<void>
-    ) => Promise<void>
-  }>()
+  const fundExecutionRef = ref<
+    {
+      handleOpen: (
+        options: FundExecutionOptions,
+        onSubmit: (payload: FundExecutionPayload) => Promise<void>
+      ) => Promise<void>
+    } & FinancePrerequisiteOverlay
+  >()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currentRows = ref<Row[]>([])
   const listFieldAccess = ref<Api.Fms.TaxFieldAccessMap>({})
@@ -194,7 +199,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen()
+          () => dialogRef.value?.handleOpen(),
+          dialogRef.value
         )
     }
   ])
@@ -406,7 +412,8 @@
               async (payload) => {
                 await actTaxPeriod(row.id, 'pay', payload)
               }
-            )
+            ),
+          fundExecutionRef.value
         )
         return
       } else {

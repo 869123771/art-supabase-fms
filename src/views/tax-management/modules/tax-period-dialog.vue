@@ -15,6 +15,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import { storeToRefs } from 'pinia'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -34,6 +35,7 @@
   const emit = defineEmits<{ success: [] }>()
   const { getDictMap } = storeToRefs(useUserStore())
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const periodOptions = ref<Array<{ label: string; value: string }>>([])
@@ -173,30 +175,41 @@
     }
   }
   async function handleOpen(row?: Api.Fms.TaxPeriodRecord) {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    const record = row ? ((await fetchTaxPeriodDetail(row.id)).data ?? row) : undefined
-    currentRecord.value = record
-    fieldAccess.value = record?.fieldAccess ?? {}
-    Object.assign(form, {
-      id: record?.id,
-      accountSetId: record?.accountSetId || accountSetOptions.value[0]?.value || '',
-      accountingPeriodId: record?.accountingPeriodId || '',
-      taxType: record?.taxType || 'vat',
-      transferableInputAmount: canEditField(record?.fieldAccess, 'taxAmounts')
-        ? toFiniteNumber(record?.transferableInputAmount)
-        : 0,
-      adjustmentAmount: canEditField(record?.fieldAccess, 'taxAmounts')
-        ? toFiniteNumber(record?.adjustmentAmount)
-        : 0,
-      remark: record?.remark || null
-    })
-    await loadPeriods()
+    const prepare = async () => {
+      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      accountSetOptions.value = data ?? []
+      const record = row ? ((await fetchTaxPeriodDetail(row.id)).data ?? row) : undefined
+      currentRecord.value = record
+      fieldAccess.value = record?.fieldAccess ?? {}
+      Object.assign(form, {
+        id: record?.id,
+        accountSetId: record?.accountSetId || accountSetOptions.value[0]?.value || '',
+        accountingPeriodId: record?.accountingPeriodId || '',
+        taxType: record?.taxType || 'vat',
+        transferableInputAmount: canEditField(record?.fieldAccess, 'taxAmounts')
+          ? toFiniteNumber(record?.transferableInputAmount)
+          : 0,
+        adjustmentAmount: canEditField(record?.fieldAccess, 'taxAmounts')
+          ? toFiniteNumber(record?.adjustmentAmount)
+          : 0,
+        remark: record?.remark || null
+      })
+      await loadPeriods()
+    }
     await dialogRef.value?.handleOpen(undefined, {
-      title: record ? '编辑税务期间' : '新建税务期间',
-      confirmText: record ? '保存修改' : '创建台账',
+      title: row ? '编辑税务期间' : '新建税务期间',
+      confirmText: row ? '保存修改' : '创建台账',
+      loading: true,
+      loadingText: '正在加载税务期间与账套…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        try {
+          await prepare()
+          formRef.value?.clearValidate()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
@@ -208,5 +221,5 @@
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

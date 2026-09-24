@@ -54,7 +54,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import { financeRouteNames } from '@/router/business-paths'
   import type { ColumnOption } from '@/types'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
@@ -88,7 +91,7 @@
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const { getDictMap } = storeToRefs(useUserStore())
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: () => Promise<void> }>()
+  const dialogRef = ref<{ handleOpen: () => Promise<void> } & FinancePrerequisiteOverlay>()
   const drawerRef = ref<{ handleOpen: (row: Row) => Promise<void> }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currentRows = ref<Row[]>([])
@@ -183,7 +186,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen()
+          () => dialogRef.value?.handleOpen(),
+          dialogRef.value
         )
     }
   ])

@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
@@ -40,6 +41,7 @@
 
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetId = ref('')
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
@@ -362,54 +364,67 @@
   }
 
   async function handleOpen(row?: Transfer): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    const record = row ? ((await fetchFundTransferDetail(row.id)).data ?? row) : undefined
-    currentRecord.value = record
-    fieldAccess.value = record?.fieldAccess ?? {}
-    Object.assign(
-      form.data,
-      createInitialForm(),
-      record && {
-        id: record.id,
-        version: record.version,
-        sourceAccountId: canEditField(record.fieldAccess, 'transferAccounts')
-          ? record.sourceAccountId
-          : undefined,
-        targetAccountId: canEditField(record.fieldAccess, 'transferAccounts')
-          ? record.targetAccountId
-          : undefined,
-        transferDate: record.transferDate,
-        amount: canEditField(record.fieldAccess, 'transferAmounts')
-          ? toEditableNumber(record.amount)
-          : undefined,
-        feeAmount: canEditField(record.fieldAccess, 'transferAmounts')
-          ? toEditableNumber(record.feeAmount)
-          : undefined,
-        purpose: record.purpose,
-        bankReference: canEditField(record.fieldAccess, 'bankReference')
-          ? (record.bankReference ?? null)
-          : null
+    currentRecord.value = row
+    Object.assign(form.data, createInitialForm())
+    const prepare = async () => {
+      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      accountSetOptions.value = data ?? []
+      const record = row ? ((await fetchFundTransferDetail(row.id)).data ?? row) : undefined
+      currentRecord.value = record
+      fieldAccess.value = record?.fieldAccess ?? {}
+      Object.assign(
+        form.data,
+        createInitialForm(),
+        record && {
+          id: record.id,
+          version: record.version,
+          sourceAccountId: canEditField(record.fieldAccess, 'transferAccounts')
+            ? record.sourceAccountId
+            : undefined,
+          targetAccountId: canEditField(record.fieldAccess, 'transferAccounts')
+            ? record.targetAccountId
+            : undefined,
+          transferDate: record.transferDate,
+          amount: canEditField(record.fieldAccess, 'transferAmounts')
+            ? toEditableNumber(record.amount)
+            : undefined,
+          feeAmount: canEditField(record.fieldAccess, 'transferAmounts')
+            ? toEditableNumber(record.feeAmount)
+            : undefined,
+          purpose: record.purpose,
+          bankReference: canEditField(record.fieldAccess, 'bankReference')
+            ? (record.bankReference ?? null)
+            : null
+        }
+      )
+      accountSetId.value = record?.accountSetId ?? ''
+      if (accountSetId.value && (!record || canEditField(record.fieldAccess, 'transferAccounts'))) {
+        const { data: accounts } = await fetchFundAccountOptions({
+          accountSetId: accountSetId.value,
+          status: 'active'
+        })
+        accountOptions.value = accounts ?? []
+      } else {
+        accountOptions.value = []
       }
-    )
-    accountSetId.value = record?.accountSetId ?? ''
-    if (accountSetId.value && (!record || canEditField(record.fieldAccess, 'transferAccounts'))) {
-      const { data: accounts } = await fetchFundAccountOptions({
-        accountSetId: accountSetId.value,
-        status: 'active'
-      })
-      accountOptions.value = accounts ?? []
-    } else {
-      accountOptions.value = []
     }
     await dialogRef.value?.handleOpen(undefined, {
-      title: record ? `编辑资金调拨 · ${record.transferNo}` : '新建资金调拨',
-      confirmText: record ? '保存修改' : '创建草稿',
+      title: row ? `编辑资金调拨 · ${row.transferNo}` : '新建资金调拨',
+      confirmText: row ? '保存修改' : '创建草稿',
+      loading: true,
+      loadingText: '正在加载资金账户…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        try {
+          await prepare()
+          formRef.value?.clearValidate()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
   }
 
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

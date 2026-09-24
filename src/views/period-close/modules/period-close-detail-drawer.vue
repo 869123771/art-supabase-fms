@@ -68,13 +68,23 @@
     canViewField(run.value?.fieldAccess, 'closeDiagnostics')
   )
   async function handleOpen(row: Api.Fms.PeriodCloseRunRecord) {
-    run.value = (await fetchPeriodCloseRunDetail(row.id)).data ?? row
-    const { data } = await fetchPeriodCloseChecks(row.id)
-    checks.value = data ?? []
+    run.value = row
+    checks.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: `关账检查详情 · ${row.runNo}`,
       size: 'xl',
       contentHeight: 'calc(100vh - 132px)',
+      loading: true,
+      loadingText: '正在加载关账检查…',
+      onOpen: async (_data, api) => {
+        try {
+          run.value = (await fetchPeriodCloseRunDetail(row.id)).data ?? row
+          const { data } = await fetchPeriodCloseChecks(row.id)
+          checks.value = data ?? []
+        } finally {
+          api.setLoading(false)
+        }
+      },
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }

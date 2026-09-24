@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
@@ -36,6 +37,7 @@
   defineOptions({ name: 'FinanceFixedAssetDialog' })
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currentRecord = shallowRef<Api.Fms.FixedAssetRecord>()
@@ -314,54 +316,71 @@
     }
   }
   async function handleOpen(row?: Api.Fms.FixedAssetRecord): Promise<void> {
-    const { data: accountSets } = await fetchAccountSetOptions({
-      status: 'active',
-      from: 0,
-      to: 999
-    })
-    accountSetOptions.value = accountSets ?? []
-    const record = row ? ((await fetchFixedAssetDetail(row.id)).data ?? row) : undefined
-    currentRecord.value = record
-    fieldAccess.value = record?.fieldAccess ?? {}
-    Object.assign(
-      form,
-      initial(),
-      record && {
-        id: record.id,
-        accountSetId: record.accountSetId,
-        categoryId: record.categoryId,
-        assetNo: record.assetNo,
-        assetName: record.assetName,
-        acquisitionDate: record.acquisitionDate,
-        readyForUseDate: record.readyForUseDate,
-        depreciationStartDate: record.depreciationStartDate,
-        originalValue: canEditField(record.fieldAccess, 'assetValues')
-          ? toEditableNumber(record.originalValue)
-          : undefined,
-        residualValue: canEditField(record.fieldAccess, 'assetValues')
-          ? toEditableNumber(record.residualValue)
-          : undefined,
-        usefulLifeMonths: record.usefulLifeMonths,
-        departmentId: canEditField(record.fieldAccess, 'assetCustody') ? record.departmentId : null,
-        employeeId: canEditField(record.fieldAccess, 'assetCustody') ? record.employeeId : null,
-        location: canEditField(record.fieldAccess, 'assetCustody') ? record.location : null,
-        specification: canEditField(record.fieldAccess, 'assetReferences')
-          ? record.specification
-          : null,
-        serialNo: canEditField(record.fieldAccess, 'assetReferences') ? record.serialNo : null,
-        sourceType: canEditField(record.fieldAccess, 'assetReferences') ? record.sourceType : null,
-        sourceId: canEditField(record.fieldAccess, 'assetReferences') ? record.sourceId : null,
-        sourceNo: canEditField(record.fieldAccess, 'assetReferences') ? record.sourceNo : null,
-        remark: record.remark
-      }
-    )
-    if (!record) form.accountSetId = accountSetOptions.value[0]?.value ?? ''
-    if (form.accountSetId) await loadCategories(form.accountSetId)
+    currentRecord.value = row
+    Object.assign(form, initial())
+    const prepare = async () => {
+      const { data: accountSets } = await fetchAccountSetOptions({
+        status: 'active',
+        from: 0,
+        to: 999
+      })
+      accountSetOptions.value = accountSets ?? []
+      const record = row ? ((await fetchFixedAssetDetail(row.id)).data ?? row) : undefined
+      currentRecord.value = record
+      fieldAccess.value = record?.fieldAccess ?? {}
+      Object.assign(
+        form,
+        initial(),
+        record && {
+          id: record.id,
+          accountSetId: record.accountSetId,
+          categoryId: record.categoryId,
+          assetNo: record.assetNo,
+          assetName: record.assetName,
+          acquisitionDate: record.acquisitionDate,
+          readyForUseDate: record.readyForUseDate,
+          depreciationStartDate: record.depreciationStartDate,
+          originalValue: canEditField(record.fieldAccess, 'assetValues')
+            ? toEditableNumber(record.originalValue)
+            : undefined,
+          residualValue: canEditField(record.fieldAccess, 'assetValues')
+            ? toEditableNumber(record.residualValue)
+            : undefined,
+          usefulLifeMonths: record.usefulLifeMonths,
+          departmentId: canEditField(record.fieldAccess, 'assetCustody')
+            ? record.departmentId
+            : null,
+          employeeId: canEditField(record.fieldAccess, 'assetCustody') ? record.employeeId : null,
+          location: canEditField(record.fieldAccess, 'assetCustody') ? record.location : null,
+          specification: canEditField(record.fieldAccess, 'assetReferences')
+            ? record.specification
+            : null,
+          serialNo: canEditField(record.fieldAccess, 'assetReferences') ? record.serialNo : null,
+          sourceType: canEditField(record.fieldAccess, 'assetReferences')
+            ? record.sourceType
+            : null,
+          sourceId: canEditField(record.fieldAccess, 'assetReferences') ? record.sourceId : null,
+          sourceNo: canEditField(record.fieldAccess, 'assetReferences') ? record.sourceNo : null,
+          remark: record.remark
+        }
+      )
+      if (!record) form.accountSetId = accountSetOptions.value[0]?.value ?? ''
+      if (form.accountSetId) await loadCategories(form.accountSetId)
+    }
     await dialogRef.value?.handleOpen(undefined, {
-      title: record ? `编辑资产 · ${record.assetNo}` : '新建固定资产',
-      confirmText: record ? '保存修改' : '创建草稿',
+      title: row ? `编辑资产 · ${row.assetNo}` : '新建固定资产',
+      confirmText: row ? '保存修改' : '创建草稿',
+      loading: true,
+      loadingText: '正在加载资产与账套…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        try {
+          await prepare()
+          formRef.value?.clearValidate()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
@@ -375,5 +394,5 @@
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

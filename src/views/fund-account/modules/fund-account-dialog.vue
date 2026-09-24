@@ -334,8 +334,7 @@
   }
 
   async function handleOpen(row?: Account): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
+    accountSetOptions.value = []
     Object.assign(
       form.data,
       createInitialForm(),
@@ -362,12 +361,22 @@
     if (row && !canEditSensitiveField('accountDetails')) {
       form.data.accountNo = row.accountNoMasked ?? null
     }
-    if (form.data.accountSetId) await loadCurrencies(form.data.accountSetId)
     await dialogRef.value?.handleOpen(undefined, {
       title: row ? `编辑资金账户 · ${row.accountName}` : '新建资金账户',
       confirmText: row ? '保存修改' : '创建账户',
+      loading: true,
+      loadingText: '正在加载账套与币种…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_openData, api) => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          accountSetOptions.value = data ?? []
+          if (form.data.accountSetId) await loadCurrencies(form.data.accountSetId)
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
   }

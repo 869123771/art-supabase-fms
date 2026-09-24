@@ -211,6 +211,7 @@
       row?: Expense
       orderId?: string
       ocrResult?: Api.Fms.WaybillExpenseOcrAnalyzeResponse
+      loadOcrResult?: () => Promise<Api.Fms.WaybillExpenseOcrAnalyzeResponse>
     }) => Promise<void>
   }
 
@@ -1153,25 +1154,21 @@
         return
       }
 
-      const { data, error } = await fetchRecognitionArtifactDetail(artifactId)
-      if (error) return
-      if (!data) {
-        ElMessage.warning('识别任务不存在或已无权访问')
-        return
-      }
-      if (data.feature !== 'waybill_expense_ocr') {
-        ElMessage.warning('该识别任务不属于运单费用票据')
-        return
-      }
-      if (data.status !== 'pending') {
-        ElMessage.warning('该识别任务已处理，请从识别记录查看最终结果')
-        return
-      }
-
       activeTab.value = 'expense'
       await nextTick()
       await expenseDialogRef.value?.handleOpen({
-        ocrResult: toWaybillExpenseOcrAnalyzeResponse(data)
+        loadOcrResult: async () => {
+          const { data, error } = await fetchRecognitionArtifactDetail(artifactId)
+          if (error) throw error
+          if (!data) throw new Error('识别任务不存在或已无权访问')
+          if (data.feature !== 'waybill_expense_ocr') {
+            throw new Error('该识别任务不属于运单费用票据')
+          }
+          if (data.status !== 'pending') {
+            throw new Error('该识别任务已处理，请从识别记录查看最终结果')
+          }
+          return toWaybillExpenseOcrAnalyzeResponse(data)
+        }
       })
     } finally {
       const query = { ...route.query }

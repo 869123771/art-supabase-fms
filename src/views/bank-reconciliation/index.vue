@@ -54,7 +54,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatCurrencyValue } from '@/utils/ui'
@@ -75,7 +78,7 @@
   type SearchParams = Api.Fms.BankReconciliationSearchParams
   type TableParams = SearchParams & { current: number; size: number }
 
-  interface ImportDialogExpose {
+  interface ImportDialogExpose extends FinancePrerequisiteOverlay {
     handleOpen: () => Promise<void>
   }
   interface DrawerExpose {
@@ -179,7 +182,8 @@
             fundAccountRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => importDialogRef.value?.handleOpen()
+          () => importDialogRef.value?.handleOpen(),
+          importDialogRef.value
         )
     }
   ])

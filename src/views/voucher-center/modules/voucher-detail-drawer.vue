@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="tsx">
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import { ElButton, ElTag, ElTimeline, ElTimelineItem } from 'element-plus'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -102,6 +103,7 @@
 
   const drawerRef = ref<ArtDrawerExpose<Voucher>>()
   const detail = shallowRef<Voucher>()
+  const activeId = ref('')
   const loading = ref(false)
   const loadError = shallowRef<Error | null>(null)
 
@@ -155,7 +157,12 @@
       prop: 'subjectId',
       label: '会计科目',
       minWidth: 220,
-      formatter: (row) => `${row.subjectCodeSnapshot} ${row.subjectNameSnapshot}`
+      formatter: (row) => (
+        <BusinessTableIdentityCell
+          primary={row.subjectNameSnapshot}
+          secondary={row.subjectCodeSnapshot}
+        />
+      )
     },
     ...(canViewAmounts.value
       ? [
@@ -249,17 +256,19 @@
   }
 
   function retryLoad(): void {
-    if (detail.value?.id) void loadDetail(detail.value.id)
+    if (activeId.value) void loadDetail(activeId.value)
   }
 
-  async function handleOpen(row: Voucher): Promise<void> {
-    detail.value = row
-    await drawerRef.value?.handleOpen(row, {
-      title: `会计凭证详情 · ${row.voucherNo}`,
+  async function handleOpen(row: Voucher | string): Promise<void> {
+    const initialRow = typeof row === 'string' ? undefined : row
+    activeId.value = typeof row === 'string' ? row : row.id
+    detail.value = initialRow
+    await drawerRef.value?.handleOpen(initialRow, {
+      title: initialRow ? `会计凭证详情 · ${initialRow.voucherNo}` : '会计凭证详情',
       subtitle: '查看会计分录、业务来源、附件及全生命周期操作记录。',
       size: 'xl',
       contentHeight: 'calc(100vh - 132px)',
-      onOpen: () => loadDetail(row.id),
+      onOpen: () => loadDetail(activeId.value),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }

@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from './use-finance-account-set-prerequisite'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import type { FormRules } from 'element-plus'
@@ -61,6 +62,7 @@
 
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose<FundExecutionOptions>>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<FormExpose>()
   const submitter = shallowRef<(payload: FundExecutionPayload) => Promise<void>>()
   const accountOptions = ref<Api.Fms.FundAccountOption[]>([])
@@ -155,24 +157,33 @@
     await reset()
     Object.assign(context, options)
     submitter.value = onSubmit
-    const { data } = await fetchFundAccountOptions({
-      accountSetId: options.accountSetId,
-      status: 'active',
-      baseCurrencyOnly: true
-    })
-    accountOptions.value = data ?? []
+    accountOptions.value = []
     await dialogRef.value?.handleOpen(options, {
       title: options.title,
       subtitle: options.subtitle,
       confirmText: options.confirmText,
       contentMaxHeight: '64vh',
+      loading: true,
+      loadingText: '正在加载资金账户…',
+      onOpen: async () => {
+        try {
+          const { data } = await fetchFundAccountOptions({
+            accountSetId: options.accountSetId,
+            status: 'active',
+            baseCurrencyOnly: true
+          })
+          accountOptions.value = data ?? []
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void reset(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }
     })
   }
 
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>
 
 <style scoped lang="scss">

@@ -203,18 +203,27 @@
       ElMessage.warning('当前字段权限不允许读取付款申请金额，无法登记付款')
       return
     }
-    const [, , fundAccounts] = await Promise.all([
-      resetForm(),
-      transactionNumber.loadRule(),
-      fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
-    ])
-    fundAccountOptions.value = fundAccounts.data ?? []
+    await resetForm()
+    fundAccountOptions.value = []
     application.value = row
     await dialogRef.value?.handleOpen(row, {
       title: `登记付款 · ${row.applicationNo}`,
       subtitle: '仅审批通过的付款申请可以执行，每份申请只允许成功付款一次',
       confirmText: '确认付款并核销',
       contentMaxHeight: '68vh',
+      loading: true,
+      loadingText: '正在加载编号规则与资金账户…',
+      onOpen: async (_openData, api) => {
+        try {
+          const [, fundAccounts] = await Promise.all([
+            transactionNumber.loadRule(),
+            fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
+          ])
+          fundAccountOptions.value = fundAccounts.data ?? []
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }

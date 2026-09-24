@@ -663,12 +663,8 @@
       ElMessage.warning('当前字段权限不允许继续核销该收款')
       return
     }
-    const [, , fundAccounts] = await Promise.all([
-      resetForm(),
-      transactionNumber.loadRule(),
-      fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
-    ])
-    fundAccountOptions.value = fundAccounts.data ?? []
+    await resetForm()
+    fundAccountOptions.value = []
     dialog.mode = transaction ? 'allocate' : 'create'
     dialog.transaction = transaction
 
@@ -698,6 +694,19 @@
         : '登记客户实际到账流水，可同时核销一份或多份已确认对账单',
       confirmText: transaction ? '确认核销' : '登记收款',
       contentMaxHeight: '76vh',
+      loading: true,
+      loadingText: '正在加载编号规则与资金账户…',
+      onOpen: async (_openData, api) => {
+        try {
+          const [, fundAccounts] = await Promise.all([
+            transactionNumber.loadRule(),
+            fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
+          ])
+          fundAccountOptions.value = fundAccounts.data ?? []
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }

@@ -260,12 +260,8 @@
       ElMessage.warning('当前字段权限不足，无法读取报销付款信息或登记付款结果')
       return
     }
-    const [, , fundAccounts] = await Promise.all([
-      resetForm(),
-      paymentNumber.loadRule(),
-      fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
-    ])
-    fundAccountOptions.value = fundAccounts.data ?? []
+    await resetForm()
+    fundAccountOptions.value = []
     state.reimbursement = structuredClone(toRaw(row))
     form.data.amount = remainingAmount.value
     await dialogRef.value?.handleOpen(row, {
@@ -273,6 +269,19 @@
       subtitle: '可按实际付款金额分次登记；全部付清后系统才会核销报销单内的关联费用',
       confirmText: '确认登记付款',
       contentMaxHeight: '70vh',
+      loading: true,
+      loadingText: '正在加载编号规则与资金账户…',
+      onOpen: async (_openData, api) => {
+        try {
+          const [, fundAccounts] = await Promise.all([
+            paymentNumber.loadRule(),
+            fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
+          ])
+          fundAccountOptions.value = fundAccounts.data ?? []
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }

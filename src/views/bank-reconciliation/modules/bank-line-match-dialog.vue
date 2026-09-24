@@ -121,17 +121,26 @@
       amount: Number(row.remainingAmount ?? 0),
       remark: ''
     })
-    const { data } = await fetchBankMatchCandidates(row.id)
-    ledgerOptions.value = (data ?? []).map((item) => ({
-      label: `${item.entryDate} · ${item.summary} · ${formatCurrencyValue(item.amount)}${item.sourceNo ? ` · ${item.sourceNo}` : ''}`,
-      value: item.id,
-      amount: Number(item.amount ?? 0)
-    }))
+    ledgerOptions.value = []
     await dialogRef.value?.handleOpen(undefined, {
       title: `手工匹配 · 第 ${row.lineNo} 行`,
       confirmText: '确认匹配',
+      loading: true,
+      loadingText: '正在加载匹配候选…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_openData, api) => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchBankMatchCandidates(row.id)
+          ledgerOptions.value = (data ?? []).map((item) => ({
+            label: `${item.entryDate} · ${item.summary} · ${formatCurrencyValue(item.amount)}${item.sourceNo ? ` · ${item.sourceNo}` : ''}`,
+            value: item.id,
+            amount: Number(item.amount ?? 0)
+          }))
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

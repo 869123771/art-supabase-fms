@@ -1,5 +1,9 @@
 <template>
   <ArtDialog ref="dialogRef" size="xl">
+    <ElAlert v-if="ocrLoadError" type="error" :closable="false" show-icon>
+      <template #title>{{ ocrLoadError }}</template>
+      <ElButton link type="primary" @click="loadOcrResult">重新加载</ElButton>
+    </ElAlert>
     <ExpenseOcrPanel
       v-if="canUseOcr"
       ref="ocrPanelRef"
@@ -142,6 +146,7 @@
     row?: Expense
     orderId?: string
     ocrResult?: Api.Fms.WaybillExpenseOcrAnalyzeResponse
+    loadOcrResult?: () => Promise<Api.Fms.WaybillExpenseOcrAnalyzeResponse>
   }
 
   interface ExpenseFormGroup {
@@ -158,6 +163,8 @@
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
   const isCompact = useMediaQuery('(max-width: 767px)')
   const dialogRef = ref<ArtDialogExpose<ExpenseDialogOpenData>>()
+  const ocrLoadError = ref('')
+  const ocrResultLoader = shallowRef<ExpenseDialogOpenData['loadOcrResult']>()
   const formRef = ref<FormExpose>()
   const addressPickerRef = ref<ArtAddressPickerExpose>()
   const ocrPanelRef = ref<{ reset: () => void }>()
@@ -610,6 +617,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    if (ocrLoadError.value) return false
     if (isCompact.value && canEditExpenseLocation.value && !hasValidExpenseCoordinate.value) {
       await addressPickerRef.value?.locateCurrent()
     }
@@ -638,6 +646,21 @@
     }
   }
 
+  async function loadOcrResult(): Promise<void> {
+    if (!ocrResultLoader.value) return
+    ocrLoadError.value = ''
+    dialogRef.value?.setLoading(true)
+    try {
+      const result = await ocrResultLoader.value()
+      if (!state.ocrEnabled) throw new Error('票据识别功能当前不可用')
+      applyOcrResult(result)
+    } catch (error) {
+      ocrLoadError.value = error instanceof Error ? error.message : '识别结果加载失败'
+    } finally {
+      dialogRef.value?.setLoading(false)
+    }
+  }
+
   async function resetForm(): Promise<void> {
     state.autoLocateArmed = false
     Object.assign(form.data, createInitialForm())
@@ -656,7 +679,9 @@
   }
 
   async function handleOpen(data: ExpenseDialogOpenData = {}): Promise<void> {
-    await Promise.all([resetForm(), expenseNumber.loadRule()])
+    await resetForm()
+    ocrLoadError.value = ''
+    ocrResultLoader.value = data.loadOcrResult
     if (data.row) {
       Object.assign(form.data, createInitialForm(), structuredClone(toRaw(data.row)))
       selection.waybills = [toEditSelectedWaybill(data.row)]
@@ -669,23 +694,27 @@
     await dialogRef.value?.handleOpen(data, {
       title: data.row
         ? `编辑运单费用 · ${data.row.costNo}`
-        : data.ocrResult
+        : data.ocrResult || data.loadOcrResult
           ? '复核识别结果 · 新增运单费用'
           : '新增运单费用',
-      subtitle: data.ocrResult
-        ? '识别字段已恢复为草稿，请绑定运单并完成人工核对后再保存'
-        : '按费用项目和运单统一归集承运、在途及其他业务成本',
+      subtitle:
+        data.ocrResult || data.loadOcrResult
+          ? '识别字段已恢复为草稿，请绑定运单并完成人工核对后再保存'
+          : '按费用项目和运单统一归集承运、在途及其他业务成本',
       confirmText: data.row ? '保存修改' : '保存草稿',
       contentMaxHeight: '78vh',
-      loading: Boolean(data.orderId || data.ocrResult),
+      loading: true,
+      loadingText: '正在准备运单费用…',
       onOpen: async (_openData, api) => {
         try {
-          const [enabled] = await Promise.all([
+          const [, enabled] = await Promise.all([
+            expenseNumber.loadRule(),
             fetchWaybillExpenseOcrEnabled(),
             data.orderId ? prefillByOrderId(data.orderId) : Promise.resolve()
           ])
           state.ocrEnabled = enabled
-          if (data.ocrResult && enabled) applyOcrResult(data.ocrResult)
+          if (data.loadOcrResult) await loadOcrResult()
+          else if (data.ocrResult && enabled) applyOcrResult(data.ocrResult)
         } finally {
           state.autoLocateArmed = true
           api.setLoading(false)

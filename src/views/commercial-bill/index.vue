@@ -59,7 +59,10 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { useFinanceAccountSetPrerequisite } from '../modules/use-finance-account-set-prerequisite'
+  import {
+    useFinanceAccountSetPrerequisite,
+    type FinancePrerequisiteOverlay
+  } from '../modules/use-finance-account-set-prerequisite'
   import FundExecutionDialog, {
     type FundExecutionOptions,
     type FundExecutionPayload
@@ -87,13 +90,13 @@
   type SearchParams = Api.Fms.CommercialBillSearchParams
   type TableParams = SearchParams & { current: number; size: number }
 
-  interface DialogExpose {
+  interface DialogExpose extends FinancePrerequisiteOverlay {
     handleOpen: (row?: Bill) => Promise<void>
   }
   interface DrawerExpose {
     handleOpen: (row: Bill) => Promise<void>
   }
-  interface FundExecutionExpose {
+  interface FundExecutionExpose extends FinancePrerequisiteOverlay {
     handleOpen: (
       options: FundExecutionOptions,
       onSubmit: (payload: FundExecutionPayload) => Promise<void>
@@ -206,7 +209,8 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen()
+          () => dialogRef.value?.handleOpen(),
+          dialogRef.value
         )
     }
   ])
@@ -528,7 +532,8 @@
                   referenceNo: payload.referenceNo
                 })
               }
-            )
+            ),
+          fundExecutionRef.value
         )
         return
       }

@@ -13,6 +13,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -28,6 +29,7 @@
   defineOptions({ name: 'FinancePayrollRunDialog' })
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const periodOptions = ref<Array<{ label: string; value: string }>>([])
@@ -113,40 +115,51 @@
     }
   }
   async function handleOpen(row?: Api.Fms.PayrollRunRecord): Promise<void> {
-    const { data: accountSets } = await fetchAccountSetOptions({
-      status: 'active',
-      from: 0,
-      to: 999
-    })
-    accountSetOptions.value = accountSets ?? []
-    const record = row ? ((await fetchPayrollRunDetail(row.id)).data ?? row) : undefined
-    fieldAccess.value = record?.fieldAccess ?? {}
-    Object.assign(form, {
-      id: record?.id,
-      accountSetId: record?.accountSetId || accountSetOptions.value[0]?.value || '',
-      accountingPeriodId: record?.accountingPeriodId || '',
-      salaryExpenseSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
-        ? (record?.salaryExpenseSubjectId ?? null)
-        : null,
-      salaryPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
-        ? (record?.salaryPayableSubjectId ?? null)
-        : null,
-      taxPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
-        ? (record?.taxPayableSubjectId ?? null)
-        : null,
-      socialSecurityPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
-        ? (record?.socialSecurityPayableSubjectId ?? null)
-        : null,
-      remark: record?.remark || null
-    })
-    await loadPeriods()
+    const prepare = async () => {
+      const { data: accountSets } = await fetchAccountSetOptions({
+        status: 'active',
+        from: 0,
+        to: 999
+      })
+      accountSetOptions.value = accountSets ?? []
+      const record = row ? ((await fetchPayrollRunDetail(row.id)).data ?? row) : undefined
+      fieldAccess.value = record?.fieldAccess ?? {}
+      Object.assign(form, {
+        id: record?.id,
+        accountSetId: record?.accountSetId || accountSetOptions.value[0]?.value || '',
+        accountingPeriodId: record?.accountingPeriodId || '',
+        salaryExpenseSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
+          ? (record?.salaryExpenseSubjectId ?? null)
+          : null,
+        salaryPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
+          ? (record?.salaryPayableSubjectId ?? null)
+          : null,
+        taxPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
+          ? (record?.taxPayableSubjectId ?? null)
+          : null,
+        socialSecurityPayableSubjectId: canEditField(record?.fieldAccess, 'payrollReferences')
+          ? (record?.socialSecurityPayableSubjectId ?? null)
+          : null,
+        remark: record?.remark || null
+      })
+      await loadPeriods()
+    }
     await dialogRef.value?.handleOpen(undefined, {
-      title: record ? `编辑薪资批次 · ${record.runNo}` : '新建薪资批次',
-      confirmText: record ? '保存修改' : '创建批次',
+      title: row ? `编辑薪资批次 · ${row.runNo}` : '新建薪资批次',
+      confirmText: row ? '保存修改' : '创建批次',
+      loading: true,
+      loadingText: '正在加载薪资批次与账套…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        try {
+          await prepare()
+          formRef.value?.clearValidate()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

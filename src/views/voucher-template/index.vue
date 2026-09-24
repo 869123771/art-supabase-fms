@@ -80,7 +80,11 @@
   }
 
   interface DialogExpose {
-    handleOpen: (context: DialogContext, row?: Template) => Promise<void>
+    handleOpen: (
+      context: DialogContext,
+      row?: Template,
+      loadContext?: () => Promise<DialogContext | undefined>
+    ) => Promise<void>
   }
 
   interface TableGroup {
@@ -275,8 +279,15 @@
       }))
     )
       return
-    const context = await loadEntryContext()
-    if (context) await dialogRef.value?.handleOpen(context, row)
+    const accountSet = table.accountSetOptions.find(
+      (item) => item.value === table.searchQuery.accountSetId
+    )
+    if (!accountSet) return
+    const context =
+      entryContext.value?.accountSet.value === accountSet.value
+        ? entryContext.value
+        : { accountSet, subjects: [], currencies: [], auxiliaryItems: [] }
+    await dialogRef.value?.handleOpen(context, row, loadEntryContext)
   }
 
   async function handleDelete(row: Template): Promise<void> {

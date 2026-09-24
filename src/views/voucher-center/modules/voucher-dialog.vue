@@ -470,7 +470,11 @@
     }
   }
 
-  async function handleOpen(dialogContext: DialogContext, row?: Voucher): Promise<void> {
+  async function handleOpen(
+    dialogContext: Omit<DialogContext, 'cashFlowItems'>,
+    row?: Voucher,
+    loadContext?: () => Promise<Omit<DialogContext, 'cashFlowItems'> | undefined>
+  ): Promise<void> {
     Object.assign(context, dialogContext)
     cashFlowDrafts.value = []
     fieldAccess.value = {
@@ -480,49 +484,57 @@
       auditTrail: 'edit'
     }
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
-    const { data: cashFlowItems } = await fetchFinancialStatementItems(
-      context.accountSet.value,
-      'cash_flow_statement'
-    )
-    context.cashFlowItems = cashFlowItems ?? []
-    if (row?.id) {
-      const [{ data }, { data: allocations }] = await Promise.all([
-        fetchVoucherDetail(row.id),
-        fetchCashFlowAllocations(row.id)
-      ])
-      if (!data) return
-      fieldAccess.value = data.fieldAccess ?? {}
-      if (!['read', 'edit'].includes(getFieldAccess(fieldAccess.value, 'voucherAmounts'))) {
-        ElMessage.warning('当前字段权限不足，无法编辑凭证分录')
-        return
+    const prepare = async (): Promise<boolean> => {
+      if (loadContext) {
+        const loaded = await loadContext()
+        if (!loaded) return false
+        Object.assign(context, loaded)
       }
-      Object.assign(form.data, {
-        id: data.id,
-        accountSetId: data.accountSetId,
-        voucherType: data.voucherType,
-        voucherDate: data.voucherDate,
-        sourceType: data.sourceType,
-        sourceId: data.sourceId,
-        sourceNo: data.sourceNo,
-        summary: data.summary,
-        attachments: cloneDeep(data.attachments ?? []),
-        lines: cloneDeep((data.lines ?? []).map(toEditableLine))
-      })
-      const lineNoById = new Map(
-        (data.lines ?? [])
-          .filter((line): line is Api.Fms.SecureVoucherLineRecord & { id: string } =>
-            Boolean(line.id)
-          )
-          .map((line) => [line.id, line.lineNo])
+      const { data: cashFlowItems } = await fetchFinancialStatementItems(
+        context.accountSet.value,
+        'cash_flow_statement'
       )
-      cashFlowDrafts.value = (allocations ?? [])
-        .map((allocation) => ({
-          voucherLineNo: lineNoById.get(allocation.voucherLineId) ?? 0,
-          statementItemId: allocation.statementItemId,
-          amount: Number(allocation.amount),
-          remark: allocation.remark ?? null
-        }))
-        .filter((item) => item.voucherLineNo > 0)
+      context.cashFlowItems = cashFlowItems ?? []
+      if (row?.id) {
+        const [{ data }, { data: allocations }] = await Promise.all([
+          fetchVoucherDetail(row.id),
+          fetchCashFlowAllocations(row.id)
+        ])
+        if (!data) return false
+        fieldAccess.value = data.fieldAccess ?? {}
+        if (!['read', 'edit'].includes(getFieldAccess(fieldAccess.value, 'voucherAmounts'))) {
+          ElMessage.warning('当前字段权限不足，无法编辑凭证分录')
+          return false
+        }
+        Object.assign(form.data, {
+          id: data.id,
+          accountSetId: data.accountSetId,
+          voucherType: data.voucherType,
+          voucherDate: data.voucherDate,
+          sourceType: data.sourceType,
+          sourceId: data.sourceId,
+          sourceNo: data.sourceNo,
+          summary: data.summary,
+          attachments: cloneDeep(data.attachments ?? []),
+          lines: cloneDeep((data.lines ?? []).map(toEditableLine))
+        })
+        const lineNoById = new Map(
+          (data.lines ?? [])
+            .filter((line): line is Api.Fms.SecureVoucherLineRecord & { id: string } =>
+              Boolean(line.id)
+            )
+            .map((line) => [line.id, line.lineNo])
+        )
+        cashFlowDrafts.value = (allocations ?? [])
+          .map((allocation) => ({
+            voucherLineNo: lineNoById.get(allocation.voucherLineId) ?? 0,
+            statementItemId: allocation.statementItemId,
+            amount: Number(allocation.amount),
+            remark: allocation.remark ?? null
+          }))
+          .filter((item) => item.voucherLineNo > 0)
+      }
+      return true
     }
     await dialogRef.value?.handleOpen(row, {
       title: row ? `编辑凭证 · ${row.voucherNo}` : '新增会计凭证',
@@ -531,10 +543,20 @@
       showFullscreenButton: true,
       fullscreen: false,
       dialogProps: { closeOnClickModal: false },
+      loading: true,
+      loadingText: '正在加载凭证资料…',
       onConfirm: handleSubmit,
-      onOpen: () => {
-        formRef.value?.clearValidate()
-        lineEditorRef.value?.clearValidate()
+      onOpen: async (_openData, api) => {
+        try {
+          if (!(await prepare())) {
+            await api.handleClose()
+            return
+          }
+          formRef.value?.clearValidate()
+          lineEditorRef.value?.clearValidate()
+        } finally {
+          api.setLoading(false)
+        }
       }
     })
   }

@@ -354,12 +354,21 @@
   }
 
   async function handleOpen(): Promise<void> {
-    await Promise.all([resetForm(), statementNumber.loadRule()])
+    await resetForm()
     await dialogRef.value?.handleOpen(undefined, {
       title: '生成客户对账单',
       subtitle: '按客户和账期归集已完成运单，生成后可提交财务审核',
       confirmText: '生成对账单',
       contentMaxHeight: '72vh',
+      loading: true,
+      loadingText: '正在加载编号规则…',
+      onOpen: async (_openData, api) => {
+        try {
+          await statementNumber.loadRule()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }

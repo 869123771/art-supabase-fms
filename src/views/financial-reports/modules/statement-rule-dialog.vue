@@ -283,14 +283,7 @@
     ruleTableRef.value?.clearValidate()
     editable.value = canEdit
 
-    if (item.calculationMethod === 'formula') {
-      const { data } = await fetchFinancialStatementFormulas(item.id)
-      rows.value = (data ?? []).map((formula) => ({
-        ...createRow(),
-        sourceId: formula.sourceItemId,
-        factor: Number(formula.factor)
-      }))
-    } else {
+    if (item.calculationMethod !== 'formula') {
       rows.value = (item.mappings ?? []).map((mapping) => ({
         ...createRow(),
         sourceId: mapping.subjectId,
@@ -305,6 +298,21 @@
       confirmText: '保存取数规则',
       showFooter: editable.value,
       contentMaxHeight: '72vh',
+      loading: item.calculationMethod === 'formula',
+      loadingText: '正在加载报表公式…',
+      onOpen: async (_openData, api) => {
+        if (item.calculationMethod !== 'formula') return
+        try {
+          const { data } = await fetchFinancialStatementFormulas(item.id)
+          rows.value = (data ?? []).map((formula) => ({
+            ...createRow(),
+            sourceId: formula.sourceItemId,
+            factor: Number(formula.factor)
+          }))
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: editable.value ? handleSubmit : undefined,
       dialogProps: { appendToBody: true, closeOnClickModal: false }
     })

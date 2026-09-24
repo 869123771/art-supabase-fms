@@ -1,6 +1,10 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
     <div class="depreciation-workbench">
+      <ElAlert v-if="loadError" type="error" :closable="false" show-icon>
+        <template #title>折旧数据加载失败</template>
+        <ElButton link type="primary" @click="loadInitialData">重新加载</ElButton>
+      </ElAlert>
       <section class="depreciation-workbench__controls">
         <ElSelect
           v-model="accountSetId"
@@ -111,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -131,9 +136,12 @@
   const emit = defineEmits<{ success: [] }>()
   const { confirmAction } = useArtFeedback()
   const drawerRef = ref<ArtDrawerExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(drawerRef)
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const periodOptions = ref<Array<{ label: string; value: string }>>([])
   const accountSetId = ref('')
+  const loadError = ref(false)
+  const requestedAccountSetId = ref<string>()
   const periodId = ref('')
   const runs = ref<Api.Fms.AssetDepreciationRunRecord[]>([])
   const selectedRun = ref<Api.Fms.AssetDepreciationRunRecord>()
@@ -203,15 +211,32 @@
       /* 用户取消 */
     }
   }
+  async function loadInitialData(): Promise<void> {
+    loadError.value = false
+    drawerRef.value?.setLoading(true)
+    try {
+      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      accountSetOptions.value = data ?? []
+      accountSetId.value = requestedAccountSetId.value || accountSetOptions.value[0]?.value || ''
+      await loadPeriods()
+    } catch {
+      loadError.value = true
+    } finally {
+      prerequisiteOverlay.finishLoading()
+    }
+  }
   async function handleOpen(currentAccountSetId?: string): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    accountSetId.value = currentAccountSetId || accountSetOptions.value[0]?.value || ''
-    await loadPeriods()
+    requestedAccountSetId.value = currentAccountSetId
+    loadError.value = false
+    accountSetOptions.value = []
+    runs.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: '固定资产折旧管理',
       size: 'xl',
       contentHeight: 'calc(100vh - 132px)',
+      loading: true,
+      loadingText: '正在加载折旧数据…',
+      onOpen: loadInitialData,
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }
@@ -220,7 +245,7 @@
     if (value === null || value === undefined || value === '') return '--'
     return formatCurrencyValue(value)
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>
 
 <style scoped lang="scss">

@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
@@ -38,6 +39,7 @@
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
   const { getDictMap } = storeToRefs(useUserStore())
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currentRecord = shallowRef<Bill>()
@@ -303,63 +305,76 @@
   }
 
   async function handleOpen(row?: Bill): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    const record = row ? ((await fetchCommercialBillDetail(row.id)).data ?? row) : undefined
-    currentRecord.value = record
-    fieldAccess.value = record?.fieldAccess ?? {}
-    Object.assign(
-      form.data,
-      createInitialForm(),
-      record && {
-        id: record.id,
-        accountSetId: record.accountSetId,
-        billNo: record.billNo,
-        externalBillNo: canEditField(record.fieldAccess, 'billReferences')
-          ? (record.externalBillNo ?? null)
-          : null,
-        direction: record.direction,
-        billType: record.billType,
-        drawerName: canEditField(record.fieldAccess, 'billParties')
-          ? (record.drawerName ?? '')
-          : undefined,
-        payeeName: canEditField(record.fieldAccess, 'billParties')
-          ? (record.payeeName ?? '')
-          : undefined,
-        acceptorName: canEditField(record.fieldAccess, 'billParties')
-          ? (record.acceptorName ?? '')
-          : undefined,
-        counterpartyName: canEditField(record.fieldAccess, 'billParties')
-          ? (record.counterpartyName ?? null)
-          : null,
-        issueDate: record.issueDate,
-        dueDate: record.dueDate,
-        faceAmount: canEditField(record.fieldAccess, 'billAmounts')
-          ? toEditableNumber(record.faceAmount)
-          : undefined,
-        currencyCode: record.currencyCode,
-        transferable: record.transferable,
-        sourceType: canEditField(record.fieldAccess, 'billReferences')
-          ? (record.sourceType ?? null)
-          : null,
-        sourceId: canEditField(record.fieldAccess, 'billReferences')
-          ? (record.sourceId ?? null)
-          : null,
-        sourceNo: canEditField(record.fieldAccess, 'billReferences')
-          ? (record.sourceNo ?? null)
-          : null,
-        attachmentIds: canEditField(record.fieldAccess, 'billReferences')
-          ? (record.attachmentIds ?? [])
-          : [],
-        remark: record.remark ?? null
-      }
-    )
-    if (!record) form.data.accountSetId = accountSetOptions.value[0]?.value ?? ''
+    currentRecord.value = row
+    Object.assign(form.data, createInitialForm())
+    const prepare = async () => {
+      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      accountSetOptions.value = data ?? []
+      const record = row ? ((await fetchCommercialBillDetail(row.id)).data ?? row) : undefined
+      currentRecord.value = record
+      fieldAccess.value = record?.fieldAccess ?? {}
+      Object.assign(
+        form.data,
+        createInitialForm(),
+        record && {
+          id: record.id,
+          accountSetId: record.accountSetId,
+          billNo: record.billNo,
+          externalBillNo: canEditField(record.fieldAccess, 'billReferences')
+            ? (record.externalBillNo ?? null)
+            : null,
+          direction: record.direction,
+          billType: record.billType,
+          drawerName: canEditField(record.fieldAccess, 'billParties')
+            ? (record.drawerName ?? '')
+            : undefined,
+          payeeName: canEditField(record.fieldAccess, 'billParties')
+            ? (record.payeeName ?? '')
+            : undefined,
+          acceptorName: canEditField(record.fieldAccess, 'billParties')
+            ? (record.acceptorName ?? '')
+            : undefined,
+          counterpartyName: canEditField(record.fieldAccess, 'billParties')
+            ? (record.counterpartyName ?? null)
+            : null,
+          issueDate: record.issueDate,
+          dueDate: record.dueDate,
+          faceAmount: canEditField(record.fieldAccess, 'billAmounts')
+            ? toEditableNumber(record.faceAmount)
+            : undefined,
+          currencyCode: record.currencyCode,
+          transferable: record.transferable,
+          sourceType: canEditField(record.fieldAccess, 'billReferences')
+            ? (record.sourceType ?? null)
+            : null,
+          sourceId: canEditField(record.fieldAccess, 'billReferences')
+            ? (record.sourceId ?? null)
+            : null,
+          sourceNo: canEditField(record.fieldAccess, 'billReferences')
+            ? (record.sourceNo ?? null)
+            : null,
+          attachmentIds: canEditField(record.fieldAccess, 'billReferences')
+            ? (record.attachmentIds ?? [])
+            : [],
+          remark: record.remark ?? null
+        }
+      )
+      if (!record) form.data.accountSetId = accountSetOptions.value[0]?.value ?? ''
+    }
     await dialogRef.value?.handleOpen(undefined, {
-      title: record ? `编辑票据 · ${record.billNo}` : '新建商业票据',
-      confirmText: record ? '保存修改' : '创建草稿',
+      title: row ? `编辑票据 · ${row.billNo}` : '新建商业票据',
+      confirmText: row ? '保存修改' : '创建草稿',
+      loading: true,
+      loadingText: '正在加载票据与账套…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        try {
+          await prepare()
+          formRef.value?.clearValidate()
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
   }
@@ -374,5 +389,5 @@
     return formatCurrencyValue(value, currentRecord.value?.currencyCode)
   }
 
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

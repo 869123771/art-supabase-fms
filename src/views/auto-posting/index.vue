@@ -121,7 +121,6 @@
     fetchPostingEventList,
     fetchPostingRuleList,
     fetchSubjectList,
-    fetchVoucherDetail,
     processPendingPostingEvents,
     retryPostingEvent
   } from '@fms/api'
@@ -145,7 +144,11 @@
   }
 
   interface RuleDialogExpose {
-    handleOpen: (context: RuleDialogContext, row?: Rule) => Promise<void>
+    handleOpen: (
+      context: RuleDialogContext,
+      row?: Rule,
+      loadContext?: () => Promise<RuleDialogContext | undefined>
+    ) => Promise<void>
   }
 
   interface EventDetailExpose {
@@ -153,7 +156,7 @@
   }
 
   interface VoucherDetailExpose {
-    handleOpen: (row: Api.Fms.SecureVoucherRecord) => Promise<void>
+    handleOpen: (row: Api.Fms.SecureVoucherRecord | string) => Promise<void>
   }
 
   interface RuleTableGroup {
@@ -607,8 +610,15 @@
       ruleTable.search.accountSetId = row.accountSetId
       ruleContext.value = undefined
     }
-    const context = await loadRuleContext()
-    if (context) await ruleDialogRef.value?.handleOpen(context, row)
+    const accountSet = accountSetOptions.value.find(
+      (item) => item.value === ruleTable.search.accountSetId
+    )
+    if (!accountSet) return
+    const context =
+      ruleContext.value?.accountSet.value === accountSet.value
+        ? ruleContext.value
+        : { accountSet, subjects: [], auxiliaryTypes: [] }
+    await ruleDialogRef.value?.handleOpen(context, row, loadRuleContext)
   }
 
   async function handleDeleteRule(row: Rule): Promise<void> {
@@ -654,8 +664,7 @@
   }
 
   async function openVoucherById(voucherId: string): Promise<void> {
-    const { data } = await fetchVoucherDetail(voucherId)
-    if (data) await voucherDetailRef.value?.handleOpen(data)
+    await voucherDetailRef.value?.handleOpen(voucherId)
   }
 
   async function loadAccountSets(): Promise<void> {

@@ -16,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -25,6 +26,7 @@
   defineOptions({ name: 'FinanceAssetCategoryDialog' })
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose>()
+  const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const initial = (): Api.Fms.SaveAssetCategoryPayload => ({
@@ -120,16 +122,26 @@
     }
   }
   async function handleOpen(): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    Object.assign(form, initial(), { accountSetId: accountSetOptions.value[0]?.value ?? '' })
+    accountSetOptions.value = []
+    Object.assign(form, initial())
     await dialogRef.value?.handleOpen(undefined, {
       title: '新建资产类别',
       confirmText: '创建类别',
+      loading: true,
+      loadingText: '正在加载账套…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async () => {
+        formRef.value?.clearValidate()
+        try {
+          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          accountSetOptions.value = data ?? []
+          form.accountSetId = accountSetOptions.value[0]?.value ?? ''
+        } finally {
+          prerequisiteOverlay.finishLoading()
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
-  defineExpose({ handleOpen })
+  defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

@@ -173,12 +173,22 @@
     }
   }
   async function handleOpen(row: Api.Fms.PayrollRunRecord): Promise<void> {
-    run.value = (await fetchPayrollRunDetail(row.id)).data ?? row
-    await reload()
+    run.value = row
+    lines.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: `薪资批次详情 · ${row.runNo}`,
       size: 'xl',
       contentHeight: 'calc(100vh - 132px)',
+      loading: true,
+      loadingText: '正在加载薪资明细…',
+      onOpen: async (_data, api) => {
+        try {
+          run.value = (await fetchPayrollRunDetail(row.id)).data ?? row
+          await reload()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: false }
     })
   }

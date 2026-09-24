@@ -214,26 +214,41 @@
   }
 
   async function handleOpen(asset: Asset): Promise<void> {
-    await reset()
-    const record = (await fetchFixedAssetDetail(asset.id)).data ?? asset
-    if (!canEditField(record.fieldAccess, 'assetValues')) {
+    if (!canEditField(asset.fieldAccess, 'assetValues')) {
       ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
       return
     }
-    currentAsset.value = record
-    if (canEditField(record.fieldAccess, 'assetReferences')) {
-      const { data } = await fetchFundAccountOptions({
-        accountSetId: record.accountSetId,
-        status: 'active',
-        baseCurrencyOnly: true
-      })
-      accountOptions.value = data ?? []
-    }
-    await dialogRef.value?.handleOpen(record, {
+    await reset()
+    currentAsset.value = asset
+    accountOptions.value = []
+    await dialogRef.value?.handleOpen(asset, {
       title: '处置固定资产',
-      subtitle: `${record.assetNo} · ${record.assetName}`,
+      subtitle: `${asset.assetNo} · ${asset.assetName}`,
       confirmText: '确认处置',
       contentMaxHeight: '68vh',
+      loading: true,
+      loadingText: '正在加载资产与资金账户…',
+      onOpen: async (_openData, api) => {
+        try {
+          const record = (await fetchFixedAssetDetail(asset.id)).data ?? asset
+          if (!canEditField(record.fieldAccess, 'assetValues')) {
+            ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
+            await api.handleClose()
+            return
+          }
+          currentAsset.value = record
+          if (canEditField(record.fieldAccess, 'assetReferences')) {
+            const { data } = await fetchFundAccountOptions({
+              accountSetId: record.accountSetId,
+              status: 'active',
+              baseCurrencyOnly: true
+            })
+            accountOptions.value = data ?? []
+          }
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void reset(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }
