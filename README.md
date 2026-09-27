@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Art Supabase FMS</h1>
+  <h1>亿企工场 FMS</h1>
   <p><strong>面向运输与企业经营的一体化财务管理应用</strong></p>
   <p>把业务结算、资金收付、会计核算、票税资产与经营分析连接成可追溯的财务闭环。</p>
 
@@ -16,7 +16,7 @@
 
 ## 项目定位
 
-Art Supabase FMS 是 Art Supabase Pro 的财务管理业务应用。它不是孤立的财务页面集合，而是以运输单据和企业经营活动为来源，覆盖结算、资金、核算、报表与高风险反向操作治理。
+亿企工场 FMS 是亿企工场的财务管理业务应用。它不是孤立的财务页面集合，而是以运输单据和企业经营活动为来源，覆盖结算、资金、核算、报表与高风险反向操作治理。
 
 本仓只维护 FMS 页面、业务 API、领域类型与适配代码。登录、租户、菜单、权限、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/wangyanghub/art-supabase-pro) 统一提供。
 

@@ -16,12 +16,15 @@
 </template>
 
 <script setup lang="ts">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { createFinancePrerequisiteOverlay } from '../../modules/use-finance-account-set-prerequisite'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchAccountSetOptions, saveAssetCategory } from '@fms/api'
+
+  const fmsDepreciationMethodOptions = useDictionaryOptions('fmsDepreciationMethod')
 
   defineOptions({ name: 'FinanceAssetCategoryDialog' })
   const emit = defineEmits<{ success: [] }>()
@@ -71,7 +74,7 @@
       label: '折旧方法',
       key: 'depreciationMethod',
       type: 'select',
-      props: { options: [{ label: '平均年限法', value: 'straight_line' }], disabled: true }
+      props: { options: fmsDepreciationMethodOptions, disabled: true }
     },
     {
       label: '使用寿命',

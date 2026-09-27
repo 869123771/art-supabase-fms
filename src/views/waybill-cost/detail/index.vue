@@ -124,6 +124,10 @@
         class="waybill-cost-detail__section"
         preserve-content-structure
         title="票据附件"
+        :empty="!canReadExpenseEvidence || !attachments.length"
+        :empty-title="
+          canReadExpenseEvidence ? '当前费用单未上传票据附件' : '票据附件已按字段权限脱敏'
+        "
       >
         <div
           v-if="canReadExpenseEvidence && attachments.length"
@@ -133,10 +137,6 @@
             <span><ArtSvgIcon icon="ri:attachment-2" aria-hidden="true" /></span>
             <ArtAttachmentLink :file="file" />
           </div>
-        </div>
-        <div v-else class="waybill-cost-detail__empty-inline">
-          <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
-          {{ canReadExpenseEvidence ? '当前费用单未上传票据附件' : '票据附件已按字段权限脱敏' }}
         </div>
       </ArtSectionCard>
 
@@ -650,13 +650,6 @@
         background: color-mix(in srgb, var(--theme-color) 9%, transparent);
         border-radius: var(--el-border-radius-small);
       }
-    }
-
-    &__empty-inline {
-      display: flex;
-      gap: var(--art-space-2);
-      align-items: center;
-      color: var(--el-text-color-secondary);
     }
 
     :deep(.art-descriptions .el-descriptions__label) {

@@ -86,6 +86,8 @@
         class="expense-reimbursement-detail__section"
         preserve-content-structure
         title="逐笔核销明细"
+        :empty="!detail.data.items?.length"
+        empty-title="当前报销单暂无费用明细"
       >
         <ArtTable
           :data="detail.data.items ?? []"
@@ -95,10 +97,6 @@
           table-layout="fixed"
           border
         />
-        <div v-if="!detail.data.items?.length" class="expense-reimbursement-detail__empty-inline">
-          <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
-          当前报销单暂无费用明细
-        </div>
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -123,10 +121,12 @@
                 <ArtAttachmentLink :file="file" />
               </div>
             </div>
-            <div v-else class="expense-reimbursement-detail__empty-inline">
-              <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
-              {{ canReadEvidence ? '未上传报销依据' : '报销依据已按字段权限脱敏' }}
-            </div>
+            <ArtEmptyState
+              v-else
+              :title="canReadEvidence ? '未上传报销依据' : '报销依据已按字段权限脱敏'"
+              size="compact"
+              :visual-size="64"
+            />
           </div>
           <div v-if="canViewPaymentExecution">
             <h3>付款凭证</h3>
@@ -143,10 +143,12 @@
                 <ArtAttachmentLink :file="file" />
               </div>
             </div>
-            <div v-else class="expense-reimbursement-detail__empty-inline">
-              <ArtSvgIcon icon="ri:file-damage-line" aria-hidden="true" />
-              {{ canReadPaymentExecution ? '尚未形成付款凭证' : '付款凭证已按字段权限脱敏' }}
-            </div>
+            <ArtEmptyState
+              v-else
+              :title="canReadPaymentExecution ? '尚未形成付款凭证' : '付款凭证已按字段权限脱敏'"
+              size="compact"
+              :visual-size="64"
+            />
           </div>
         </div>
       </ArtSectionCard>
@@ -163,6 +165,7 @@
 
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { RouterLink } from 'vue-router'
   import { useMediaQuery } from '@vueuse/core'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -474,8 +477,7 @@
 
     &__header-meta,
     &__attachments,
-    &__attachment,
-    &__empty-inline {
+    &__attachment {
       display: flex;
       align-items: center;
     }
@@ -620,12 +622,6 @@
         background: color-mix(in srgb, var(--theme-color) 9%, transparent);
         border-radius: var(--el-border-radius-small);
       }
-    }
-
-    &__empty-inline {
-      gap: var(--art-space-2);
-      min-height: 40px;
-      color: var(--el-text-color-secondary);
     }
 
     :deep(.expense-reimbursement-detail__document-link) {

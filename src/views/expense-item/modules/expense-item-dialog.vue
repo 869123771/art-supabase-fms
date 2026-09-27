@@ -17,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import type { FormRules } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -24,6 +25,11 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { addExpenseItem, editExpenseItem, fetchExpenseItemTree } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
+
+  const fmsExpenseItemAccountingModeOptions = useDictionaryOptions(
+    'fmsExpenseItemAccountingMode',
+    (value) => value === 'true'
+  )
 
   defineOptions({ name: 'FinanceExpenseItemDialog' })
 
@@ -112,10 +118,7 @@
       type: 'radioGroup',
       span: 24,
       props: {
-        options: [
-          { label: '仅作为分组', value: false },
-          { label: '可记账项目', value: true }
-        ]
+        options: fmsExpenseItemAccountingModeOptions
       }
     },
     {

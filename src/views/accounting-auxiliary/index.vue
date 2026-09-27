@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
   import BusinessWorkspaceHeader, {
@@ -234,6 +235,11 @@
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AuxiliaryTypeDialog from './modules/auxiliary-type-dialog.vue'
   import AuxiliaryItemDialog from './modules/auxiliary-item-dialog.vue'
+
+  const commonEnabledStatusOptions = useDictionaryOptions(
+    'commonEnabledStatus',
+    (value) => value === 'enabled'
+  )
 
   defineOptions({ name: 'FinanceAccountingAuxiliary' })
 
@@ -307,10 +313,7 @@
       props: {
         clearable: true,
         placeholder: '全部状态',
-        options: [
-          { label: '启用', value: true },
-          { label: '停用', value: false }
-        ]
+        options: commonEnabledStatusOptions
       }
     }
   ]
