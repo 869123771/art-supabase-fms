@@ -120,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
@@ -283,8 +284,10 @@
     try {
       overview.value = await fetchFinancialExceptionOverview()
     } catch (error) {
-      errorMessage.value =
-        error instanceof Error ? error.message : '财务异常数据加载失败，请稍后重试'
+      errorMessage.value = getFriendlySupabaseErrorMessage(
+        error,
+        '财务异常数据加载失败，请稍后重试'
+      )
       ElMessage.error(errorMessage.value)
     } finally {
       loading.value = false

@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
@@ -503,7 +504,7 @@
       const result = await fetchAuxiliaryItemList(scope.accountSetId, workspace.selectedTypeId)
       workspace.items = result.data ?? []
     } catch (error) {
-      workspace.itemError = error instanceof Error ? error.message : '辅助核算项目加载失败'
+      workspace.itemError = getFriendlySupabaseErrorMessage(error, '辅助核算项目加载失败')
     } finally {
       workspace.itemLoading = false
     }
@@ -521,7 +522,7 @@
       }
       await loadItems()
     } catch (error) {
-      workspace.error = error instanceof Error ? error.message : '辅助核算维度加载失败'
+      workspace.error = getFriendlySupabaseErrorMessage(error, '辅助核算维度加载失败')
     } finally {
       workspace.loading = false
     }

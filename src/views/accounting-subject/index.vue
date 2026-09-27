@@ -142,6 +142,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import BusinessWorkspaceHeader, {
@@ -433,7 +434,7 @@
       state.auxiliaryTypes = auxiliaryResult.data ?? []
       state.readiness = readinessResult.data ?? null
     } catch (error) {
-      state.error = error instanceof Error ? error.message : '会计科目加载失败'
+      state.error = getFriendlySupabaseErrorMessage(error, '会计科目加载失败')
     } finally {
       state.loading = false
     }

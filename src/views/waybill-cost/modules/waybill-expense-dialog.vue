@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
   import { omit } from 'lodash-es'
   import { useMediaQuery } from '@vueuse/core'
@@ -655,7 +656,7 @@
       if (!state.ocrEnabled) throw new Error('票据识别功能当前不可用')
       applyOcrResult(result)
     } catch (error) {
-      ocrLoadError.value = error instanceof Error ? error.message : '识别结果加载失败'
+      ocrLoadError.value = getFriendlySupabaseErrorMessage(error, '识别结果加载失败')
     } finally {
       dialogRef.value?.setLoading(false)
     }

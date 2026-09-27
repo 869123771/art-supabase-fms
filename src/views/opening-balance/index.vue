@@ -188,6 +188,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import BusinessWorkspaceHeader, {
@@ -561,7 +562,7 @@
       delete summary.difference
       if (summaryResult.data) Object.assign(summary, summaryResult.data)
     } catch (error) {
-      workspace.error = error instanceof Error ? error.message : '期初余额加载失败'
+      workspace.error = getFriendlySupabaseErrorMessage(error, '期初余额加载失败')
     } finally {
       workspace.loading = false
     }
@@ -595,7 +596,7 @@
       workspace.auxiliaryItems = itemResult.data ?? []
       await loadBalances()
     } catch (error) {
-      workspace.error = error instanceof Error ? error.message : '期初基础数据加载失败'
+      workspace.error = getFriendlySupabaseErrorMessage(error, '期初基础数据加载失败')
     } finally {
       workspace.loading = false
     }

@@ -205,6 +205,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElMessage, ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import BusinessWorkspaceHeader, {
@@ -464,7 +465,7 @@
           workspace.currencies.find((item) => !item.isBase)?.id ?? workspace.currencies[0]?.id ?? ''
       }
     } catch (error) {
-      workspace.error = error instanceof Error ? error.message : '币种与汇率加载失败'
+      workspace.error = getFriendlySupabaseErrorMessage(error, '币种与汇率加载失败')
     } finally {
       workspace.loading = false
     }
