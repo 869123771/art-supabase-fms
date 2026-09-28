@@ -258,8 +258,10 @@
         row.isActive && canEditField(detail.data?.fieldAccess, 'transactionAmounts') ? (
           <ArtTooltip content="撤销核销" placement="top">
             <ArtButtonTable
+              type="delete"
               icon="ri:arrow-go-back-line"
-              iconClass="bg-error/12 text-error"
+              label="撤销核销"
+              permission="FinanceCashTransaction:Allocate"
               onClick={() => void handleReverse(row)}
             />
           </ArtTooltip>

@@ -87,6 +87,7 @@
           type="primary"
           @click="autoAllocate"
         >
+          <template #icon><ArtSvgIcon icon="ri:magic-line" /></template>
           按可申请余额自动分配
         </ElButton>
       </div>

@@ -75,7 +75,10 @@
           <div v-if="allocationRows.length" class="receipt-allocation__selected">
             <div class="receipt-allocation__header">
               <ArtSectionTitle :show-line="false">本次核销分配</ArtSectionTitle>
-              <ElButton type="primary" plain @click="autoAllocate">自动分配</ElButton>
+              <ElButton type="primary" plain @click="autoAllocate">
+                <template #icon><ArtSvgIcon icon="ri:magic-line" /></template>
+                自动分配
+              </ElButton>
             </div>
             <ArtTable
               :data="allocationRows"
