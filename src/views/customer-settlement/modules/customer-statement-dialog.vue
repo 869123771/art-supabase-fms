@@ -35,27 +35,27 @@
         </ArtTableSingleSelect>
       </template>
 
-      <template #waybillIds>
+      <template #orderIds>
         <ArtTableMultipleSelect
           ref="waybillSelectRef"
-          v-model="form.waybillIds"
+          v-model="form.orderIds"
           v-model:selected-data="selectedWaybills"
           :api-fn="fetchWaybillSelectorData"
           :columns="waybillColumns"
-          title="选择待对账运单"
-          subtitle="仅显示该客户在所选账期内已签收或已完成、且尚未进入有效对账单的运单"
-          row-key="id"
-          label-key="waybillNo"
+          title="选择待对账原始运输单"
+          subtitle="每张原始单仅对账一次；拆单须全部签收，合单按客户原始单分别计费"
+          row-key="orderId"
+          label-key="orderNo"
           description-key="routeLabel"
-          placeholder="请选择待对账运单"
-          search-placeholder="运单号、订单号或运输线路"
+          placeholder="请选择待对账原始单"
+          search-placeholder="原始单号、执行运单号或运输线路"
           dialog-width="xl"
           show-pagination
           show-selected-panel
           :page-size="10"
           :disabled="!canSelectWaybill"
-          empty-text="暂无待对账运单"
-          empty-description="请先完成并签收运单；已进入有效对账单的运单不会重复显示。"
+          empty-text="暂无待对账原始单"
+          empty-description="原始单全部签收后才可对账；已进入有效对账单的原始单不会重复显示。"
         >
           <template #empty><FinanceDataSourceEmptyActions source="waybill" /></template>
         </ArtTableMultipleSelect>
@@ -112,7 +112,7 @@
     statementNo: string
     customerId: string
     periodRange: string[]
-    waybillIds: string[]
+    orderIds: string[]
     remark: string
   }
 
@@ -129,7 +129,7 @@
     statementNo: '',
     customerId: '',
     periodRange: [dayjs().startOf('month').format('YYYY-MM-DD'), dayjs().format('YYYY-MM-DD')],
-    waybillIds: [],
+    orderIds: [],
     remark: ''
   })
 
@@ -161,10 +161,10 @@
 
   const selectionSummary = computed(() =>
     selectedWaybills.value.length
-      ? `已选择 ${selectedWaybills.value.length} 条运单${selectedAmountSummary.value}`
+      ? `已选择 ${selectedWaybills.value.length} 张原始运输单${selectedAmountSummary.value}`
       : canSelectWaybill.value
-        ? '请选择本次需要纳入对账的运单'
-        : '请先选择客户和账期，再选择待对账运单'
+        ? '请选择本次需要纳入对账的原始运输单'
+        : '请先选择客户和账期，再选择待对账原始单'
   )
 
   const customerColumns: DataSelectColumn[] = [
@@ -176,8 +176,8 @@
   ]
 
   const waybillColumns = computed<DataSelectColumn[]>(() => [
-    { prop: 'waybillNo', label: '运单号', width: 170 },
-    { prop: 'orderNo', label: '订单号', width: 170 },
+    { prop: 'orderNo', label: '原始单号', width: 170 },
+    { prop: 'waybillNo', label: '执行运单号', width: 170 },
     {
       prop: 'routeLabel',
       label: '运输线路',
@@ -220,12 +220,12 @@
     ],
     customerId: [{ required: true, message: '请选择对账客户', trigger: 'change' }],
     periodRange: [{ required: true, message: '请选择对账账期', trigger: 'change' }],
-    waybillIds: [
+    orderIds: [
       {
         validator: (_rule, value, callback) =>
           Array.isArray(value) && value.length
             ? callback()
-            : callback(new Error('请至少选择一条待对账运单')),
+            : callback(new Error('请至少选择一张待对账原始单')),
         trigger: 'change'
       }
     ],
@@ -258,7 +258,7 @@
         onChange: handleCriteriaChange
       }
     },
-    { label: '待对账运单', key: 'waybillIds', type: 'input', span: 24 },
+    { label: '待对账原始单', key: 'orderIds', type: 'input', span: 24 },
     {
       label: '对账备注',
       key: 'remark',
@@ -308,7 +308,7 @@
   }
 
   function handleCriteriaChange(): void {
-    form.waybillIds = []
+    form.orderIds = []
     selectedWaybills.value = []
     fieldAccess.value = {}
     void waybillSelectRef.value?.reload()
@@ -340,7 +340,7 @@
       customerId: form.customerId,
       periodStart: form.periodRange[0],
       periodEnd: form.periodRange[1],
-      waybillIds: [...form.waybillIds],
+      orderIds: [...form.orderIds],
       remark: normalizeNullableText(form.remark)
     }
 

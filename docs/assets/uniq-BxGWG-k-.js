@@ -1,0 +1,1 @@
+import{f as e}from"./art-form-CnA75heV.js";function t(t){return t&&t.length?e(t):[]}export{t};

@@ -1711,7 +1711,7 @@ declare global {
         Record<CustomerStatementFieldKey, Api.Common.FieldAccessLevel>
       >
 
-      type CarrierStatementFieldKey = 'statementAmounts' | 'settlementAmounts'
+      type CarrierStatementFieldKey = 'statementAmounts' | 'settlementAmounts' | 'allocatedFreight'
       type CarrierStatementFieldAccessMap = Partial<
         Record<CarrierStatementFieldKey, Api.Common.FieldAccessLevel>
       >
@@ -1805,7 +1805,7 @@ declare global {
         customerId: string
         periodStart: string
         periodEnd: string
-        waybillIds: string[]
+        orderIds: string[]
         remark?: string | null
       }
 
@@ -1889,6 +1889,7 @@ declare global {
         waybillStatus: string
         costType: string
         costAmount?: Api.Fms.SensitiveNumber
+        allocatedFreightAmount?: Api.Fms.SensitiveNumber
         occurredOn: string
         payeeName?: string | null
         remark?: string | null

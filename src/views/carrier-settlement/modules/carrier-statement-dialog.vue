@@ -40,7 +40,7 @@
           :api-fn="fetchCostSelectorData"
           :columns="costColumns"
           title="选择待对账费用"
-          subtitle="仅显示该承运商在账期内已审核、且尚未进入有效对账单的费用"
+          subtitle="应付以已审核费用为准；执行运费分摊仅作金额对照，同一运单的多笔费用会重复显示该参考值"
           row-key="id"
           label-key="waybillNo"
           description-key="routeLabel"
@@ -127,6 +127,9 @@
     Boolean(form.carrierId && form.periodRange[0] && form.periodRange[1])
   )
   const amountAccess = computed(() => getFieldAccess(fieldAccess.value, 'statementAmounts'))
+  const allocatedFreightAccess = computed(() =>
+    getFieldAccess(fieldAccess.value, 'allocatedFreight')
+  )
   const selectedAmount = computed(() => {
     if (!['read', 'edit'].includes(amountAccess.value)) return null
     return selectedCosts.value.reduce(
@@ -175,6 +178,18 @@
             width: 130,
             align: 'right' as const,
             formatter: (row: DataSelectRecord) => formatMoney((row as EligibleCost).costAmount)
+          }
+        ]
+      : []),
+    ...(allocatedFreightAccess.value !== 'hidden'
+      ? [
+          {
+            prop: 'allocatedFreightAmount',
+            label: '执行运费分摊（参考）',
+            width: 175,
+            align: 'right' as const,
+            formatter: (row: DataSelectRecord) =>
+              formatMoney((row as EligibleCost).allocatedFreightAmount)
           }
         ]
       : [])

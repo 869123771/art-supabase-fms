@@ -100,11 +100,11 @@ export async function fetchCustomerStatementDetail(id: string) {
 export async function createCustomerStatement(params: CreateCustomerStatementPayload) {
   return await responseHandle<string>(
     () =>
-      supabase.rpc('tms_create_customer_statement_secure', {
+      supabase.rpc('tms_create_customer_statement_by_orders_secure', {
         p_customer_id: params.customerId,
         p_period_start: params.periodStart,
         p_period_end: params.periodEnd,
-        p_waybill_ids: params.waybillIds,
+        p_order_ids: params.orderIds,
         p_remark: params.remark || null,
         p_statement_no: params.statementNo || null
       }),
