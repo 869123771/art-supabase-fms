@@ -56,6 +56,7 @@
 
     <div class="accounting-auxiliary-page__workspace" :class="{ 'is-focused': focusMode }">
       <ArtSectionCard
+        :show-scrollbar="false"
         title="核算维度"
         subtitle="选择维度后查看其核算项目"
         class="accounting-auxiliary-page__types accounting-workspace-fill-section"

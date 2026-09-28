@@ -56,6 +56,7 @@
 
     <div class="accounting-currency-page__workspace" :class="{ 'is-focused': focusMode }">
       <ArtSectionCard
+        :show-scrollbar="false"
         title="核算币种"
         subtitle="本位币不可停用，外币可独立启停"
         class="accounting-workspace-fill-section"

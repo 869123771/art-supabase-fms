@@ -1,0 +1,1 @@
+import{fs as e}from"./useWebsiteConfig-D_Rq38Bf.js";function t(){if(!arguments.length)return[];var t=arguments[0];return e(t)?t:[t]}export{t};

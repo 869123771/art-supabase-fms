@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assessWaybillCost } from '../../supabase/functions/_shared/waybill-cost-audit-rules'
+import { assessWaybillCost } from '../../../../supabase/functions/_shared/waybill-cost-audit-rules'
 
 const now = new Date('2026-08-05T08:00:00.000Z')
 

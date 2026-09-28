@@ -1,1 +1,0 @@
-import{i as e}from"./useWebsiteConfig-D_Rq38Bf.js";import{S as t}from"./user-BB7Oacml.js";import"./tenantScope-_2_I3P7-.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

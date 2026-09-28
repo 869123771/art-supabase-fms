@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assessInvoiceCompliance } from '../../supabase/functions/_shared/invoice-compliance-audit-rules'
+import { assessInvoiceCompliance } from '../../../../supabase/functions/_shared/invoice-compliance-audit-rules'
 
 const now = new Date('2026-08-06T08:00:00.000Z')
 
