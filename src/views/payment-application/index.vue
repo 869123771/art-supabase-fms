@@ -435,16 +435,22 @@
 
   function syncMasterDeleteRoute(forceRefresh = false): void {
     const context = deleteContext.value
-    if (!context.active || !context.carrierId) return
+    const carrierId = context.active ? context.carrierId : ''
+    const recordId = context.active ? context.recordId : ''
     const changed =
-      table.searchQuery.carrierId !== context.carrierId ||
-      table.searchQuery.recordId !== context.recordId
+      table.searchQuery.carrierId !== carrierId || table.searchQuery.recordId !== recordId
     Object.assign(table.searchQuery, {
-      carrierId: context.carrierId,
-      recordId: context.recordId,
-      keyword: ''
+      carrierId,
+      recordId
     })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    if (context.active || changed) {
+      Object.assign(table.searchQuery, {
+        status: '',
+        plannedPaymentDateRange: [],
+        keyword: ''
+      })
+    }
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
 
   watch(

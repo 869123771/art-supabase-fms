@@ -470,18 +470,28 @@
 
   function syncCustomerDeleteRoute(forceRefresh = false): void {
     const context = customerDeleteContext.value
-    if (!context.active) return
+    const customerId = context.active ? context.customerId : ''
+    const carrierId = context.active ? context.carrierId : ''
+    const recordId = context.active ? context.recordId : ''
     const changed =
-      table.searchQuery.customerId !== context.customerId ||
-      table.searchQuery.carrierId !== context.carrierId ||
-      table.searchQuery.recordId !== context.recordId
+      table.searchQuery.customerId !== customerId ||
+      table.searchQuery.carrierId !== carrierId ||
+      table.searchQuery.recordId !== recordId
     Object.assign(table.searchQuery, {
-      customerId: context.customerId,
-      carrierId: context.carrierId,
-      recordId: context.recordId
+      customerId,
+      carrierId,
+      recordId
     })
+    if (context.active || changed) {
+      Object.assign(table.searchQuery, {
+        direction: '',
+        status: '',
+        dateRange: [],
+        keyword: ''
+      })
+    }
     if (changed || forceRefresh) {
-      void nextTick().then(() => tableQueryRef.value?.getData())
+      void nextTick().then(() => tableQueryRef.value?.refreshCreate())
     }
   }
 

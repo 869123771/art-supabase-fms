@@ -403,15 +403,17 @@
   }
   function syncMasterDeleteRoute(forceRefresh = false): void {
     const context = deleteContext.value
-    if (!context.active || !context.carrierId) return
-    const changed =
-      searchQuery.carrierId !== context.carrierId || searchQuery.recordId !== context.recordId
+    const carrierId = context.active ? context.carrierId : ''
+    const recordId = context.active ? context.recordId : ''
+    const changed = searchQuery.carrierId !== carrierId || searchQuery.recordId !== recordId
     Object.assign(searchQuery, {
-      carrierId: context.carrierId,
-      recordId: context.recordId,
-      keyword: ''
+      carrierId,
+      recordId
     })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    if (context.active || changed) {
+      Object.assign(searchQuery, { keyword: '', periodRange: [], status: '' })
+    }
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
   watch(
     () => route.fullPath,
