@@ -26,7 +26,15 @@
 
     <div class="invoice-ocr-panel__body">
       <div class="invoice-ocr-panel__upload">
-        <ArtUploadImage v-model="imageUrls" title="上传发票" :size="76" :limit="3" multiple />
+        <ArtUploadImage
+          v-model="imageUrls"
+          title="上传发票"
+          :size="76"
+          :limit="3"
+          :resource-tenant-id="resourceTenantId"
+          :disabled="!resourceTenantId"
+          multiple
+        />
         <div class="invoice-ocr-panel__upload-copy">
           <strong>{{
             imageUrls.length ? `已上传 ${imageUrls.length} 张票面` : '上传 1–3 张票面'
@@ -34,6 +42,15 @@
           <span>保持票面完整、端正，号码与金额区域清晰可见。</span>
         </div>
       </div>
+
+      <ElAlert
+        v-if="!resourceTenantId"
+        class="mt-3"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="无法确定发票所属租户，暂不能上传票面"
+      />
 
       <div v-if="!result" class="invoice-ocr-panel__guide">
         <div v-for="item in guideItems" :key="item.title" class="invoice-ocr-panel__guide-item">
@@ -120,6 +137,7 @@
   const props = defineProps<{
     modelValue: string[]
     direction: Api.Fms.InvoiceDirection
+    resourceTenantId: string
     applyLabel?: string
   }>()
 

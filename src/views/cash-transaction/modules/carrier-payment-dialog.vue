@@ -5,6 +5,7 @@
       ref="ocrPanelRef"
       v-model="form.voucherUrls"
       direction="payment"
+      :resource-tenant-id="tenantScopeStore.effectiveTenantId || ''"
       @apply="handleApplyOcrResult"
     />
     <ArtForm
@@ -118,6 +119,7 @@
     reviewCashVoucherOcrArtifact
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import CashVoucherOcrPanel from './cash-voucher-ocr-panel.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
@@ -151,6 +153,7 @@
 
   const emit = defineEmits<{ success: [] }>()
   const { getDictMap } = storeToRefs(useUserStore())
+  const tenantScopeStore = useTenantScopeStore()
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<FormExpose>()
   const statementSelectRef = ref<ArtDataSelectExpose>()

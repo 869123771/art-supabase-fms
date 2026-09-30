@@ -31,6 +31,15 @@
       </article>
     </section>
 
+    <ElAlert
+      v-if="!attachmentTenantId"
+      class="mb-4"
+      type="warning"
+      :closable="false"
+      show-icon
+      title="无法确定费用所属租户，暂不能上传补充附件"
+    />
+
     <ArtForm
       ref="formRef"
       v-model="form.data"
@@ -47,6 +56,8 @@
           title="上传附件"
           :size="96"
           :limit="5"
+          :resource-tenant-id="attachmentTenantId"
+          :disabled="!attachmentTenantId"
           multiple
         />
       </template>
@@ -94,6 +105,7 @@
   import type { ColumnOption } from '@/types'
   import { createExpenseReimbursement } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { formatWithDayjs } from '@/utils/time'
   import { formatCurrencyValue } from '@/utils/ui'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
@@ -131,9 +143,15 @@
   const emit = defineEmits<{ success: [] }>()
   const isCompact = useMediaQuery('(max-width: 767px)')
   const { getDictMap, getUserInfo } = storeToRefs(useUserStore())
+  const tenantScopeStore = useTenantScopeStore()
   const dialogRef = ref<ArtDialogExpose<{ expenses: Expense[] }>>()
   const formRef = ref<FormExpose>()
   const state = reactive<{ expenses: Expense[] }>({ expenses: [] })
+  const attachmentTenantId = computed(() => {
+    const expenseTenantIds = uniq(state.expenses.map((item) => item.tenantId).filter(Boolean))
+    if (expenseTenantIds.length > 1) return ''
+    return expenseTenantIds[0] || tenantScopeStore.effectiveTenantId || ''
+  })
   const reimbursementNumber = useDocumentNumberRule('tms.expense_reimbursement')
 
   const currentUserName = computed(

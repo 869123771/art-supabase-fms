@@ -52,6 +52,16 @@ test('rejects expenses from different waybills', () => {
   assert.match(result.message, /同一个运单/)
 })
 
+test('rejects inconsistent tenants even when the waybill identifier matches', () => {
+  const result = validateReimbursementSelection([
+    approvedExpense({ tenantId: 'tenant-a' }),
+    approvedExpense({ id: 'cost-2', tenantId: 'tenant-b' })
+  ])
+
+  assert.equal(result.valid, false)
+  assert.match(result.message, /不同租户/)
+})
+
 test('rejects unapproved or already occupied expenses', () => {
   const unapproved = validateReimbursementSelection([
     approvedExpense({ auditStatus: 'pending_review' })

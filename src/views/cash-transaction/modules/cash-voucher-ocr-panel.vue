@@ -28,7 +28,15 @@
 
     <div class="voucher-ocr__body">
       <div class="voucher-ocr__upload">
-        <ArtUploadImage v-model="imageUrls" title="上传凭证" :size="82" :limit="3" multiple />
+        <ArtUploadImage
+          v-model="imageUrls"
+          title="上传凭证"
+          :size="82"
+          :limit="3"
+          :resource-tenant-id="resourceTenantId"
+          :disabled="!resourceTenantId"
+          multiple
+        />
         <div>
           <strong>{{
             imageUrls.length ? `已上传 ${imageUrls.length} 张凭证` : '上传 1–3 张凭证'
@@ -36,6 +44,15 @@
           <span>支持银行回单、转账截图和电子支付凭证。</span>
         </div>
       </div>
+
+      <ElAlert
+        v-if="!resourceTenantId"
+        class="mt-3"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="无法确定收付款所属租户，暂不能上传凭证"
+      />
 
       <div v-if="!result" class="voucher-ocr__guide">
         <div v-for="item in guideItems" :key="item.title">
@@ -113,6 +130,7 @@
   const props = defineProps<{
     modelValue: string[]
     direction: Api.Fms.CashDirection
+    resourceTenantId: string
     applyLabel?: string
   }>()
   const applyLabel = computed(() => props.applyLabel || '应用识别与推荐')

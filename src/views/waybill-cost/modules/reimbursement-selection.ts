@@ -3,6 +3,7 @@ import { toRaw } from 'vue'
 
 export interface ReimbursementExpenseCandidate {
   id?: string
+  tenantId?: string
   waybillId?: string
   auditStatus?: string
   settlementStatus?: string
@@ -51,6 +52,11 @@ export function validateReimbursementSelection(
   const waybillIds = uniq(expenses.map((item) => item.waybillId))
   if (waybillIds.length !== 1) {
     return invalid(`请选择同一个运单下的费用，当前选择包含 ${waybillIds.length} 个运单`)
+  }
+
+  const tenantIds = uniq(expenses.map((item) => item.tenantId).filter(Boolean))
+  if (tenantIds.length > 1) {
+    return invalid('所选费用属于不同租户，请刷新列表后重新选择')
   }
 
   const unapprovedCount = expenses.filter((item) => item.auditStatus !== 'approved').length

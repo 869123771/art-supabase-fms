@@ -45,6 +45,8 @@
             </div>
             <ArtUploadFile
               v-if="canEditAttachments"
+              :resource-tenant-id="context.accountSet.tenantId"
+              :disabled="!context.accountSet.tenantId"
               title="上传附件"
               :show-file-list="false"
               :show-tip="false"

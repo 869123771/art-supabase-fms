@@ -5,6 +5,7 @@
       ref="ocrPanelRef"
       v-model="attachmentUrls"
       :direction="form.data.direction"
+      :resource-tenant-id="attachmentTenantId"
       @apply="handleApplyOcrResult"
     />
 
@@ -235,6 +236,7 @@
   } from '@fms/api'
   import { fetchRecognitionArtifactDetail } from '@/api/intelligent-recognition'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import {
     canEditField,
     canViewField,
@@ -306,6 +308,11 @@
 
   const emit = defineEmits<{ success: [] }>()
   const { getDictMap } = storeToRefs(useUserStore())
+  const tenantScopeStore = useTenantScopeStore()
+  const recordTenantId = ref('')
+  const attachmentTenantId = computed(
+    () => recordTenantId.value || tenantScopeStore.effectiveTenantId || ''
+  )
   const dialogRef = ref<ArtDialogExpose<Invoice | undefined>>()
   const formRef = ref<FormExpose>()
   const statementSelectRef = ref<ArtDataSelectExpose>()
@@ -914,6 +921,7 @@
 
   async function resetForm(): Promise<void> {
     replaceForm(createInitialForm())
+    recordTenantId.value = ''
     fieldAccess.value = {
       invoiceAmounts: 'edit',
       taxIdentity: 'edit',
@@ -1067,6 +1075,7 @@
   async function loadDetail(id: string): Promise<void> {
     const { data } = await fetchInvoiceDetail(id)
     if (!data) return
+    recordTenantId.value = data.tenantId || ''
     fieldAccess.value = data.fieldAccess ?? {}
     const links = data.statementLinks ?? []
     const counterpartyId = data.direction === 'output' ? data.customerId : data.carrierId
@@ -1214,6 +1223,7 @@
 
   async function handleOpen(row?: Invoice, ocrContext?: InvoiceOcrContext): Promise<void> {
     await resetForm()
+    recordTenantId.value = row?.tenantId || ''
     if (row) fieldAccess.value = row.fieldAccess ?? {}
     if (ocrContext) form.data.direction = ocrContext.direction
     await dialogRef.value?.handleOpen(row, {

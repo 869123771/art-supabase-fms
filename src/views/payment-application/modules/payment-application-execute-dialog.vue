@@ -8,6 +8,14 @@
       :title="noticeTitle"
       description="确认后将生成正式付款流水，并按审批明细自动核销承运商对账单。"
     />
+    <ElAlert
+      v-if="!attachmentTenantId"
+      class="mt-3"
+      type="warning"
+      :closable="false"
+      show-icon
+      title="无法确定付款申请所属租户，暂不能上传付款凭证"
+    />
     <ArtForm
       ref="formRef"
       v-model="form.data"
@@ -23,6 +31,8 @@
           title="付款凭证"
           :size="84"
           :limit="5"
+          :resource-tenant-id="attachmentTenantId"
+          :disabled="!attachmentTenantId"
           multiple
         />
       </template>
@@ -42,6 +52,7 @@
   import { executeCarrierPaymentApplication, fetchFundAccountOptions } from '@fms/api'
   import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
 
   defineOptions({ name: 'FinancePaymentApplicationExecuteDialog' })
 
@@ -70,6 +81,10 @@
   const dialogRef = ref<ArtDialogExpose<Application>>()
   const formRef = ref<FormExpose>()
   const application = shallowRef<Application>()
+  const tenantScopeStore = useTenantScopeStore()
+  const attachmentTenantId = computed(
+    () => application.value?.tenantId || tenantScopeStore.effectiveTenantId || ''
+  )
   const transactionNumber = useDocumentNumberRule('tms.cash_transaction')
   const fundAccountOptions = ref<Api.Fms.FundAccountOption[]>([])
 

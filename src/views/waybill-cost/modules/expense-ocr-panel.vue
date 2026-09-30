@@ -24,7 +24,23 @@
     </template>
 
     <div class="expense-ocr__body">
-      <ArtUploadImage v-model="imageUrls" title="费用票据" :size="82" :limit="5" multiple />
+      <ArtUploadImage
+        v-model="imageUrls"
+        title="费用票据"
+        :size="82"
+        :limit="5"
+        :resource-tenant-id="resourceTenantId"
+        :disabled="!resourceTenantId"
+        multiple
+      />
+      <ElAlert
+        v-if="!resourceTenantId"
+        class="mt-3"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="无法确定费用所属租户，暂不能上传票据"
+      />
       <div v-if="!enabled" class="expense-ocr__disabled">
         <ArtSvgIcon icon="ri:toggle-line" />
         <span><strong>智能识别已停用</strong><small>仍可上传图片并手工填写申报信息。</small></span>
@@ -69,7 +85,7 @@
 
   defineOptions({ name: 'FinanceWaybillExpenseOcrPanel' })
 
-  const props = defineProps<{ modelValue: string[]; enabled: boolean }>()
+  const props = defineProps<{ modelValue: string[]; enabled: boolean; resourceTenantId: string }>()
   const emit = defineEmits<{
     'update:modelValue': [value: string[]]
     apply: [result: Api.Fms.WaybillExpenseOcrAnalyzeResponse]
