@@ -30,6 +30,7 @@
       <template #voucherUrls>
         <ArtUploadImage
           v-model="form.data.voucherUrls"
+          :resource-tenant-id="state.reimbursement?.tenantId || ''"
           title="付款凭证"
           :size="82"
           :limit="5"

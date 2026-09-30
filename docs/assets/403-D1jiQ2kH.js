@@ -1,1 +1,0 @@
-import{$i as e,mi as t,ri as n}from"./useWebsiteConfig-DsP0VVVJ.js";import{t as r}from"./art-permission-guard-DiGdTZ6i.js";var i=t({name:`Exception403`,__name:`index`,setup(t){return(t,i)=>(e(),n(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};
