@@ -1035,7 +1035,7 @@
         type: 'warning',
         confirmButtonText: '确认删除',
         cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonType: 'danger'
       })
       await deleteWaybillCost(row.id)
       await Promise.all([expenseTableRef.value?.refreshRemove(), loadOverview()])
@@ -1068,7 +1068,7 @@
         type: 'warning',
         confirmButtonText: '删除并退回',
         cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonType: 'danger'
       })
       await deleteExpenseReimbursement(row.id)
       await Promise.all([

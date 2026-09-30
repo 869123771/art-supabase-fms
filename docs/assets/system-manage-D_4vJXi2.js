@@ -1,0 +1,1 @@
+import{i as e}from"./useWebsiteConfig-DsP0VVVJ.js";import"./tenantScope-DcstQK8k.js";import{S as t}from"./user-BkO5-sfL.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

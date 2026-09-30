@@ -450,7 +450,7 @@
         type: 'warning',
         confirmButtonText: '删除',
         cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonType: 'danger'
       })
       await deleteCustomerStatement(row.id)
       await tableQueryRef.value?.refreshRemove()
