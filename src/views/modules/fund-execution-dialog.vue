@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { createFinancePrerequisiteOverlay } from './use-finance-account-set-prerequisite'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
@@ -136,8 +138,9 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '资金执行信息校验失败，请重试')
       return false
     }
     if (!submitter.value) return false

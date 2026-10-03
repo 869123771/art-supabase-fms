@@ -3,6 +3,7 @@
     title="核算运行状态"
     subtitle="把基础配置、期间和资金账户的阻断集中到一个入口"
     class="accounting-readiness-panel"
+    :class="{ 'is-compact': compact }"
     :loading="state.loading"
     :error="state.error"
     :empty="!state.accountSetId"
@@ -10,6 +11,21 @@
     empty-description="先创建并启用企业账套，再开始会计核算。"
     @retry="load"
   >
+    <template #loading>
+      <ElSkeleton animated aria-hidden="true" class="accounting-readiness-panel__skeleton">
+        <template #template>
+          <div class="accounting-readiness-panel__skeleton-summary">
+            <ElSkeletonItem variant="rect" />
+            <span><ElSkeletonItem variant="text" /><ElSkeletonItem variant="text" /></span>
+          </div>
+          <div v-for="index in 4" :key="index" class="accounting-readiness-panel__skeleton-step">
+            <ElSkeletonItem variant="rect" />
+            <span><ElSkeletonItem variant="text" /><ElSkeletonItem variant="text" /></span>
+            <ElSkeletonItem variant="text" />
+          </div>
+        </template>
+      </ElSkeleton>
+    </template>
     <template #actions>
       <ElSelect
         v-model="state.accountSetId"
@@ -58,17 +74,15 @@
               {{ item.ready ? '已就绪' : '待处理' }}
             </ElTag>
           </div>
-          <p>{{ item.description }}</p>
+          <p :title="item.description">{{ item.description }}</p>
         </div>
-        <ElButton
+        <ArtIconButton
           v-if="!item.ready || item.alwaysShowAction"
-          link
-          type="primary"
+          icon="ri:arrow-right-up-line"
+          :label="item.actionLabel"
           :loading="item.key === 'foundation' && state.initializing"
           @click="handleStep(item)"
-        >
-          {{ item.actionLabel }}<ArtSvgIcon icon="ri:arrow-right-s-line" />
-        </ElButton>
+        />
       </article>
     </div>
   </ArtSectionCard>
@@ -83,8 +97,11 @@
   import { financeRouteNames } from '@/router/business-paths'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
+  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
 
   defineOptions({ name: 'AccountingReadinessPanel' })
+
+  withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
   interface ReadinessStep {
     key: 'foundation' | 'period' | 'fund' | 'operation'
@@ -253,6 +270,54 @@
       width: min(360px, 42vw);
     }
 
+    &__skeleton {
+      min-height: 330px;
+      padding: 0 var(--art-section-padding) var(--art-section-padding);
+    }
+
+    &__skeleton-summary {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      min-height: 78px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      background: var(--art-gray-100);
+      border-radius: var(--el-border-radius-base);
+
+      > span {
+        display: grid;
+        gap: 10px;
+      }
+
+      :deep(> .el-skeleton__item) {
+        width: 64px;
+        height: 54px;
+      }
+    }
+
+    &__skeleton-step {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) 64px;
+      gap: 10px;
+      align-items: center;
+      min-height: 64px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      > span {
+        display: grid;
+        gap: 8px;
+      }
+
+      :deep(> .el-skeleton__item:first-child) {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--el-border-radius-base);
+      }
+    }
+
     &__summary {
       display: grid;
       grid-template-columns: 64px minmax(0, 1fr);
@@ -328,11 +393,9 @@
       border: 1px solid var(--el-border-color-lighter);
       border-radius: var(--el-border-radius-base);
 
-      > .el-button {
+      > .art-icon-button {
         grid-column: 2;
         justify-self: start;
-        height: auto;
-        padding: 0;
       }
 
       &.is-pending {
@@ -384,6 +447,70 @@
         -webkit-box-orient: vertical;
       }
     }
+
+    &.is-compact {
+      :deep(.art-section-card__header) {
+        display: block;
+      }
+
+      :deep(.art-section-card__actions) {
+        justify-content: flex-start;
+        margin-top: 10px;
+      }
+
+      .accounting-readiness-panel__account-set {
+        width: min(100%, 360px);
+        max-width: 100%;
+      }
+
+      .accounting-readiness-panel__steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .accounting-readiness-panel__step {
+        grid-template-columns: 26px minmax(0, 1fr) 28px;
+        gap: 6px;
+        align-items: center;
+        padding: 10px 8px;
+        background: var(--el-fill-color-extra-light);
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: var(--el-border-radius-base);
+
+        > .art-icon-button {
+          grid-row: 1;
+          grid-column: 3;
+          justify-self: end;
+          width: 28px;
+          height: 28px;
+          font-size: 15px;
+        }
+      }
+
+      .accounting-readiness-panel__step-icon {
+        width: 26px;
+        height: 26px;
+        font-size: 15px;
+      }
+
+      .accounting-readiness-panel__step-copy > div {
+        gap: 4px;
+      }
+
+      .accounting-readiness-panel__step-copy > div strong {
+        font-size: 12px;
+      }
+
+      .accounting-readiness-panel__step-copy :deep(.el-tag) {
+        flex: none;
+      }
+
+      .accounting-readiness-panel__step-copy p {
+        min-height: 0;
+        margin-top: 3px;
+        -webkit-line-clamp: 1;
+      }
+    }
   }
 
   @media (width <= 1180px) {
@@ -392,15 +519,18 @@
     }
   }
 
-  @media (width <= 640px) {
+  @media (width <= 800px) {
     .accounting-readiness-panel {
-      &__account-set {
-        width: 100%;
-      }
-
-      &__steps {
+      &__steps,
+      &.is-compact &__steps {
         grid-template-columns: 1fr;
       }
+    }
+  }
+
+  @media (width <= 640px) {
+    .accounting-readiness-panel__account-set {
+      width: 100%;
     }
   }
 </style>

@@ -2,6 +2,7 @@ import { normalizeNullableText } from '@/utils/form/normalize'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
+import { readTenantScopeId, TENANT_SCOPE_HEADER } from '@/utils/tenant-scope-context'
 
 type CashTransaction = Api.Fms.CashTransactionRecord
 type CashTransactionSearchParams = Api.Fms.CashTransactionSearchParams
@@ -117,7 +118,7 @@ export async function fetchCarrierStatementAllocatableList(params: CarrierAlloca
 export async function fetchCashTransactionDetail(id: string) {
   return await responseHandle<CashTransaction | null>(
     () => supabase.rpc('tms_get_cash_transaction_secure', { p_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: false }
   )
 }
 
@@ -215,11 +216,15 @@ export async function voidCashTransaction(id: string, reason: string) {
 }
 
 export async function analyzeCashVoucherByAi(
-  params: Api.Fms.CashVoucherOcrAnalyzeRequest
+  params: Api.Fms.CashVoucherOcrAnalyzeRequest,
+  resourceTenantId: string
 ): Promise<QueryResult<Api.Fms.CashVoucherOcrAnalyzeResponse>> {
   const { data, error } = await supabase.functions.invoke<Api.Fms.CashVoucherOcrAnalyzeResponse>(
     'ai-cash-voucher-ocr',
-    { body: params }
+    {
+      body: params,
+      headers: resourceTenantId ? { [TENANT_SCOPE_HEADER]: resourceTenantId } : undefined
+    }
   )
   return { data: data ?? null, error: await normalizeSupabaseFunctionError(error) }
 }
@@ -227,9 +232,13 @@ export async function analyzeCashVoucherByAi(
 export async function reviewCashVoucherOcrArtifact(
   params: Api.Fms.CashVoucherOcrReviewRequest
 ): Promise<QueryResult<Api.Fms.CashVoucherOcrReviewResponse>> {
+  const selectedTenantId = readTenantScopeId()
   const { data, error } = await supabase.functions.invoke<Api.Fms.CashVoucherOcrReviewResponse>(
     'ai-cash-voucher-ocr',
-    { body: params }
+    {
+      body: params,
+      headers: selectedTenantId ? { [TENANT_SCOPE_HEADER]: selectedTenantId } : undefined
+    }
   )
   return { data: data ?? null, error: await normalizeSupabaseFunctionError(error) }
 }

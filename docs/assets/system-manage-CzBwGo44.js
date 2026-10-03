@@ -1,0 +1,1 @@
+import{K as e,w as t}from"./sys-FIpBI0Of.js";import"./tenant-scope-i1w0p6na.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

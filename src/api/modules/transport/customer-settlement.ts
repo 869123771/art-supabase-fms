@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
 
 type CustomerStatement = Api.Fms.CustomerStatementRecord
@@ -37,11 +38,14 @@ const toListRpcParams = (
   }
 }
 
-export async function fetchCustomerStatementList(params: CustomerStatementSearchParams) {
+export async function fetchCustomerStatementList(
+  params: CustomerStatementSearchParams,
+  options?: ApiFeedbackOptions
+) {
   const result = await responseHandle<
     SecureListPayload<CustomerStatement, Api.Fms.CustomerStatementFieldAccessMap>
   >(() => supabase.rpc('tms_list_customer_statements_secure', toListRpcParams(params, 'list')), {
-    showErrorMessage: true
+    showErrorMessage: options?.showErrorMessage ?? true
   })
   return {
     data: result.data?.records ?? [],
@@ -93,7 +97,7 @@ export async function fetchCustomerStatementEligibleWaybills(params: EligibleWay
 export async function fetchCustomerStatementDetail(id: string) {
   return await responseHandle<CustomerStatement | null>(
     () => supabase.rpc('tms_get_customer_statement_secure', { p_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: false }
   )
 }
 

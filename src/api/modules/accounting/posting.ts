@@ -109,10 +109,13 @@ export async function fetchPostingEventList(params: Api.Fms.PostingEventSearchPa
   }
 }
 
-export async function fetchPostingEventDetail(id: string) {
+export async function fetchPostingEventDetail(
+  id: string,
+  options: { showErrorMessage?: boolean } = {}
+) {
   const result = await responseHandle<PostingEvent>(
     () => supabase.rpc('fms_get_posting_event_secure', { p_event_id: id }),
-    { breakReturn: true, showErrorMessage: true }
+    { breakReturn: true, showErrorMessage: options.showErrorMessage ?? true }
   )
   return { ...result, data: result.data ? withSourceEvent(result.data) : undefined }
 }

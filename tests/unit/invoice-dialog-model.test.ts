@@ -4,7 +4,7 @@ import {
   buildInvoicePayload,
   createInitialInvoiceForm,
   normalizeInvoiceNo
-} from '../../src/views/invoice-management/modules/invoice-dialog-model'
+} from '../../src/views/settlement/invoice-management/modules/invoice-dialog-model'
 
 test('invoice number normalization removes whitespace and uppercases text', () => {
   assert.equal(normalizeInvoiceNo(' ab 12 3456 '), 'AB123456')

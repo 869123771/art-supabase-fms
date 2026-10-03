@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
 
 type Statement = Api.Fms.CarrierStatementRecord
@@ -37,11 +38,14 @@ const toListRpcParams = (
   }
 }
 
-export async function fetchCarrierStatementList(params: SearchParams) {
+export async function fetchCarrierStatementList(
+  params: SearchParams,
+  options?: ApiFeedbackOptions
+) {
   const result = await responseHandle<
     SecureListPayload<Statement, Api.Fms.CarrierStatementFieldAccessMap>
   >(() => supabase.rpc('tms_list_carrier_statements_secure', toListRpcParams(params, 'list')), {
-    showErrorMessage: true
+    showErrorMessage: options?.showErrorMessage ?? true
   })
   return {
     data: result.data?.records ?? [],
@@ -93,7 +97,7 @@ export async function fetchCarrierStatementEligibleCosts(params: EligibleSearchP
 export async function fetchCarrierStatementDetail(id: string) {
   return await responseHandle<Statement | null>(
     () => supabase.rpc('tms_get_carrier_statement_secure', { p_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: false }
   )
 }
 

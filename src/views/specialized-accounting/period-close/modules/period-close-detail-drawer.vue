@@ -1,0 +1,167 @@
+<template>
+  <ArtDrawer ref="drawerRef" :show-footer="false">
+    <div v-if="run" class="close-detail">
+      <section class="close-detail__summary">
+        <div>
+          <small>关账批次</small>
+          <strong>{{ run.runNo }}</strong>
+          <span>
+            {{ run.period ? `${run.period.fiscalYear} 年第 ${run.period.periodNo} 期` : '--' }}
+          </span>
+        </div>
+        <ArtDictDisplay dict-code="fmsPeriodCloseRunStatus" :value="run.status" display="tag" />
+      </section>
+      <div v-if="canViewDiagnostics" class="close-detail__counts">
+        <article
+          ><span>通过</span><strong>{{ formatProtectedCount(run.passedCount) }}</strong></article
+        >
+        <article
+          ><span>提醒</span><strong>{{ formatProtectedCount(run.warningCount) }}</strong></article
+        >
+        <article
+          ><span>阻断</span><strong>{{ formatProtectedCount(run.blockingCount) }}</strong></article
+        >
+      </div>
+      <ArtSectionCard
+        title="关账检查结果"
+        :empty="!checks.length"
+        empty-title="暂无关账检查结果"
+        empty-description="执行关账检查后，结果和阻断原因会显示在这里。"
+        :empty-visual-size="72"
+        :min-height="188"
+        preserve-content-structure
+      >
+        <ArtTable
+          :pagination="false"
+          :border="false"
+          :show-table-header="false"
+          :data="checks"
+          row-key="id"
+        >
+          <ElTableColumn prop="checkName" label="检查项目" min-width="170" />
+          <ElTableColumn v-if="canViewDiagnostics" label="结果" width="100">
+            <template #default="{ row }">
+              <span v-if="row.status === '***'">***</span>
+              <ArtDictDisplay
+                v-else
+                dict-code="fmsPeriodCloseCheckStatus"
+                :value="row.status"
+                display="tag"
+              />
+            </template>
+          </ElTableColumn>
+          <ElTableColumn v-if="canViewDiagnostics" label="问题数" width="90" align="right">
+            <template #default="{ row }">{{ formatProtectedCount(row.issueCount) }}</template>
+          </ElTableColumn>
+          <ElTableColumn
+            v-if="canViewDiagnostics"
+            prop="summary"
+            label="检查结论"
+            min-width="280"
+            show-overflow-tooltip
+          />
+          <ElTableColumn v-if="canViewDiagnostics" label="控制级别" width="110">
+            <template #default="{ row }">
+              <span v-if="row.isBlocking === '***'">***</span>
+              <ElTag v-else :type="row.isBlocking ? 'danger' : 'info'" effect="plain">
+                {{ row.isBlocking ? '阻断' : '提醒' }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+        </ArtTable>
+      </ArtSectionCard>
+    </div>
+  </ArtDrawer>
+</template>
+<script setup lang="ts">
+  import ArtTable from '@/components/core/tables/art-table/index.vue'
+  import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
+  import { fetchPeriodCloseChecks, fetchPeriodCloseRunDetail } from '@fms/api'
+  import { canViewField } from '@/utils/field-permission'
+  defineOptions({ name: 'FinancePeriodCloseDetailDrawer' })
+  const drawerRef = ref<ArtDrawerExpose>()
+  const run = ref<Api.Fms.PeriodCloseRunRecord>()
+  const checks = ref<Api.Fms.PeriodCloseCheckRecord[]>([])
+  const canViewDiagnostics = computed(() =>
+    canViewField(run.value?.fieldAccess, 'closeDiagnostics')
+  )
+  async function handleOpen(row: Api.Fms.PeriodCloseRunRecord) {
+    run.value = row
+    checks.value = []
+    await drawerRef.value?.handleOpen(undefined, {
+      title: `关账检查详情 · ${row.runNo}`,
+      size: 'xl',
+      contentHeight: 'calc(100vh - 132px)',
+      loading: true,
+      loadingText: '正在加载关账检查…',
+      onOpen: async (_data, api) => {
+        try {
+          run.value = (await fetchPeriodCloseRunDetail(row.id)).data ?? row
+          const { data } = await fetchPeriodCloseChecks(row.id)
+          checks.value = data ?? []
+        } finally {
+          api.setLoading(false)
+        }
+      },
+      drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
+    })
+  }
+  function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
+    if (value === null || value === undefined || value === '') return '--'
+    return typeof value === 'string' ? value : value.toLocaleString('zh-CN')
+  }
+  defineExpose({ handleOpen })
+</script>
+<style scoped lang="scss">
+  .close-detail {
+    display: grid;
+    gap: 18px;
+  }
+
+  .close-detail__summary {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 16px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--el-border-radius-base);
+  }
+
+  .close-detail__summary > div {
+    display: grid;
+    gap: 4px;
+  }
+
+  .close-detail small,
+  .close-detail span {
+    color: var(--el-text-color-secondary);
+  }
+
+  .close-detail__counts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .close-detail__counts article {
+    display: grid;
+    gap: 6px;
+    padding: 14px;
+    background: var(--el-fill-color-lighter);
+    border-radius: var(--el-border-radius-base);
+  }
+
+  .close-detail__counts strong {
+    font-size: 22px;
+  }
+
+  @media (width <= 767px) {
+    .close-detail__counts {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

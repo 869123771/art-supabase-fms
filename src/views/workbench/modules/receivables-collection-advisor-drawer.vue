@@ -202,6 +202,7 @@
           <ArtEmptyState
             v-else
             title="当前没有需要优先跟进的未结对账单"
+            description="后续出现高关注回款事项时会在此列出。"
             :visual-size="72"
             size="compact"
           />
@@ -238,6 +239,7 @@
             <ArtEmptyState
               v-else
               title="当前未识别到明确的回款风险信号"
+              description="仍可按建议处理顺序定期核对未结应收。"
               :visual-size="72"
               size="compact"
             />
@@ -270,7 +272,13 @@
                 </div>
               </article>
             </div>
-            <ArtEmptyState v-else title="暂无高关注客户" :visual-size="72" size="compact" />
+            <ArtEmptyState
+              v-else
+              title="暂无高关注客户"
+              description="客户风险升高时会在此列出。"
+              :visual-size="72"
+              size="compact"
+            />
           </section>
         </div>
 
@@ -432,7 +440,7 @@
         onReset: () => Object.assign(state, { data: null, error: '', loading: false }),
         drawerProps: {
           appendToBody: true,
-          closeOnClickModal: false,
+          closeOnClickModal: true,
           resizable: true
         }
       }

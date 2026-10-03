@@ -1,17 +1,13 @@
 <template>
-  <ArtPageShell
-    :loading="overview.loading"
-    :error="loadError"
-    class="finance-workbench"
-    @retry="loadWorkbench"
-  >
+  <ArtPageShell :error="loadError" class="finance-workbench" @retry="loadWorkbench">
     <BusinessWorkspaceHeader
+      density="compact"
       eyebrow="FINANCE OPERATIONS"
       title="财务工作台"
       description="集中查看应收、应付、开票、回款与费用审核进度"
       icon="ri:money-cny-box-line"
       :tags="workspaceTags"
-      :metrics="overview.metrics"
+      :metrics="overview.loading && !overview.metrics.length ? loadingMetrics : overview.metrics"
       class="finance-workbench__header"
       @metric-click="handleMetricClick"
     >
@@ -22,54 +18,107 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <AccountingReadinessPanel />
-
-    <div
-      class="finance-workbench__content"
-      :class="{ 'finance-workbench__content--single': !overview.progressItems.length }"
-    >
+    <div class="finance-workbench__main">
       <ArtSectionCard
         title="财务待办"
-        subtitle="按优先级集中处理当前未完成事项"
+        subtitle="先处理会阻断结算、付款和记账的事项"
         class="finance-workbench__panel"
+        :show-scrollbar="false"
+        :loading="overview.loading"
+        :skeleton-rows="4"
+        :empty="!overview.loading && overview.tasks.length === 0"
+        empty-title="当前没有待办事项"
+        empty-description="所有需处理事项已完成；可继续查看下方经营与流程进度。"
       >
+        <template #loading>
+          <ElSkeleton animated aria-hidden="true" class="finance-workbench__task-skeleton">
+            <template #template>
+              <div class="finance-workbench__task-skeleton-heading">
+                <span>待办事项</span><span>数量</span><span>涉及金额</span><span>优先级</span
+                ><span>操作</span>
+              </div>
+              <div v-for="index in 5" :key="index" class="finance-workbench__task-skeleton-row">
+                <ElSkeletonItem variant="text" />
+                <ElSkeletonItem variant="text" />
+                <ElSkeletonItem variant="text" />
+                <ElSkeletonItem variant="text" />
+                <ElSkeletonItem variant="rect" />
+              </div>
+            </template>
+          </ElSkeleton>
+        </template>
         <ArtTable
           :data="overview.tasks"
           :columns="taskColumns"
           :pagination="false"
           table-layout="fixed"
           empty-text="当前没有待办事项"
+          empty-description="财务任务产生后会在此显示。"
         >
           <template #urgency="{ row }">
             <ElTag :type="urgencyType(row.urgency)">{{ row.urgency }}</ElTag>
           </template>
           <template #operation="{ row }">
-            <ElButton link type="primary" @click="handleTask(row)">去处理</ElButton>
+            <ArtButtonTable
+              type="view"
+              icon="ri:arrow-right-up-line"
+              label="去处理"
+              permission=""
+              @click="handleTask(row)"
+            />
           </template>
         </ArtTable>
       </ArtSectionCard>
 
-      <ArtSectionCard
-        v-if="overview.progressItems.length"
-        title="业务完成率"
-        subtitle="跟踪本月关键财务流程推进情况"
-        class="finance-workbench__panel"
-      >
-        <div class="finance-workbench__progress-list">
-          <div
-            v-for="item in overview.progressItems"
-            :key="item.label"
-            class="finance-workbench__progress-item"
-          >
-            <div>
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
+      <AccountingReadinessPanel compact />
+    </div>
+
+    <ArtSectionCard
+      v-if="overview.loading || overview.progressItems.length"
+      title="业务完成率"
+      subtitle="本月关键流程的完成情况"
+      class="finance-workbench__panel"
+      :loading="overview.loading"
+      :skeleton-rows="2"
+    >
+      <template #loading>
+        <ElSkeleton animated aria-hidden="true">
+          <template #template>
+            <div class="finance-workbench__progress-list">
+              <div v-for="index in 4" :key="index" class="finance-workbench__progress-skeleton">
+                <ElSkeletonItem variant="circle" />
+                <span>
+                  <ElSkeletonItem variant="text" />
+                  <ElSkeletonItem variant="text" />
+                </span>
+              </div>
             </div>
-            <ElProgress :percentage="item.percent" :stroke-width="10" :color="item.color" />
+          </template>
+        </ElSkeleton>
+      </template>
+      <div class="finance-workbench__progress-list">
+        <div
+          v-for="item in overview.progressItems"
+          :key="item.label"
+          class="finance-workbench__progress-item"
+          :style="{ '--progress-color': item.color }"
+        >
+          <ElProgress
+            type="circle"
+            :percentage="item.percent"
+            :width="88"
+            :stroke-width="8"
+            :color="item.color"
+            :format="() => item.value"
+            :aria-label="`${item.label} ${item.value}`"
+          />
+          <div class="finance-workbench__progress-copy">
+            <strong>{{ item.label }}</strong>
+            <small>本月完成</small>
           </div>
         </div>
-      </ArtSectionCard>
-    </div>
+      </div>
+    </ArtSectionCard>
 
     <ArtSectionCard
       v-if="statsDescriptionItems.length"
@@ -103,6 +152,7 @@
   import type { AlertProps, TagProps } from 'element-plus'
   import type { ColumnOption } from '@/types'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
+  import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric,
     type BusinessWorkspaceTag
@@ -165,6 +215,40 @@
   }
   const loadError = ref<Error | null>(null)
   const collectionAdvisorRef = ref<CollectionAdvisorExpose>()
+  const loadingMetrics: BusinessWorkspaceMetric[] = [
+    {
+      key: 'customer-receivable',
+      label: '客户应收余额',
+      value: '—',
+      description: '正在汇总',
+      icon: 'ri:funds-line',
+      loading: true
+    },
+    {
+      key: 'carrier-payable',
+      label: '承运商应付余额',
+      value: '—',
+      description: '正在汇总',
+      icon: 'ri:bank-card-line',
+      loading: true
+    },
+    {
+      key: 'month-receipt',
+      label: '本月回款',
+      value: '—',
+      description: '正在汇总',
+      icon: 'ri:money-cny-circle-line',
+      loading: true
+    },
+    {
+      key: 'month-gross-profit',
+      label: '本月运输毛利',
+      value: '—',
+      description: '正在汇总',
+      icon: 'ri:line-chart-line',
+      loading: true
+    }
+  ]
 
   const createEmptyStats = (): Stats => ({
     customerReceivableBalance: undefined,
@@ -215,7 +299,7 @@
   })
 
   const overview = reactive<OverviewGroup>({
-    loading: false,
+    loading: true,
     stats: createEmptyStats(),
     metrics: [],
     tasks: [],
@@ -230,7 +314,7 @@
 
   const taskColumns = computed<ColumnOption<WorkbenchTask>[]>(() => {
     const columns: ColumnOption<WorkbenchTask>[] = [
-      { prop: 'title', label: '待办事项', minWidth: 175 },
+      { prop: 'title', label: '待办事项', minWidth: 175, showOverflowTooltip: true },
       {
         prop: 'count',
         label: '数量',
@@ -788,14 +872,16 @@
       min-width: 0;
     }
 
-    &__content {
+    &__main {
       display: grid;
-      grid-template-columns: 1.35fr 1fr;
+      grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
       gap: 16px;
+      align-items: start;
       min-width: 0;
 
-      &--single {
-        grid-template-columns: 1fr;
+      :deep(.art-table),
+      :deep(.art-table > .el-table) {
+        height: auto;
       }
     }
 
@@ -803,25 +889,112 @@
       padding: var(--art-section-padding);
     }
 
+    &__task-skeleton {
+      display: grid;
+      grid-template-rows: 42px repeat(5, minmax(48px, 1fr));
+      min-height: 326px;
+      padding: 0 var(--art-section-padding) var(--art-section-padding);
+    }
+
+    &__task-skeleton-heading,
+    &__task-skeleton-row {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 2fr) minmax(42px, 0.55fr) minmax(64px, 0.9fr) minmax(52px, 0.65fr)
+        44px;
+      gap: 12px;
+      align-items: center;
+      min-width: 0;
+      padding: 0 12px;
+    }
+
+    &__task-skeleton-heading {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--art-gray-700);
+      background: var(--art-gray-100);
+    }
+
+    &__task-skeleton-row {
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      :deep(.el-skeleton__item) {
+        height: 14px;
+      }
+
+      :deep(.el-skeleton__rect) {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--el-border-radius-base);
+      }
+    }
+
     &__progress-list {
       display: grid;
-      gap: 24px;
-      padding: 2px 0 4px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    &__progress-skeleton {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+      min-height: 116px;
+      padding: 14px;
+      background: var(--art-gray-100);
+      border-radius: calc(var(--el-border-radius-base) + 4px);
+
+      :deep(.el-skeleton__circle) {
+        flex: 0 0 auto;
+        width: 88px;
+        height: 88px;
+      }
+
+      > span {
+        display: grid;
+        flex: 1 1 auto;
+        gap: 12px;
+        min-width: 0;
+      }
     }
 
     &__progress-item {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+      min-height: 116px;
+      padding: 14px;
+      background: color-mix(in srgb, var(--progress-color) 5%, var(--default-box-color));
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: calc(var(--el-border-radius-base) + 4px);
+
+      :deep(.el-progress) {
+        flex: 0 0 auto;
+      }
+
+      :deep(.el-progress__text) {
+        font-size: 13px !important;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    &__progress-copy {
       display: grid;
-      gap: 8px;
+      gap: 5px;
+      min-width: 0;
 
-      div {
-        display: flex;
-        gap: 12px;
-        justify-content: space-between;
-        color: var(--el-text-color-regular);
+      strong {
+        font-size: 13px;
+        line-height: 20px;
+        color: var(--el-text-color-primary);
+      }
 
-        strong {
-          font-variant-numeric: tabular-nums;
-        }
+      small {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -830,11 +1003,19 @@
     }
   }
 
-  @media (width <= 900px) {
-    .finance-workbench {
-      &__content {
-        grid-template-columns: 1fr;
-      }
+  @media (width <= 1360px) {
+    .finance-workbench__progress-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .finance-workbench__main {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (width <= 640px) {
+    .finance-workbench__progress-list {
+      grid-template-columns: 1fr;
     }
   }
 </style>

@@ -205,7 +205,7 @@ export {
   submitExpenseReimbursement,
   submitWaybillCost,
   voidWaybillCost
-} from '@fms/api/modules/transport/fms'
+} from '@fms/api/modules/transport/transport-finance'
 
 export {
   analyzeInvoiceAttachmentByAi,

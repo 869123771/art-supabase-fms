@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { fetchAccountSetIdentities } from '@fms/api/modules/accounting/foundation'
 
 const { supabase, responseHandle } = useSupabase()
@@ -114,13 +115,16 @@ export async function fetchFundAccountOptions(
   }
 }
 
-export async function fetchFundAccountOverview(accountSetId?: string) {
+export async function fetchFundAccountOverview(
+  accountSetId?: string,
+  options?: ApiFeedbackOptions
+) {
   return await responseHandle<Api.Fms.FundAccountOverview>(
     () =>
       supabase.rpc('fms_get_fund_account_overview_secure', {
         p_account_set_id: accountSetId || null
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
@@ -142,7 +146,10 @@ export async function deleteFundAccount(id: string) {
   )
 }
 
-export async function fetchFundLedgerList(params: Api.Fms.FundLedgerSearchParams = {}) {
+export async function fetchFundLedgerList(
+  params: Api.Fms.FundLedgerSearchParams = {},
+  options?: ApiFeedbackOptions
+) {
   const { from = 0, to = 19 } = params
   const result = await responseHandle<FundLedgerListPayload>(
     () =>
@@ -159,7 +166,7 @@ export async function fetchFundLedgerList(params: Api.Fms.FundLedgerSearchParams
         p_entry_end_date: params.entryDateRange?.[1] || null,
         p_tenant_id: null
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
   return {
     data: result.data?.records ?? [],
@@ -203,17 +210,17 @@ export async function fetchFundTransferList(params: Api.Fms.FundTransferSearchPa
   }
 }
 
-export async function fetchFundTransferDetail(id: string) {
+export async function fetchFundTransferDetail(id: string, options?: ApiFeedbackOptions) {
   return await responseHandle<FundTransfer>(
     () => supabase.rpc('fms_get_fund_transfer_secure', { p_transfer_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
-export async function fetchFundTransferActions(id: string) {
+export async function fetchFundTransferActions(id: string, options?: ApiFeedbackOptions) {
   return await responseHandle<Api.Fms.FundTransferActionRecord[]>(
     () => supabase.rpc('fms_list_fund_transfer_actions_secure', { p_transfer_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
@@ -280,17 +287,17 @@ export async function fetchBankReconciliationList(
   }
 }
 
-export async function fetchBankReconciliationDetail(id: string) {
+export async function fetchBankReconciliationDetail(id: string, options?: ApiFeedbackOptions) {
   return await responseHandle<ReconciliationBatch>(
     () => supabase.rpc('fms_get_bank_reconciliation_secure', { p_batch_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
-export async function fetchBankStatementLines(batchId: string) {
+export async function fetchBankStatementLines(batchId: string, options?: ApiFeedbackOptions) {
   const result = await responseHandle<BankStatementLineListPayload>(
     () => supabase.rpc('fms_list_bank_statement_lines_secure', { p_batch_id: batchId }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
   return {
     data: result.data?.records ?? [],
@@ -299,13 +306,13 @@ export async function fetchBankStatementLines(batchId: string) {
   }
 }
 
-export async function fetchBankStatementMatches(lineId: string) {
+export async function fetchBankStatementMatches(lineId: string, options?: ApiFeedbackOptions) {
   return await responseHandle<Api.Fms.BankStatementMatchRecord[]>(
     () =>
       supabase.rpc('fms_list_bank_statement_matches_secure', {
         p_statement_line_id: lineId
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 

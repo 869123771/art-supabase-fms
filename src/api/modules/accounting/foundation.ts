@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 
 type AccountSet = Api.Fms.AccountSetRecord
 type AccountSetSearchParams = Api.Fms.AccountSetSearchParams
@@ -140,7 +141,10 @@ export async function setAccountSetStatus(
   )
 }
 
-export async function fetchAccountingPeriodList(accountSetId: string) {
+export async function fetchAccountingPeriodList(
+  accountSetId: string,
+  options?: ApiFeedbackOptions
+) {
   return await responseHandle<AccountingPeriod[]>(
     () =>
       supabase
@@ -148,7 +152,7 @@ export async function fetchAccountingPeriodList(accountSetId: string) {
         .select('*')
         .eq('account_set_id', accountSetId)
         .order('start_date', { ascending: true }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
@@ -168,13 +172,16 @@ export async function setAccountingPeriodStatus(
   )
 }
 
-export async function fetchAccountingFoundationSummary(accountSetId: string) {
+export async function fetchAccountingFoundationSummary(
+  accountSetId: string,
+  options?: ApiFeedbackOptions
+) {
   return await responseHandle<AccountingFoundationSummary>(
     () =>
       supabase
         .rpc('fms_accounting_foundation_summary', { p_account_set_id: accountSetId })
         .single(),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 

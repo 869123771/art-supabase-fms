@@ -21,7 +21,6 @@
       empty-text="暂无凭证分录"
       empty-description="至少录入两条借贷平衡的会计分录。"
       empty-height="180px"
-      border
     />
 
     <div class="voucher-entry-lines__totals" :class="{ 'is-balanced': isBalanced }">
@@ -39,6 +38,7 @@
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { round } from 'lodash-es'
+  import { useMediaQuery } from '@vueuse/core'
   import { ElInput, ElInputNumber, ElOption, ElSelect, ElTag } from 'element-plus'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
@@ -75,6 +75,7 @@
   })
   const emit = defineEmits<{ 'update:modelValue': [value: Line[]] }>()
   const tableRef = ref<ArtTableExpose>()
+  const isCompact = useMediaQuery('(max-width: 900px)')
 
   const subjectOptions = computed(() =>
     props.subjects
@@ -206,7 +207,21 @@
     )
   }
 
-  const columns = computed<ColumnOption<Line>[]>(() => [
+  const hasForeignCurrency = computed(() =>
+    props.modelValue.some((line) =>
+      Boolean(line.currencyId || subjectFor(line)?.allowForeignCurrency)
+    )
+  )
+  const hasQuantity = computed(() =>
+    props.modelValue.some((line) =>
+      Boolean(Number(line.quantity) || subjectFor(line)?.allowQuantity)
+    )
+  )
+  const hasAuxiliary = computed(() =>
+    props.modelValue.some((line) => Boolean(subjectFor(line)?.auxiliaryConfigs?.length))
+  )
+
+  const allColumns = computed<ColumnOption<Line>[]>(() => [
     { prop: 'lineNo', label: '行号', width: 64, fixed: 'left', align: 'center' },
     {
       prop: 'summary',
@@ -536,13 +551,27 @@
             prop: 'operation',
             label: '操作',
             width: 72,
-            fixed: 'right' as const,
+            fixed: isCompact.value ? undefined : ('right' as const),
             formatter: (row: Line) => (
-              <ArtButtonTable type="delete" onClick={() => removeLine(row)} />
+              <ArtButtonTable
+                type="delete"
+                label="删除分录"
+                permission=""
+                onClick={() => removeLine(row)}
+              />
             )
           }
         ])
   ])
+  const columns = computed(() =>
+    allColumns.value.filter((column) => {
+      if (column.prop === 'currencyId' || column.prop === 'exchangeRate')
+        return hasForeignCurrency.value
+      if (column.prop === 'quantity') return hasQuantity.value
+      if (column.prop === 'auxiliaryValues') return hasAuxiliary.value
+      return true
+    })
+  )
 
   function formatMoney(value: number): string {
     return formatCurrencyValue(Number(value || 0))
@@ -559,6 +588,22 @@
   .voucher-entry-lines {
     min-width: 0;
     padding: var(--art-space-4);
+
+    :deep(.el-table__body td:not(:last-child) .art-table__cell-content) {
+      display: flex;
+      width: 100%;
+    }
+
+    :deep(.el-table__body td:not(:last-child) .art-table__cell-value) {
+      display: block;
+      width: 100%;
+    }
+
+    :deep(.el-table__body .el-input),
+    :deep(.el-table__body .el-select),
+    :deep(.el-table__body .el-input-number) {
+      width: 100%;
+    }
 
     &__header,
     &__totals {

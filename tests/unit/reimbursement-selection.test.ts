@@ -5,7 +5,7 @@ import {
   cloneReimbursementExpenses,
   validateReimbursementSelection,
   type ReimbursementExpenseCandidate
-} from '../../src/views/waybill-cost/modules/reimbursement-selection'
+} from '../../src/views/settlement/waybill-cost/modules/reimbursement-selection'
 
 const approvedExpense = (
   overrides: Partial<ReimbursementExpenseCandidate> = {}

@@ -12,7 +12,7 @@
       v-model="invoiceImages"
       class="fms-recognition-runner__panel"
       :direction="invoiceDirection"
-      :resource-tenant-id="tenantScopeStore.effectiveTenantId || ''"
+      :resource-tenant-id="defaultWriteTenantId || ''"
       apply-label="进入待复核"
       @apply="handleCreated"
     />
@@ -22,7 +22,7 @@
       v-model="cashImages"
       class="fms-recognition-runner__panel"
       :direction="cashDirection"
-      :resource-tenant-id="tenantScopeStore.effectiveTenantId || ''"
+      :resource-tenant-id="defaultWriteTenantId || ''"
       apply-label="进入待复核"
       @apply="handleCreated"
     />
@@ -41,10 +41,10 @@
 </template>
 
 <script setup lang="ts">
-  import CashVoucherOcrPanel from '@fms/views/cash-transaction/modules/cash-voucher-ocr-panel.vue'
-  import InvoiceOcrPanel from '@fms/views/invoice-management/modules/invoice-ocr-panel.vue'
+  import CashVoucherOcrPanel from '@fms/views/settlement/cash-transaction/modules/cash-voucher-ocr-panel.vue'
+  import InvoiceOcrPanel from '@fms/views/settlement/invoice-management/modules/invoice-ocr-panel.vue'
   import { financePaths } from '@/router/business-paths'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
 
   interface Props {
     feature: Api.IntelligentRecognition.Feature
@@ -58,7 +58,7 @@
   const props = defineProps<Props>()
   const emit = defineEmits<{ created: [artifactId: string] }>()
   const router = useRouter()
-  const tenantScopeStore = useTenantScopeStore()
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const invoicePanelRef = ref<ResetExpose>()
   const cashPanelRef = ref<ResetExpose>()
   const invoiceImages = ref<string[]>([])

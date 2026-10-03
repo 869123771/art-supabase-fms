@@ -3,6 +3,7 @@ import { createFriendlySupabaseError, normalizeSupabaseFunctionError } from '@/u
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
+import { readTenantScopeId, TENANT_SCOPE_HEADER } from '@/utils/tenant-scope-context'
 
 type Invoice = Api.Fms.InvoiceRecord
 type InvoiceSearchParams = Api.Fms.InvoiceSearchParams
@@ -116,20 +117,24 @@ export async function fetchInvoiceableStatementList(params: InvoiceableSearchPar
   }
 }
 
-export async function fetchInvoiceDetail(id: string) {
+export async function fetchInvoiceDetail(id: string, options: { showErrorMessage?: boolean } = {}) {
+  const showErrorMessage = options.showErrorMessage ?? true
   const [invoiceResponse, linkResponse] = await Promise.all([
     responseHandle<Invoice | null>(() => supabase.rpc('tms_get_invoice_secure', { p_id: id }), {
-      showErrorMessage: true
+      showErrorMessage
     }),
     responseHandle<InvoiceStatementLink[]>(
       () => supabase.rpc('tms_list_invoice_statement_links_secure', { p_invoice_id: id }),
-      { showErrorMessage: true }
+      { showErrorMessage }
     )
   ])
+  const error = invoiceResponse.error ?? linkResponse.error
   return {
-    data: invoiceResponse.data
-      ? { ...invoiceResponse.data, statementLinks: linkResponse.data ?? [] }
-      : undefined
+    data:
+      !error && invoiceResponse.data
+        ? { ...invoiceResponse.data, statementLinks: linkResponse.data ?? [] }
+        : undefined,
+    error
   }
 }
 
@@ -233,12 +238,14 @@ export async function analyzeInvoiceComplianceByAi(
 }
 
 export async function analyzeInvoiceAttachmentByAi(
-  params: Api.Fms.InvoiceOcrAnalyzeRequest
+  params: Api.Fms.InvoiceOcrAnalyzeRequest,
+  resourceTenantId: string
 ): Promise<QueryResult<Api.Fms.InvoiceOcrAnalyzeResponse>> {
   const { data, error } = await supabase.functions.invoke<Api.Fms.InvoiceOcrAnalyzeResponse>(
     'ai-invoice-ocr',
     {
-      body: params
+      body: params,
+      headers: resourceTenantId ? { [TENANT_SCOPE_HEADER]: resourceTenantId } : undefined
     }
   )
 
@@ -276,10 +283,12 @@ export async function createInvoiceCounterpartyFromOcr(
 export async function reviewInvoiceOcrArtifact(
   params: Api.Fms.InvoiceOcrReviewRequest
 ): Promise<QueryResult<Api.Fms.InvoiceOcrReviewResponse>> {
+  const selectedTenantId = readTenantScopeId()
   const { data, error } = await supabase.functions.invoke<Api.Fms.InvoiceOcrReviewResponse>(
     'ai-invoice-ocr',
     {
-      body: params
+      body: params,
+      headers: selectedTenantId ? { [TENANT_SCOPE_HEADER]: selectedTenantId } : undefined
     }
   )
 

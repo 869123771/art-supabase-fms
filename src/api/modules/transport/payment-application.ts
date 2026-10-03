@@ -68,10 +68,13 @@ export async function exportCarrierPaymentApplicationList(
   }
 }
 
-export async function fetchCarrierPaymentApplicationDetail(id: string) {
+export async function fetchCarrierPaymentApplicationDetail(
+  id: string,
+  options: { showErrorMessage?: boolean } = {}
+) {
   return await responseHandle<PaymentApplication | null>(
     () => supabase.rpc('tms_get_carrier_payment_application_secure', { p_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options.showErrorMessage ?? true }
   )
 }
 

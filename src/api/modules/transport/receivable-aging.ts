@@ -35,9 +35,8 @@ const bucketFor = (days: number): Api.Fms.ReceivableAgingBucketKey => {
 }
 
 export async function fetchReceivableAgingOverview(): Promise<Api.Fms.ReceivableAgingOverview> {
-  const result = await responseHandle<ReceivableAgingSource>(
-    () => supabase.rpc('fms_get_receivable_aging_secure'),
-    { showErrorMessage: true }
+  const result = await responseHandle<ReceivableAgingSource>(() =>
+    supabase.rpc('fms_get_receivable_aging_secure')
   )
   if (result.error) throw result.error
 

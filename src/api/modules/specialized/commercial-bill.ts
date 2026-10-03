@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 
 const { supabase, responseHandle } = useSupabase()
 
@@ -37,17 +38,17 @@ export async function fetchCommercialBillList(params: Api.Fms.CommercialBillSear
   }
 }
 
-export async function fetchCommercialBillDetail(id: string) {
+export async function fetchCommercialBillDetail(id: string, options?: ApiFeedbackOptions) {
   return await responseHandle<Bill>(
     () => supabase.rpc('fms_get_commercial_bill_secure', { p_bill_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 
-export async function fetchCommercialBillEvents(billId: string) {
+export async function fetchCommercialBillEvents(billId: string, options?: ApiFeedbackOptions) {
   return await responseHandle<Api.Fms.CommercialBillEventRecord[]>(
     () => supabase.rpc('fms_list_commercial_bill_events_secure', { p_bill_id: billId }),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
 }
 

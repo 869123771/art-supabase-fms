@@ -1,0 +1,585 @@
+<template>
+  <ArtDialog ref="dialogRef" size="lg">
+    <template #subtitle>
+      {{ subtitle }}
+    </template>
+
+    <div class="statement-rule-dialog">
+      <div class="statement-rule-dialog__toolbar">
+        <div>
+          <strong>{{ currentItem?.itemCode }} {{ currentItem?.itemName }}</strong>
+          <small>{{ ruleHint }}</small>
+        </div>
+        <ElButton v-if="editable" type="primary" plain @click="addRule">
+          <ArtSvgIcon icon="ri:add-line" />
+          添加规则
+        </ElButton>
+      </div>
+
+      <ElAlert
+        v-if="currentItem?.statementType === 'cash_flow_statement'"
+        type="info"
+        :closable="false"
+        show-icon
+        title="现金流量表明细由凭证现金分录归集，不使用科目余额映射。"
+      />
+
+      <ArtTable
+        v-if="rows.length && !isNarrow"
+        ref="ruleTableRef"
+        class="statement-rule-dialog__table"
+        :data="rows"
+        :columns="ruleColumns"
+        row-key="rowKey"
+        :pagination="false"
+        table-layout="fixed"
+        max-height="56vh"
+      />
+
+      <ArtForm
+        v-if="rows.length && isNarrow"
+        ref="mobileFormRef"
+        v-model="mobileFormModel"
+        custom-layout
+        :show-reset="false"
+        :show-submit="false"
+        root-class="statement-rule-dialog__mobile-form"
+      >
+        <div class="statement-rule-dialog__mobile-list">
+          <article
+            v-for="(row, index) in rows"
+            :key="row.rowKey"
+            class="statement-rule-dialog__mobile-item"
+          >
+            <div class="statement-rule-dialog__mobile-heading">
+              <strong>第 {{ index + 1 }} 条规则</strong>
+              <ArtButtonTable
+                v-if="editable"
+                type="delete"
+                label="删除规则"
+                permission=""
+                @click="removeRule(index)"
+              />
+            </div>
+            <ElFormItem
+              :label="isFormula ? '来源项目' : '会计科目'"
+              :prop="`rows.${index}.sourceId`"
+              :rules="editable ? sourceRules : []"
+            >
+              <ElSelect
+                v-if="editable"
+                v-model="row.sourceId"
+                filterable
+                class="w-full!"
+                :placeholder="isFormula ? '请选择来源项目' : '请选择会计科目'"
+              >
+                <ElOption
+                  v-for="option in sourceOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+              <span v-else>{{ sourceLabel(row.sourceId) }}</span>
+            </ElFormItem>
+            <ElFormItem
+              v-if="!isFormula"
+              label="取数方向"
+              :prop="`rows.${index}.mappingDirection`"
+              :rules="editable ? directionRules : []"
+            >
+              <ElSelect v-if="editable" v-model="row.mappingDirection" class="w-full!">
+                <ElOption
+                  v-for="option in directionOptions"
+                  :key="String(option.value)"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+              <span v-else>
+                {{
+                  directionOptions.find((option) => option.value === row.mappingDirection)?.label ||
+                  '未设置'
+                }}
+              </span>
+            </ElFormItem>
+            <ElFormItem
+              label="系数"
+              :prop="`rows.${index}.factor`"
+              :rules="editable ? factorRules : []"
+            >
+              <ElInputNumber
+                v-if="editable"
+                v-model="row.factor"
+                :min="-1000"
+                :max="1000"
+                :precision="4"
+                :step="1"
+                controls-position="right"
+                class="w-full!"
+              />
+              <span v-else>{{ row.factor }}</span>
+            </ElFormItem>
+            <ElFormItem v-if="!isFormula" label="备注">
+              <ElInput v-if="editable" v-model="row.remark" maxlength="200" placeholder="可选" />
+              <span v-else>{{ row.remark || '--' }}</span>
+            </ElFormItem>
+          </article>
+        </div>
+      </ArtForm>
+
+      <ArtEmptyState
+        v-if="!rows.length"
+        :title="isFormula ? '尚未配置计算来源' : '尚未配置科目映射'"
+        :description="
+          editable ? '添加第一条规则后可在此核对配置。' : '请联系有权限的人员配置报表规则。'
+        "
+        :visual-size="96"
+      >
+        <ElButton v-if="editable" type="primary" plain @click="addRule"> 添加第一条规则 </ElButton>
+      </ArtEmptyState>
+    </div>
+  </ArtDialog>
+</template>
+
+<script setup lang="tsx">
+  import { useMediaQuery } from '@vueuse/core'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { normalizeNullableText } from '@/utils/form/normalize'
+  import {
+    ElButton,
+    ElFormItem,
+    ElInput,
+    ElInputNumber,
+    ElMessage,
+    ElOption,
+    ElSelect,
+    type FormItemRule
+  } from 'element-plus'
+  import { storeToRefs } from 'pinia'
+  import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import ArtForm from '@/components/core/forms/art-form/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtTable, { type ArtTableExpose } from '@/components/core/tables/art-table/index.vue'
+  import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import type { ColumnOption } from '@/types'
+  import {
+    fetchFinancialStatementFormulas,
+    saveFinancialStatementFormulas,
+    saveFinancialStatementMappings
+  } from '@fms/api'
+  import { useUserStore } from '@/store/modules/user'
+  import { statementOptionsWithFallback } from '../../../modules/financial-statement-options'
+
+  defineOptions({ name: 'FinanceStatementRuleDialog' })
+
+  type Item = Api.Fms.FinancialStatementItemRecord
+
+  interface RuleRow {
+    rowKey: string
+    sourceId: string
+    mappingDirection: Api.Fms.FinancialStatementMappingDirection
+    factor: number
+    remark: string
+  }
+
+  const emit = defineEmits<{ success: [] }>()
+  const userStore = useUserStore()
+  const { getDictMap } = storeToRefs(userStore)
+  const dialogRef = ref<ArtDialogExpose>()
+  const currentItem = ref<Item>()
+  const items = ref<Item[]>([])
+  const subjects = ref<Api.Fms.SubjectRecord[]>([])
+  const mobileFormModel = reactive({ rows: [] as RuleRow[] })
+  const rows = toRef(mobileFormModel, 'rows')
+  const ruleTableRef = ref<ArtTableExpose>()
+  const mobileFormRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
+  const editable = ref(false)
+  const isNarrow = useMediaQuery('(max-width: 840px)')
+
+  const sourceRules: FormItemRule[] = [
+    { required: true, message: '请选择取数来源', trigger: 'change' }
+  ]
+  const directionRules: FormItemRule[] = [
+    { required: true, message: '请选择取数方向', trigger: 'change' }
+  ]
+  const factorRules: FormItemRule[] = [
+    {
+      validator: (_rule, value, callback) => {
+        if (Number.isFinite(Number(value)) && Number(value) !== 0) callback()
+        else callback(new Error('取数系数不能为 0'))
+      },
+      trigger: 'change'
+    }
+  ]
+
+  const isFormula = computed(() => currentItem.value?.calculationMethod === 'formula')
+  const directionOptions = computed(() =>
+    statementOptionsWithFallback(
+      'fmsStatementMappingDirection',
+      getDictMap.value.fmsStatementMappingDirection
+    )
+  )
+  const sourceOptions = computed(() =>
+    isFormula.value
+      ? items.value
+          .filter((item) => item.calculationMethod === 'mapping' && item.isEnabled)
+          .map((item) => ({ label: `${item.itemCode} ${item.itemName}`, value: item.id }))
+      : subjects.value
+          .filter((subject) => subject.isEnabled)
+          .map((subject) => ({
+            label: `${subject.subjectCode} ${subject.subjectName}`,
+            value: subject.id
+          }))
+  )
+  const subtitle = computed(() =>
+    isFormula.value
+      ? '公式行从当前报表的直接取数行组合计算，正数相加、负数相减。'
+      : '科目映射决定报表明细行的会计取数口径，同一科目和方向不可重复。'
+  )
+  const ruleHint = computed(() =>
+    isFormula.value
+      ? '仅允许引用同一报表内的科目取数行，避免循环公式。'
+      : '资产负债表取期初/期末余额，利润表取本期/本年累计发生额。'
+  )
+
+  function createRow(): RuleRow {
+    return {
+      rowKey: crypto.randomUUID(),
+      sourceId: '',
+      mappingDirection: 'net_debit',
+      factor: 1,
+      remark: ''
+    }
+  }
+
+  function addRule(): void {
+    rows.value.push(createRow())
+  }
+
+  function removeRule(index: number): void {
+    rows.value.splice(index, 1)
+  }
+
+  function sourceLabel(sourceId: string): string {
+    if (isFormula.value) {
+      const item = items.value.find((entry) => entry.id === sourceId)
+      return item ? `${item.itemCode} ${item.itemName}` : '来源项目已移除'
+    }
+    const subject = subjects.value.find((entry) => entry.id === sourceId)
+    return subject ? `${subject.subjectCode} ${subject.subjectName}` : '会计科目已移除'
+  }
+
+  const ruleColumns = computed<ColumnOption<RuleRow>[]>(() => [
+    { type: 'globalIndex', label: '#', width: 44, align: 'center' },
+    {
+      prop: 'sourceId',
+      label: isFormula.value ? '来源项目' : '会计科目',
+      minWidth: 230,
+      required: true,
+      requiredMessage: ({ rowIndex }) =>
+        `第 ${rowIndex + 1} 行未选择${isFormula.value ? '来源项目' : '会计科目'}`,
+      formatter: (row) =>
+        editable.value ? (
+          <ElSelect
+            v-model={row.sourceId}
+            filterable
+            class="w-full!"
+            placeholder={isFormula.value ? '请选择来源项目' : '请选择会计科目'}
+          >
+            {sourceOptions.value.map((option) => (
+              <ElOption key={option.value} label={option.label} value={option.value} />
+            ))}
+          </ElSelect>
+        ) : (
+          <span class="text-g-800" title={sourceLabel(row.sourceId)}>
+            {sourceLabel(row.sourceId)}
+          </span>
+        )
+    },
+    ...(!isFormula.value
+      ? [
+          {
+            prop: 'mappingDirection',
+            label: '取数方向',
+            width: 144,
+            required: true,
+            formatter: (row: RuleRow) =>
+              editable.value ? (
+                <ElSelect v-model={row.mappingDirection} class="w-full!">
+                  {directionOptions.value.map((option) => (
+                    <ElOption
+                      key={String(option.value)}
+                      label={option.label}
+                      value={option.value}
+                    />
+                  ))}
+                </ElSelect>
+              ) : (
+                <span class="text-g-700">
+                  {directionOptions.value.find((option) => option.value === row.mappingDirection)
+                    ?.label || '未设置'}
+                </span>
+              )
+          }
+        ]
+      : []),
+    {
+      prop: 'factor',
+      label: '系数',
+      width: 124,
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 行取数系数不能为 0`,
+      rules: [
+        {
+          validator: ({ value }) => Number.isFinite(Number(value)) && Number(value) !== 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 行取数系数不能为 0`
+        }
+      ],
+      formatter: (row) =>
+        editable.value ? (
+          <ElInputNumber
+            v-model={row.factor}
+            min={-1000}
+            max={1000}
+            precision={4}
+            step={1}
+            controlsPosition="right"
+            class="w-full!"
+          />
+        ) : (
+          <span class="font-medium text-g-800">{row.factor}</span>
+        )
+    },
+    ...(!isFormula.value
+      ? [
+          {
+            prop: 'remark',
+            label: '备注',
+            minWidth: 160,
+            formatter: (row: RuleRow) =>
+              editable.value ? (
+                <ElInput v-model={row.remark} maxlength={200} placeholder="可选" />
+              ) : (
+                <span class="text-g-700" title={row.remark}>
+                  {row.remark || '--'}
+                </span>
+              )
+          }
+        ]
+      : []),
+    ...(editable.value
+      ? [
+          {
+            prop: 'operation',
+            label: '操作',
+            width: 64,
+            fixed: 'right' as const,
+            align: 'center' as const,
+            formatter: (row: RuleRow) => (
+              <ArtButtonTable
+                type="delete"
+                label="删除规则"
+                permission=""
+                onClick={() => removeRule(rows.value.indexOf(row))}
+              />
+            )
+          }
+        ]
+      : [])
+  ])
+
+  async function validateRows(): Promise<boolean> {
+    if (isNarrow.value) {
+      if (!(await mobileFormRef.value?.validate().catch(() => false))) return false
+    } else {
+      const tableValidation = await ruleTableRef.value?.validate()
+      if (tableValidation && !tableValidation.valid) return false
+    }
+    const keys = rows.value.map((row) =>
+      isFormula.value ? row.sourceId : `${row.sourceId}:${row.mappingDirection}`
+    )
+    if (new Set(keys).size !== keys.length) {
+      ElMessage.warning(isFormula.value ? '来源项目不可重复' : '同一科目和取数方向不可重复')
+      return false
+    }
+    return true
+  }
+
+  async function handleSubmit(): Promise<boolean> {
+    if (!editable.value || !currentItem.value || !(await validateRows())) return false
+    try {
+      if (isFormula.value) {
+        await saveFinancialStatementFormulas(
+          currentItem.value.id,
+          rows.value.map((row) => ({ sourceItemId: row.sourceId, factor: row.factor }))
+        )
+      } else {
+        await saveFinancialStatementMappings(
+          currentItem.value.id,
+          rows.value.map((row) => ({
+            subjectId: row.sourceId,
+            mappingDirection: row.mappingDirection,
+            factor: row.factor,
+            remark: normalizeNullableText(row.remark)
+          }))
+        )
+      }
+      emit('success')
+      return true
+    } catch (error) {
+      notifyFriendlyError(error, '报表取数规则保存失败，请检查内容后重试')
+      return false
+    }
+  }
+
+  async function handleOpen(
+    item: Item,
+    statementItems: Item[],
+    subjectList: Api.Fms.SubjectRecord[],
+    canEdit: boolean
+  ): Promise<void> {
+    if (item.calculationMethod !== 'formula') {
+      await userStore.ensureDictLoaded('fmsStatementMappingDirection')
+    }
+    currentItem.value = item
+    items.value = statementItems
+    subjects.value = subjectList
+    rows.value = []
+    ruleTableRef.value?.clearValidate()
+    editable.value = canEdit
+
+    if (item.calculationMethod !== 'formula') {
+      rows.value = (item.mappings ?? []).map((mapping) => ({
+        ...createRow(),
+        sourceId: mapping.subjectId,
+        mappingDirection: mapping.mappingDirection,
+        factor: Number(mapping.factor),
+        remark: mapping.remark ?? ''
+      }))
+    }
+
+    await dialogRef.value?.handleOpen(undefined, {
+      title: `${editable.value ? '配置' : '查看'}${isFormula.value ? '报表公式' : '科目取数'}`,
+      confirmText: '保存取数规则',
+      showFooter: editable.value,
+      contentMaxHeight: '72vh',
+      loading: item.calculationMethod === 'formula',
+      loadingText: '正在加载报表公式…',
+      onOpen: async (_openData, api) => {
+        if (item.calculationMethod !== 'formula') return
+        try {
+          const { data } = await fetchFinancialStatementFormulas(item.id)
+          rows.value = (data ?? []).map((formula) => ({
+            ...createRow(),
+            sourceId: formula.sourceItemId,
+            factor: Number(formula.factor)
+          }))
+        } finally {
+          api.setLoading(false)
+        }
+      },
+      onConfirm: editable.value ? handleSubmit : undefined,
+      dialogProps: { appendToBody: true, closeOnClickModal: !editable.value }
+    })
+  }
+
+  defineExpose({ handleOpen })
+</script>
+
+<style scoped lang="scss">
+  .statement-rule-dialog {
+    display: grid;
+    gap: var(--art-space-4);
+
+    &__toolbar {
+      display: flex;
+      gap: var(--art-space-4);
+      align-items: center;
+      justify-content: space-between;
+
+      > div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      strong {
+        font-size: 15px;
+        color: var(--art-text-gray-900);
+      }
+
+      small {
+        line-height: 1.5;
+        color: var(--art-text-gray-600);
+      }
+    }
+
+    &__table :deep(.art-table__cell-content),
+    &__table :deep(.art-table__cell-value) {
+      display: block;
+      width: 100%;
+    }
+
+    :deep(.el-empty) {
+      min-height: 280px;
+      border: 1px dashed var(--el-border-color);
+      border-radius: var(--el-border-radius-base);
+    }
+  }
+
+  @media (width <= 840px) {
+    .statement-rule-dialog {
+      &__toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      &__mobile-list {
+        display: grid;
+        gap: var(--art-space-3);
+      }
+
+      :deep(.statement-rule-dialog__mobile-form) {
+        padding: 0;
+      }
+
+      &__mobile-item {
+        min-width: 0;
+        padding: var(--art-space-3);
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: var(--el-border-radius-base);
+
+        :deep(.el-form-item:last-child) {
+          margin-bottom: 0;
+        }
+      }
+
+      &__mobile-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--art-space-3);
+
+        strong {
+          color: var(--art-text-gray-900);
+        }
+      }
+    }
+  }
+
+  @media (640px < width <= 840px) {
+    .statement-rule-dialog__mobile-item {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--art-space-4);
+    }
+
+    .statement-rule-dialog__mobile-heading {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

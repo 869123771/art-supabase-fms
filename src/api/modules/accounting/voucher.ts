@@ -75,10 +75,10 @@ export async function exportVoucherList(
   }
 }
 
-export async function fetchVoucherDetail(id: string) {
+export async function fetchVoucherDetail(id: string, options: { showErrorMessage?: boolean } = {}) {
   return await responseHandle<Voucher>(
     () => supabase.rpc('fms_get_voucher_secure', { p_voucher_id: id }),
-    { breakReturn: true, showErrorMessage: true }
+    { breakReturn: true, showErrorMessage: options.showErrorMessage ?? true }
   )
 }
 

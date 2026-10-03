@@ -5,9 +5,8 @@ const { supabase, responseHandle } = useSupabase()
 type FinancialExceptionSource = Partial<Api.Fms.FinancialExceptionOverview>
 
 export async function fetchFinancialExceptionOverview(): Promise<Api.Fms.FinancialExceptionOverview> {
-  const result = await responseHandle<FinancialExceptionSource>(
-    () => supabase.rpc('fms_get_financial_exception_center_secure'),
-    { showErrorMessage: true }
+  const result = await responseHandle<FinancialExceptionSource>(() =>
+    supabase.rpc('fms_get_financial_exception_center_secure')
   )
   if (result.error) throw result.error
 

@@ -1,6 +1,6 @@
 import { financeRouteNames } from '@/router/business-paths'
 import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-import { fetchAccountingReadiness } from '@fms/api'
+import { fetchAccountSetOptions, fetchAccountingReadiness } from '@fms/api'
 import type { FinancePrerequisiteOverlay } from './finance-prerequisite-overlay'
 
 export { createFinancePrerequisiteOverlay } from './finance-prerequisite-overlay'
@@ -53,6 +53,15 @@ export function useFinanceAccountSetPrerequisite() {
     foundationRequired = false,
     fundAccountRequired = false
   }: FinanceAccountSetPrerequisiteOptions): Promise<boolean> {
+    if (!available) {
+      const { data, error } = await fetchAccountSetOptions({
+        status: activeRequired ? 'active' : undefined,
+        from: 0,
+        to: 0
+      })
+      if (error) return false
+      available = Boolean(data?.length)
+    }
     if (available) {
       if (!foundationRequired || !accountSetId) return true
       const { data } = await fetchAccountingReadiness(accountSetId)
