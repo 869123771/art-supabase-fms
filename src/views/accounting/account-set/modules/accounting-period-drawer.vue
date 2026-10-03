@@ -55,7 +55,7 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ColumnOption } from '@/types'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import {
     fetchAccountingFoundationSummary,
@@ -287,8 +287,9 @@
       )
       await setAccountingPeriodStatus(row.id, status)
       if (state.accountSet?.id) await loadData(state.accountSet.id)
-    } catch {
-      // 用户取消或数据库业务约束阻止时，不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, `${actionLabel}失败，请刷新期间状态后重试。`)
     }
   }
 
@@ -305,8 +306,9 @@
       )
       await setAccountingPeriodStatus(row.id, 'open', reason)
       if (state.accountSet?.id) await loadData(state.accountSet.id)
-    } catch {
-      // 用户取消或数据库业务约束阻止时，不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '反结账失败，请检查后续期间状态后重试。')
     }
   }
 

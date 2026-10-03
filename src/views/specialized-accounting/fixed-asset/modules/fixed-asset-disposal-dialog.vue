@@ -205,13 +205,14 @@
     }
     const asset = currentAsset.value
     if (!asset) return false
-    await actFixedAsset(asset.id, 'dispose', {
+    const result = await actFixedAsset(asset.id, 'dispose', {
       actionDate: form.data.actionDate,
       amount: Number(form.data.amount || 0),
       fundAccountId: form.data.fundAccountId || undefined,
       referenceNo: form.data.referenceNo.trim() || undefined,
       reason: form.data.reason.trim()
     })
+    if (result.error) throw result.error
     emit('success')
     return true
   }
@@ -233,7 +234,10 @@
       loadingText: '正在加载资产与资金账户…',
       onOpen: async (_openData, api) => {
         try {
-          const record = (await fetchFixedAssetDetail(asset.id)).data ?? asset
+          const detailResult = await fetchFixedAssetDetail(asset.id)
+          if (detailResult.error) throw detailResult.error
+          const record = detailResult.data
+          if (!record) throw new Error('资产不存在或已不可访问，请刷新列表')
           if (!canEditField(record.fieldAccess, 'assetValues')) {
             ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
             await api.handleClose()
@@ -241,13 +245,17 @@
           }
           currentAsset.value = record
           if (canEditField(record.fieldAccess, 'assetReferences')) {
-            const { data } = await fetchFundAccountOptions({
+            const { data, error } = await fetchFundAccountOptions({
               accountSetId: record.accountSetId,
               status: 'active',
               baseCurrencyOnly: true
             })
+            if (error) throw error
             accountOptions.value = data ?? []
           }
+        } catch (error) {
+          notifyFriendlyError(error, '资产或资金账户加载失败，请重新打开重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

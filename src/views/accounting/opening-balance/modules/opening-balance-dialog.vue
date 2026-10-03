@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
       期初余额仅录入末级启用科目；字段按当前记录权限显示，无权明文查看的字段不会载入表单。
     </template>

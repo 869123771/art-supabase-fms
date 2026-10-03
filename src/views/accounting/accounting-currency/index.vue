@@ -282,6 +282,7 @@
   })
   const rateFilterForm = ref<RateFilter>(createDefaultRateFilter())
   const appliedRateFilter = reactive<RateFilter>(createDefaultRateFilter())
+  let workspaceRequestId = 0
 
   const currentAccountSet = computed(() =>
     scope.options.find((item) => item.value === scope.accountSetId)
@@ -454,14 +455,25 @@
   }
 
   async function loadWorkspace(): Promise<void> {
-    if (!scope.accountSetId) return
+    const requestId = ++workspaceRequestId
+    const accountSetId = scope.accountSetId
+    if (!accountSetId) {
+      workspace.currencies = []
+      workspace.rates = []
+      workspace.selectedCurrencyId = ''
+      workspace.loading = false
+      return
+    }
     workspace.loading = true
     workspace.error = ''
     try {
       const [currencyResult, rateResult] = await Promise.all([
-        fetchCurrencyList(scope.accountSetId),
-        fetchExchangeRateList(scope.accountSetId)
+        fetchCurrencyList(accountSetId),
+        fetchExchangeRateList(accountSetId)
       ])
+      if (requestId !== workspaceRequestId) return
+      if (currencyResult.error) throw currencyResult.error
+      if (rateResult.error) throw rateResult.error
       workspace.currencies = currencyResult.data ?? []
       workspace.rates = rateResult.data ?? []
       if (!workspace.currencies.some((item) => item.id === workspace.selectedCurrencyId)) {
@@ -469,9 +481,10 @@
           workspace.currencies.find((item) => !item.isBase)?.id ?? workspace.currencies[0]?.id ?? ''
       }
     } catch (error) {
+      if (requestId !== workspaceRequestId) return
       workspace.error = getFriendlySupabaseErrorMessage(error, '币种与汇率加载失败')
     } finally {
-      workspace.loading = false
+      if (requestId === workspaceRequestId) workspace.loading = false
     }
   }
 

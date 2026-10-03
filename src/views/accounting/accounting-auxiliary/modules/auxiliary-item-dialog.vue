@@ -118,9 +118,14 @@
 
   function createPayload(): FormData {
     return {
-      ...toRaw(form.data),
+      id: form.data.id,
+      tenantId: form.data.tenantId,
+      accountSetId: form.data.accountSetId,
+      auxiliaryTypeId: form.data.auxiliaryTypeId,
       itemCode: form.data.itemCode.trim(),
       itemName: form.data.itemName.trim(),
+      isEnabled: form.data.isEnabled,
+      sort: form.data.sort,
       remark: normalizeNullableText(form.data.remark)
     }
   }
@@ -142,7 +147,6 @@
     type: Api.Fms.AuxiliaryTypeRecord,
     row?: AuxiliaryItem
   ): Promise<void> {
-    await userStore.ensureDictLoaded('commonBoolean')
     Object.assign(form.data, createInitialForm(), {
       ...(row ?? {}),
       id: row?.id,
@@ -155,8 +159,20 @@
       title: row ? `编辑项目 · ${row.itemName}` : `新增项目 · ${type.typeName}`,
       confirmText: row ? '保存修改' : '创建项目',
       contentMaxHeight: '65vh',
+      loading: true,
+      loadingText: '正在加载核算项目选项…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await userStore.ensureDictLoaded('commonBoolean')
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '核算项目选项加载失败，请重新打开重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

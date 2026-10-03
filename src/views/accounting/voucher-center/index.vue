@@ -62,9 +62,13 @@
     type ButtonMoreItem
   } from '@/components/core/forms/art-button-more/index.vue'
   import { useFinanceAccountSetPrerequisite } from '../../modules/use-finance-account-set-prerequisite'
-  import { formatVoucherSummary } from '../../modules/voucher-summary'
+  import {
+    formatVoucherSummary,
+    voucherSourceLabel,
+    voucherSourceOptions
+  } from '../../modules/voucher-summary'
   import { useUserStore } from '@/store/modules/user'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
@@ -218,7 +222,10 @@
         label: '业务来源',
         key: 'sourceType',
         type: 'select',
-        props: { options: getDictMap.value.fmsVoucherSourceType ?? [], clearable: true }
+        props: {
+          options: voucherSourceOptions(getDictMap.value.fmsVoucherSourceType),
+          clearable: true
+        }
       },
       {
         label: '关键词',
@@ -329,7 +336,8 @@
       prop: 'sourceType',
       label: '业务来源',
       width: 125,
-      dict: { code: 'fmsVoucherSourceType', display: 'text' }
+      formatter: (row: Voucher) =>
+        voucherSourceLabel(row.sourceType, getDictMap.value.fmsVoucherSourceType)
     },
     ...(canViewListField('sourceReferences')
       ? [
@@ -596,8 +604,9 @@
       })
       await transitionVoucher(row.id, action)
       handleMutationSuccess()
-    } catch {
-      // 用户取消或操作失败时保留列表状态。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, `${config.title}失败，请刷新凭证状态后重试。`)
     }
   }
 
@@ -621,6 +630,13 @@
     }
   }
 
+  watch(
+    () => [canViewListField('sourceReferences'), canViewListField('voucherAmounts')],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableQueryRef.value?.resetColumns())
+    }
+  )
   onMounted(() => {
     void Promise.allSettled([
       userStore.ensureDictLoaded('fmsVoucherStatus'),

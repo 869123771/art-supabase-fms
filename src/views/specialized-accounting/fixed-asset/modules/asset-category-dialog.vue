@@ -117,11 +117,12 @@
   async function submit(): Promise<boolean> {
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
-      await saveAssetCategory({
+      const result = await saveAssetCategory({
         ...form,
         categoryCode: form.categoryCode.trim().toUpperCase(),
         categoryName: form.categoryName.trim()
       })
+      if (result.error) throw result.error
       emit('success')
       return true
     } catch (error) {
@@ -129,7 +130,7 @@
       return false
     }
   }
-  async function handleOpen(): Promise<void> {
+  async function handleOpen(accountSetId?: string): Promise<void> {
     accountSetOptions.value = []
     Object.assign(form, initial())
     await dialogRef.value?.handleOpen(undefined, {
@@ -141,9 +142,23 @@
       onOpen: async () => {
         formRef.value?.clearValidate()
         try {
-          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          const { data, error } = await fetchAccountSetOptions({
+            status: 'active',
+            from: 0,
+            to: 999
+          })
+          if (error) throw error
           accountSetOptions.value = data ?? []
-          form.accountSetId = accountSetOptions.value[0]?.value ?? ''
+          if (
+            accountSetId &&
+            !accountSetOptions.value.some((item) => item.value === accountSetId)
+          ) {
+            throw new Error('所选账套已不可用，请刷新列表后重试')
+          }
+          form.accountSetId = accountSetId ?? accountSetOptions.value[0]?.value ?? ''
+        } catch (error) {
+          notifyFriendlyError(error, '账套加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

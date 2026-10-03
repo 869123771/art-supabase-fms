@@ -4,141 +4,145 @@
       {{ subtitle }}
     </template>
 
-    <div class="statement-rule-dialog">
-      <div class="statement-rule-dialog__toolbar">
-        <div>
-          <strong>{{ currentItem?.itemCode }} {{ currentItem?.itemName }}</strong>
-          <small>{{ ruleHint }}</small>
+    <ArtAsyncState :loading="formulasLoading" :error="formulasError" @retry="loadFormulas">
+      <div class="statement-rule-dialog">
+        <div class="statement-rule-dialog__toolbar">
+          <div>
+            <strong>{{ currentItem?.itemCode }} {{ currentItem?.itemName }}</strong>
+            <small>{{ ruleHint }}</small>
+          </div>
+          <ElButton v-if="editable" type="primary" plain @click="addRule">
+            <ArtSvgIcon icon="ri:add-line" />
+            添加规则
+          </ElButton>
         </div>
-        <ElButton v-if="editable" type="primary" plain @click="addRule">
-          <ArtSvgIcon icon="ri:add-line" />
-          添加规则
-        </ElButton>
-      </div>
 
-      <ElAlert
-        v-if="currentItem?.statementType === 'cash_flow_statement'"
-        type="info"
-        :closable="false"
-        show-icon
-        title="现金流量表明细由凭证现金分录归集，不使用科目余额映射。"
-      />
+        <ElAlert
+          v-if="currentItem?.statementType === 'cash_flow_statement'"
+          type="info"
+          :closable="false"
+          show-icon
+          title="现金流量表明细由凭证现金分录归集，不使用科目余额映射。"
+        />
 
-      <ArtTable
-        v-if="rows.length && !isNarrow"
-        ref="ruleTableRef"
-        class="statement-rule-dialog__table"
-        :data="rows"
-        :columns="ruleColumns"
-        row-key="rowKey"
-        :pagination="false"
-        table-layout="fixed"
-        max-height="56vh"
-      />
+        <ArtTable
+          v-if="rows.length && !isNarrow"
+          ref="ruleTableRef"
+          class="statement-rule-dialog__table"
+          :data="rows"
+          :columns="ruleColumns"
+          row-key="rowKey"
+          :pagination="false"
+          table-layout="fixed"
+          max-height="56vh"
+        />
 
-      <ArtForm
-        v-if="rows.length && isNarrow"
-        ref="mobileFormRef"
-        v-model="mobileFormModel"
-        custom-layout
-        :show-reset="false"
-        :show-submit="false"
-        root-class="statement-rule-dialog__mobile-form"
-      >
-        <div class="statement-rule-dialog__mobile-list">
-          <article
-            v-for="(row, index) in rows"
-            :key="row.rowKey"
-            class="statement-rule-dialog__mobile-item"
-          >
-            <div class="statement-rule-dialog__mobile-heading">
-              <strong>第 {{ index + 1 }} 条规则</strong>
-              <ArtButtonTable
-                v-if="editable"
-                type="delete"
-                label="删除规则"
-                permission=""
-                @click="removeRule(index)"
-              />
-            </div>
-            <ElFormItem
-              :label="isFormula ? '来源项目' : '会计科目'"
-              :prop="`rows.${index}.sourceId`"
-              :rules="editable ? sourceRules : []"
+        <ArtForm
+          v-if="rows.length && isNarrow"
+          ref="mobileFormRef"
+          v-model="mobileFormModel"
+          custom-layout
+          :show-reset="false"
+          :show-submit="false"
+          root-class="statement-rule-dialog__mobile-form"
+        >
+          <div class="statement-rule-dialog__mobile-list">
+            <article
+              v-for="(row, index) in rows"
+              :key="row.rowKey"
+              class="statement-rule-dialog__mobile-item"
             >
-              <ElSelect
-                v-if="editable"
-                v-model="row.sourceId"
-                filterable
-                class="w-full!"
-                :placeholder="isFormula ? '请选择来源项目' : '请选择会计科目'"
+              <div class="statement-rule-dialog__mobile-heading">
+                <strong>第 {{ index + 1 }} 条规则</strong>
+                <ArtButtonTable
+                  v-if="editable"
+                  type="delete"
+                  label="删除规则"
+                  permission=""
+                  @click="removeRule(index)"
+                />
+              </div>
+              <ElFormItem
+                :label="isFormula ? '来源项目' : '会计科目'"
+                :prop="`rows.${index}.sourceId`"
+                :rules="editable ? sourceRules : []"
               >
-                <ElOption
-                  v-for="option in sourceOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
+                <ElSelect
+                  v-if="editable"
+                  v-model="row.sourceId"
+                  filterable
+                  class="w-full!"
+                  :placeholder="isFormula ? '请选择来源项目' : '请选择会计科目'"
+                >
+                  <ElOption
+                    v-for="option in sourceOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </ElSelect>
+                <span v-else>{{ sourceLabel(row.sourceId) }}</span>
+              </ElFormItem>
+              <ElFormItem
+                v-if="!isFormula"
+                label="取数方向"
+                :prop="`rows.${index}.mappingDirection`"
+                :rules="editable ? directionRules : []"
+              >
+                <ElSelect v-if="editable" v-model="row.mappingDirection" class="w-full!">
+                  <ElOption
+                    v-for="option in directionOptions"
+                    :key="String(option.value)"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </ElSelect>
+                <span v-else>
+                  {{
+                    directionOptions.find((option) => option.value === row.mappingDirection)
+                      ?.label || '未设置'
+                  }}
+                </span>
+              </ElFormItem>
+              <ElFormItem
+                label="系数"
+                :prop="`rows.${index}.factor`"
+                :rules="editable ? factorRules : []"
+              >
+                <ElInputNumber
+                  v-if="editable"
+                  v-model="row.factor"
+                  :min="-1000"
+                  :max="1000"
+                  :precision="4"
+                  :step="1"
+                  controls-position="right"
+                  class="w-full!"
                 />
-              </ElSelect>
-              <span v-else>{{ sourceLabel(row.sourceId) }}</span>
-            </ElFormItem>
-            <ElFormItem
-              v-if="!isFormula"
-              label="取数方向"
-              :prop="`rows.${index}.mappingDirection`"
-              :rules="editable ? directionRules : []"
-            >
-              <ElSelect v-if="editable" v-model="row.mappingDirection" class="w-full!">
-                <ElOption
-                  v-for="option in directionOptions"
-                  :key="String(option.value)"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
-              <span v-else>
-                {{
-                  directionOptions.find((option) => option.value === row.mappingDirection)?.label ||
-                  '未设置'
-                }}
-              </span>
-            </ElFormItem>
-            <ElFormItem
-              label="系数"
-              :prop="`rows.${index}.factor`"
-              :rules="editable ? factorRules : []"
-            >
-              <ElInputNumber
-                v-if="editable"
-                v-model="row.factor"
-                :min="-1000"
-                :max="1000"
-                :precision="4"
-                :step="1"
-                controls-position="right"
-                class="w-full!"
-              />
-              <span v-else>{{ row.factor }}</span>
-            </ElFormItem>
-            <ElFormItem v-if="!isFormula" label="备注">
-              <ElInput v-if="editable" v-model="row.remark" maxlength="200" placeholder="可选" />
-              <span v-else>{{ row.remark || '--' }}</span>
-            </ElFormItem>
-          </article>
-        </div>
-      </ArtForm>
+                <span v-else>{{ row.factor }}</span>
+              </ElFormItem>
+              <ElFormItem v-if="!isFormula" label="备注">
+                <ElInput v-if="editable" v-model="row.remark" maxlength="200" placeholder="可选" />
+                <span v-else>{{ row.remark || '--' }}</span>
+              </ElFormItem>
+            </article>
+          </div>
+        </ArtForm>
 
-      <ArtEmptyState
-        v-if="!rows.length"
-        :title="isFormula ? '尚未配置计算来源' : '尚未配置科目映射'"
-        :description="
-          editable ? '添加第一条规则后可在此核对配置。' : '请联系有权限的人员配置报表规则。'
-        "
-        :visual-size="96"
-      >
-        <ElButton v-if="editable" type="primary" plain @click="addRule"> 添加第一条规则 </ElButton>
-      </ArtEmptyState>
-    </div>
+        <ArtEmptyState
+          v-if="!rows.length"
+          :title="isFormula ? '尚未配置计算来源' : '尚未配置科目映射'"
+          :description="
+            editable ? '添加第一条规则后可在此核对配置。' : '请联系有权限的人员配置报表规则。'
+          "
+          :visual-size="96"
+        >
+          <ElButton v-if="editable" type="primary" plain @click="addRule">
+            添加第一条规则
+          </ElButton>
+        </ArtEmptyState>
+      </div>
+    </ArtAsyncState>
   </ArtDialog>
 </template>
 
@@ -160,6 +164,7 @@
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import ArtForm from '@/components/core/forms/art-form/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTable, { type ArtTableExpose } from '@/components/core/tables/art-table/index.vue'
@@ -176,6 +181,13 @@
   defineOptions({ name: 'FinanceStatementRuleDialog' })
 
   type Item = Api.Fms.FinancialStatementItemRecord
+  const formulasLoading = ref(false)
+  const formulasError = ref('')
+  let formulaRequestId = 0
+  watch(
+    () => formulasLoading.value || Boolean(formulasError.value),
+    (confirmDisabled) => dialogRef.value?.setOptions({ confirmDisabled })
+  )
 
   interface RuleRow {
     rowKey: string
@@ -329,7 +341,7 @@
     {
       prop: 'factor',
       label: '系数',
-      width: 124,
+      width: 152,
       required: true,
       requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 行取数系数不能为 0`,
       rules: [
@@ -409,6 +421,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    if (formulasLoading.value || formulasError.value) return false
     if (!editable.value || !currentItem.value || !(await validateRows())) return false
     try {
       if (isFormula.value) {
@@ -441,9 +454,9 @@
     subjectList: Api.Fms.SubjectRecord[],
     canEdit: boolean
   ): Promise<void> {
-    if (item.calculationMethod !== 'formula') {
-      await userStore.ensureDictLoaded('fmsStatementMappingDirection')
-    }
+    ++formulaRequestId
+    formulasError.value = ''
+    formulasLoading.value = false
     currentItem.value = item
     items.value = statementItems
     subjects.value = subjectList
@@ -466,17 +479,18 @@
       confirmText: '保存取数规则',
       showFooter: editable.value,
       contentMaxHeight: '72vh',
-      loading: item.calculationMethod === 'formula',
-      loadingText: '正在加载报表公式…',
+      loading: true,
+      loadingText: '正在加载报表取数规则…',
       onOpen: async (_openData, api) => {
-        if (item.calculationMethod !== 'formula') return
         try {
-          const { data } = await fetchFinancialStatementFormulas(item.id)
-          rows.value = (data ?? []).map((formula) => ({
-            ...createRow(),
-            sourceId: formula.sourceItemId,
-            factor: Number(formula.factor)
-          }))
+          if (item.calculationMethod === 'formula') {
+            await loadFormulas()
+          } else {
+            await userStore.ensureDictLoaded('fmsStatementMappingDirection')
+          }
+        } catch (error) {
+          notifyFriendlyError(error, '报表取数规则加载失败，请重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }
@@ -484,6 +498,32 @@
       onConfirm: editable.value ? handleSubmit : undefined,
       dialogProps: { appendToBody: true, closeOnClickModal: !editable.value }
     })
+  }
+
+  async function loadFormulas(): Promise<void> {
+    const itemId = currentItem.value?.id
+    const requestId = ++formulaRequestId
+    if (!itemId) return
+    formulasLoading.value = true
+    formulasError.value = ''
+    rows.value = []
+    try {
+      const { data, error } = await fetchFinancialStatementFormulas(itemId)
+      if (requestId !== formulaRequestId || currentItem.value?.id !== itemId) return
+      if (error) {
+        formulasError.value = '报表公式加载失败，请重试后再配置。'
+        return
+      }
+      rows.value = (data ?? []).map((formula) => ({
+        ...createRow(),
+        sourceId: formula.sourceItemId,
+        factor: Number(formula.factor)
+      }))
+    } catch {
+      if (requestId === formulaRequestId) formulasError.value = '报表公式加载失败，请重试后再配置。'
+    } finally {
+      if (requestId === formulaRequestId) formulasLoading.value = false
+    }
   }
 
   defineExpose({ handleOpen })

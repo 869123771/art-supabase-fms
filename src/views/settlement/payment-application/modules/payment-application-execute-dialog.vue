@@ -238,7 +238,11 @@
             transactionNumber.loadRule(),
             fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
           ])
+          if (fundAccounts.error) throw fundAccounts.error
           fundAccountOptions.value = fundAccounts.data ?? []
+        } catch (error) {
+          notifyFriendlyError(error, '付款资金账户加载失败，请重新打开后重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

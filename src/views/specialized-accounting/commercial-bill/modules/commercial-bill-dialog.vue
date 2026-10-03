@@ -50,6 +50,7 @@
   const fieldAccess = ref<Api.Fms.CommercialBillFieldAccessMap>({})
 
   const createInitialForm = (): FormData => ({
+    id: undefined,
     accountSetId: '',
     billNo: '',
     externalBillNo: null,
@@ -300,7 +301,8 @@
           : {}),
         remark: normalizeNullableText(form.data.remark)
       }
-      await saveCommercialBill(payload)
+      const { error } = await saveCommercialBill(payload)
+      if (error) return false
       emit('success', form.data.id ? 'edit' : 'add')
       return true
     } catch (error) {
@@ -310,16 +312,21 @@
   }
 
   async function handleOpen(row?: Bill): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsBillDirection'),
-      userStore.ensureDictLoaded('fmsBillType')
-    ])
-    currentRecord.value = row
+    currentRecord.value = undefined
+    fieldAccess.value = {}
     Object.assign(form.data, createInitialForm())
     const prepare = async () => {
-      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsBillDirection'),
+        userStore.ensureDictLoaded('fmsBillType')
+      ])
+      const { data, error } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      if (error) throw error
       accountSetOptions.value = data ?? []
-      const record = row ? ((await fetchCommercialBillDetail(row.id)).data ?? row) : undefined
+      const detailResult = row ? await fetchCommercialBillDetail(row.id) : undefined
+      if (detailResult?.error) throw detailResult.error
+      if (row && !detailResult?.data) throw new Error('票据不存在或已不可访问，请刷新列表')
+      const record = detailResult?.data ?? undefined
       currentRecord.value = record
       fieldAccess.value = record?.fieldAccess ?? {}
       Object.assign(
@@ -380,6 +387,9 @@
         try {
           await prepare()
           formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '商业票据加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

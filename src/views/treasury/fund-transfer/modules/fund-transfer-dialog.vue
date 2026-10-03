@@ -142,26 +142,12 @@
             label: '转出账户',
             key: 'sourceAccountId',
             type: 'select',
-            span: 24,
+            span: 12,
             props: {
               options: sourceOptions.value,
               filterable: true,
               disabled: !accountSetId.value,
               placeholder: '选择承担资金流出的账户'
-            }
-          },
-          {
-            label: '可用余额',
-            key: '__availableBalance',
-            type: 'input',
-            props: {
-              modelValue: sourceOption.value
-                ? formatAvailableBalance(
-                    sourceOption.value.availableBalance,
-                    sourceOption.value.currencyCode
-                  )
-                : '--',
-              disabled: true
             }
           },
           {
@@ -173,6 +159,21 @@
               filterable: true,
               disabled: !form.data.sourceAccountId,
               placeholder: '选择同币种目标账户'
+            }
+          },
+          {
+            label: '可用余额',
+            key: '__availableBalance',
+            type: 'input',
+            span: 24,
+            props: {
+              modelValue: sourceOption.value
+                ? formatAvailableBalance(
+                    sourceOption.value.availableBalance,
+                    sourceOption.value.currencyCode
+                  )
+                : '--',
+              disabled: true
             }
           }
         )
@@ -369,9 +370,13 @@
     currentRecord.value = row
     Object.assign(form.data, createInitialForm())
     const prepare = async () => {
-      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      const { data, error } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      if (error) throw error
       accountSetOptions.value = data ?? []
-      const record = row ? ((await fetchFundTransferDetail(row.id)).data ?? row) : undefined
+      const detail = row ? await fetchFundTransferDetail(row.id) : undefined
+      if (detail?.error) throw detail.error
+      if (row && !detail?.data) throw new Error('资金调拨不存在或无权查看，请刷新列表')
+      const record = detail?.data ?? undefined
       currentRecord.value = record
       fieldAccess.value = record?.fieldAccess ?? {}
       Object.assign(
@@ -401,10 +406,11 @@
       )
       accountSetId.value = record?.accountSetId ?? ''
       if (accountSetId.value && (!record || canEditField(record.fieldAccess, 'transferAccounts'))) {
-        const { data: accounts } = await fetchFundAccountOptions({
+        const { data: accounts, error: accountsError } = await fetchFundAccountOptions({
           accountSetId: accountSetId.value,
           status: 'active'
         })
+        if (accountsError) throw accountsError
         accountOptions.value = accounts ?? []
       } else {
         accountOptions.value = []
@@ -416,10 +422,13 @@
       loading: true,
       loadingText: '正在加载资金账户…',
       onConfirm: handleSubmit,
-      onOpen: async () => {
+      onOpen: async (_openData, api) => {
         try {
           await prepare()
           formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '资金调拨加载失败，请重试')
+          await api.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

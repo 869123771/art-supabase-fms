@@ -161,7 +161,6 @@
     accountSet: Api.Fms.AccountSetOption,
     row?: Api.Fms.CurrencyRecord
   ): Promise<void> {
-    await userStore.ensureDictLoaded('commonBoolean')
     Object.assign(form.data, createInitialForm(), {
       id: row?.id,
       tenantId: accountSet.tenantId,
@@ -178,8 +177,20 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: row ? `编辑币种 · ${row.currencyCode}` : '新增核算币种',
       confirmText: row ? '保存修改' : '创建币种',
+      loading: true,
+      loadingText: '正在加载币种选项…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await userStore.ensureDictLoaded('commonBoolean')
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '币种选项加载失败，请重新打开重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

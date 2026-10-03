@@ -202,6 +202,19 @@
   })
   const activeFieldAccess = computed(() => ledgerFieldAccess[activeTab.value])
 
+  watch(
+    () => ledgerFieldAccess.balance,
+    () => void nextTick(() => balanceTableRef.value?.resetColumns())
+  )
+  watch(
+    () => ledgerFieldAccess.general,
+    () => void nextTick(() => generalTableRef.value?.resetColumns())
+  )
+  watch(
+    () => ledgerFieldAccess.subsidiary,
+    () => void nextTick(() => subsidiaryTableRef.value?.resetColumns())
+  )
+
   const ledgerAmountAccess = computed(() =>
     getFieldAccess(activeFieldAccess.value, 'ledgerAmounts')
   )
@@ -1238,13 +1251,13 @@
   .ledger-center-page {
     --accounting-workspace-mobile-min-height: 540px;
 
-    &__subject,
-    &__period {
+    :deep(.ledger-center-page__subject),
+    :deep(.ledger-center-page__period) {
       display: flex;
       min-width: 0;
     }
 
-    &__subject {
+    :deep(.ledger-center-page__subject) {
       gap: 8px;
       align-items: center;
 
@@ -1262,7 +1275,7 @@
       }
     }
 
-    &__period {
+    :deep(.ledger-center-page__period) {
       flex-direction: column;
       line-height: 1.35;
 

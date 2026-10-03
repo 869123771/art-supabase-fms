@@ -97,7 +97,9 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: (row?: Run) => Promise<void> } & FinancePrerequisiteOverlay>()
+  const dialogRef = ref<
+    { handleOpen: (row?: Run, accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
+  >()
   const drawerRef = ref<{ handleOpen: (row: Run) => Promise<void> }>()
   const fundExecutionRef = ref<
     {
@@ -205,7 +207,7 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen(),
+          () => dialogRef.value?.handleOpen(undefined, table.search.accountSetId),
           dialogRef.value
         )
     }
@@ -446,6 +448,13 @@
     return value.toLocaleString('zh-CN')
   }
   watch(() => table.search.accountSetId, loadSummary)
+  watch(
+    () => [canViewListField('employeeIdentity'), canViewListField('salaryAmounts')],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
   onMounted(async () => {
     await userStore.ensureDictLoaded('fmsPayrollRunStatus').catch(() => undefined)
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })

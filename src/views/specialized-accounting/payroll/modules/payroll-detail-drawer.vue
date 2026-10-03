@@ -1,140 +1,153 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
-    <div v-if="run" class="payroll-detail">
-      <section class="payroll-detail__summary">
-        <div>
-          <small>薪资批次</small>
-          <strong>{{ run.runNo }}</strong>
-          <span>{{ formatWithDayjs(run.payrollMonth, 'YYYY-MM') }}</span>
-        </div>
-        <ArtDictDisplay dict-code="fmsPayrollRunStatus" :value="run.status" display="tag" />
-      </section>
+    <ArtAsyncState
+      :loading="loading"
+      loading-mode="skeleton"
+      :error="loadError?.message"
+      :empty="!run"
+      empty-text="暂无薪资批次详情"
+      empty-description="请返回列表重新选择批次，或刷新后重试。"
+      @retry="reloadDetail"
+    >
+      <div v-if="run" class="payroll-detail">
+        <ArtSectionCard title="批次信息" preserve-content-structure>
+          <ArtDescriptions :data="run" :items="descriptionItems" :columns="2" label-width="104px" />
+        </ArtSectionCard>
 
-      <ArtSectionCard
-        title="员工薪资明细"
-        subtitle="核对应发、扣款、企业成本与实发金额"
-        :empty="!lines.length"
-        empty-title="暂无员工薪资明细"
-        empty-description="可同步已批准的 HR 薪酬，或手动新增员工明细。"
-        :empty-visual-size="72"
-        :min-height="188"
-        preserve-content-structure
-      >
-        <template v-if="editable" #actions>
-          <div class="payroll-detail__toolbar-actions">
-            <ElButton
-              v-auth="'FinancePayroll:Calculate'"
-              :loading="importing"
-              plain
-              type="primary"
-              @click="importFromHr"
-            >
-              <ArtSvgIcon icon="ri:download-cloud-2-line" />同步 HR 薪酬
-            </ElButton>
-            <ElButton
-              v-auth="'FinancePayroll:Calculate'"
-              type="primary"
-              @click="lineDialogRef?.handleOpen(run)"
-            >
-              新增员工
-            </ElButton>
-          </div>
-        </template>
-        <ArtTable
-          v-if="!isCompact"
-          :pagination="false"
-          :border="false"
-          :show-table-header="false"
-          :data="lines"
-          row-key="id"
+        <ArtSectionCard
+          title="员工薪资明细"
+          subtitle="核对应发、扣款、企业成本与实发金额"
+          :loading="linesLoading"
+          :error="linesError"
+          @retry="reload"
+          :empty="!lines.length"
+          empty-title="暂无员工薪资明细"
+          empty-description="可同步已批准的 HR 薪酬，或手动新增员工明细。"
+          :empty-visual-size="72"
+          :min-height="188"
+          preserve-content-structure
         >
-          <ElTableColumn
-            v-if="canViewIdentity"
-            prop="employeeNoSnapshot"
-            label="工号"
-            min-width="140"
-          />
-          <ElTableColumn
-            v-if="canViewIdentity"
-            prop="employeeNameSnapshot"
-            label="姓名"
-            min-width="120"
-          />
-          <ElTableColumn v-if="canViewAmounts" label="应发" min-width="110" align="right">
-            <template #default="{ row }">{{ formatProtectedAmount(row.grossAmount) }}</template>
-          </ElTableColumn>
-          <ElTableColumn v-if="canViewAmounts" label="扣款" min-width="110" align="right">
-            <template #default="{ row }">{{ formatProtectedAmount(row.deductionAmount) }}</template>
-          </ElTableColumn>
-          <ElTableColumn v-if="canViewAmounts" label="企业成本" min-width="110" align="right">
-            <template #default="{ row }">{{
-              formatProtectedAmount(row.employerCostAmount)
-            }}</template>
-          </ElTableColumn>
-          <ElTableColumn v-if="canViewAmounts" label="实发" min-width="110" align="right">
-            <template #default="{ row }">{{ formatProtectedAmount(row.netAmount) }}</template>
-          </ElTableColumn>
-          <ElTableColumn v-if="editable" label="操作" width="110" fixed="right">
-            <template #default="{ row }">
-              <BusinessTableRowActions>
-                <ArtButtonTable
-                  type="edit"
-                  label="编辑员工薪资"
-                  permission="FinancePayroll:Calculate"
-                  @click="editLine(row)"
-                />
-                <ArtButtonTable
-                  type="delete"
-                  label="删除员工薪资"
-                  permission="FinancePayroll:Calculate"
-                  @click="removeLine(row)"
-                />
-              </BusinessTableRowActions>
-            </template>
-          </ElTableColumn>
-        </ArtTable>
-        <div v-else-if="lines.length" class="payroll-detail__mobile-list">
-          <article v-for="line in lines" :key="line.id" class="payroll-detail__mobile-item">
-            <div class="payroll-detail__mobile-heading">
-              <div class="payroll-detail__employee">
-                <strong>{{ canViewIdentity ? line.employeeNameSnapshot : '员工薪资' }}</strong>
-                <small v-if="canViewIdentity">{{ line.employeeNoSnapshot }}</small>
-              </div>
-              <BusinessTableRowActions v-if="editable">
-                <ArtButtonTable
-                  type="edit"
-                  label="编辑员工薪资"
-                  permission="FinancePayroll:Calculate"
-                  @click="editLine(line)"
-                />
-                <ArtButtonTable
-                  type="delete"
-                  label="删除员工薪资"
-                  permission="FinancePayroll:Calculate"
-                  @click="removeLine(line)"
-                />
-              </BusinessTableRowActions>
+          <template v-if="editable && !linesLoading && !linesError" #actions>
+            <div class="payroll-detail__toolbar-actions">
+              <ElButton
+                v-auth="'FinancePayroll:Calculate'"
+                :loading="importing"
+                plain
+                type="primary"
+                @click="importFromHr"
+              >
+                <ArtSvgIcon icon="ri:download-cloud-2-line" />同步 HR 薪酬
+              </ElButton>
+              <ElButton
+                v-auth="'FinancePayroll:Calculate'"
+                type="primary"
+                @click="lineDialogRef?.handleOpen(run)"
+              >
+                新增员工
+              </ElButton>
             </div>
-            <dl v-if="canViewAmounts" class="payroll-detail__mobile-amounts">
-              <div
-                ><dt>应发</dt><dd>{{ formatProtectedAmount(line.grossAmount) }}</dd></div
-              >
-              <div
-                ><dt>扣款</dt><dd>{{ formatProtectedAmount(line.deductionAmount) }}</dd></div
-              >
-              <div
-                ><dt>企业成本</dt><dd>{{ formatProtectedAmount(line.employerCostAmount) }}</dd></div
-              >
-              <div
-                ><dt>实发</dt><dd>{{ formatProtectedAmount(line.netAmount) }}</dd></div
-              >
-            </dl>
-          </article>
-        </div>
-      </ArtSectionCard>
-      <PayrollLineDialog ref="lineDialogRef" @success="reload" />
-      <MasterDataDeleteGuard ref="deleteGuardRef" />
-    </div>
+          </template>
+          <ArtTable
+            v-if="!isCompact"
+            class="h-auto!"
+            height="auto"
+            :pagination="false"
+            :border="false"
+            :show-table-header="false"
+            :data="lines"
+            row-key="id"
+          >
+            <ElTableColumn
+              v-if="canViewIdentity"
+              prop="employeeNoSnapshot"
+              label="工号"
+              min-width="140"
+            />
+            <ElTableColumn
+              v-if="canViewIdentity"
+              prop="employeeNameSnapshot"
+              label="姓名"
+              min-width="120"
+            />
+            <ElTableColumn v-if="canViewAmounts" label="应发" min-width="110" align="right">
+              <template #default="{ row }">{{ formatProtectedAmount(row.grossAmount) }}</template>
+            </ElTableColumn>
+            <ElTableColumn v-if="canViewAmounts" label="扣款" min-width="110" align="right">
+              <template #default="{ row }">{{
+                formatProtectedAmount(row.deductionAmount)
+              }}</template>
+            </ElTableColumn>
+            <ElTableColumn v-if="canViewAmounts" label="企业成本" min-width="110" align="right">
+              <template #default="{ row }">{{
+                formatProtectedAmount(row.employerCostAmount)
+              }}</template>
+            </ElTableColumn>
+            <ElTableColumn v-if="canViewAmounts" label="实发" min-width="110" align="right">
+              <template #default="{ row }">{{ formatProtectedAmount(row.netAmount) }}</template>
+            </ElTableColumn>
+            <ElTableColumn v-if="editable" label="操作" width="110" fixed="right">
+              <template #default="{ row }">
+                <BusinessTableRowActions>
+                  <ArtButtonTable
+                    type="edit"
+                    label="编辑员工薪资"
+                    permission="FinancePayroll:Calculate"
+                    @click="editLine(row)"
+                  />
+                  <ArtButtonTable
+                    type="delete"
+                    label="删除员工薪资"
+                    permission="FinancePayroll:Calculate"
+                    @click="removeLine(row)"
+                  />
+                </BusinessTableRowActions>
+              </template>
+            </ElTableColumn>
+          </ArtTable>
+          <div v-else-if="lines.length" class="payroll-detail__mobile-list">
+            <article v-for="line in lines" :key="line.id" class="payroll-detail__mobile-item">
+              <div class="payroll-detail__mobile-heading">
+                <div class="payroll-detail__employee">
+                  <strong>{{ canViewIdentity ? line.employeeNameSnapshot : '员工薪资' }}</strong>
+                  <small v-if="canViewIdentity">{{ line.employeeNoSnapshot }}</small>
+                </div>
+                <BusinessTableRowActions v-if="editable">
+                  <ArtButtonTable
+                    type="edit"
+                    label="编辑员工薪资"
+                    permission="FinancePayroll:Calculate"
+                    @click="editLine(line)"
+                  />
+                  <ArtButtonTable
+                    type="delete"
+                    label="删除员工薪资"
+                    permission="FinancePayroll:Calculate"
+                    @click="removeLine(line)"
+                  />
+                </BusinessTableRowActions>
+              </div>
+              <dl v-if="canViewAmounts" class="payroll-detail__mobile-amounts">
+                <div
+                  ><dt>应发</dt><dd>{{ formatProtectedAmount(line.grossAmount) }}</dd></div
+                >
+                <div
+                  ><dt>扣款</dt><dd>{{ formatProtectedAmount(line.deductionAmount) }}</dd></div
+                >
+                <div
+                  ><dt>企业成本</dt
+                  ><dd>{{ formatProtectedAmount(line.employerCostAmount) }}</dd></div
+                >
+                <div
+                  ><dt>实发</dt><dd>{{ formatProtectedAmount(line.netAmount) }}</dd></div
+                >
+              </dl>
+            </article>
+          </div>
+        </ArtSectionCard>
+        <PayrollLineDialog ref="lineDialogRef" @success="reload" />
+        <MasterDataDeleteGuard ref="deleteGuardRef" />
+      </div>
+    </ArtAsyncState>
   </ArtDrawer>
 </template>
 <script setup lang="ts">
@@ -145,10 +158,13 @@
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
+  import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useUserStore } from '@/store/modules/user'
   import {
@@ -176,8 +192,45 @@
   const lineDialogRef = ref<{
     handleOpen: (run: Api.Fms.PayrollRunRecord, line?: Api.Fms.PayrollLineRecord) => Promise<void>
   }>()
-  const run = ref<Api.Fms.PayrollRunRecord>()
+  const {
+    detail: run,
+    loading,
+    loadError,
+    loadDetail,
+    openDetail,
+    activeId
+  } = useDetailRecord(async (id) => {
+    await userStore.ensureDictLoaded('fmsPayrollRunStatus')
+    return fetchPayrollRunDetail(id)
+  }, '薪资批次加载失败，请重试。')
+  const descriptionItems: ArtDescriptionItem<Api.Fms.PayrollRunRecord>[] = [
+    { key: 'runNo', field: 'runNo', label: '批次号', copyable: true },
+    {
+      key: 'status',
+      field: 'status',
+      label: '状态',
+      dictCode: 'fmsPayrollRunStatus',
+      dictDisplay: 'tag'
+    },
+    {
+      key: 'payrollMonth',
+      field: 'payrollMonth',
+      label: '薪资月份',
+      formatter: (value) =>
+        typeof value === 'string' ? (formatWithDayjs(value, 'YYYY-MM') ?? '--') : '--'
+    },
+    {
+      key: 'period',
+      label: '会计期间',
+      value: (record: Api.Fms.PayrollRunRecord) =>
+        record.period ? `${record.period.fiscalYear} 年第 ${record.period.periodNo} 期` : '--'
+    },
+    { key: 'remark', field: 'remark', label: '备注', span: 2 }
+  ]
   const lines = ref<Api.Fms.PayrollLineRecord[]>([])
+  const linesLoading = ref(false)
+  const linesError = ref('')
+  let linesRequestId = 0
   const importing = ref(false)
   const lineFieldAccess = ref<Api.Fms.PayrollFieldAccessMap>({})
   const effectiveLineAccess = computed(() =>
@@ -195,11 +248,26 @@
       canEditField(lineFieldAccess.value, 'salaryAmounts')
   )
   async function reload(): Promise<void> {
-    if (!run.value) return
-    const result = await fetchPayrollLines(run.value.id)
-    lines.value = result.data ?? []
-    lineFieldAccess.value = result.fieldAccess
-    emit('success')
+    const parentId = run.value?.id
+    if (!parentId) return
+    const requestId = ++linesRequestId
+    linesLoading.value = true
+    linesError.value = ''
+    try {
+      const result = await fetchPayrollLines(parentId)
+      if (requestId !== linesRequestId || parentId !== run.value?.id) return
+      if (result.error) {
+        linesError.value = '薪资明细加载失败，请重试。'
+        return
+      }
+      lines.value = result.data ?? []
+      lineFieldAccess.value = result.fieldAccess
+      emit('success')
+    } catch {
+      if (requestId === linesRequestId) linesError.value = '薪资明细加载失败，请重试。'
+    } finally {
+      if (requestId === linesRequestId) linesLoading.value = false
+    }
   }
   function editLine(rawRow: object): void {
     if (!run.value) return
@@ -224,7 +292,8 @@
       return
     }
     try {
-      await deletePayrollLine(row.id)
+      const result = await deletePayrollLine(row.id)
+      if (result.error) throw result.error
       await reload()
     } catch {
       await inspectDeleteReferences([{ id: row.id, label: row.employeeNameSnapshot || '员工薪资' }])
@@ -240,6 +309,7 @@
       )
       importing.value = true
       const response = await importHrCompensationLines(run.value.id)
+      if (response.error) throw response.error
       const result = response.data
       if (!result?.eligibleCount) {
         ElMessage.warning('该月份暂无已批准的 HR 员工薪酬，请先在 HR 薪酬管理中完成定薪与批准')
@@ -251,26 +321,39 @@
         )
       }
       await reload()
-    } catch {
-      /* 用户取消或服务端权限、状态校验失败时保持当前明细。 */
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, 'HR 薪酬同步失败，请检查批次状态后重试')
+      }
     } finally {
       importing.value = false
     }
   }
+  async function reloadDetail(): Promise<void> {
+    const id = activeId.value
+    if (!id) return
+    ++linesRequestId
+    lines.value = []
+    lineFieldAccess.value = {}
+    await loadDetail(id)
+    if (run.value?.id === id) await reload()
+  }
   async function handleOpen(row: Api.Fms.PayrollRunRecord): Promise<void> {
-    await userStore.ensureDictLoaded('fmsPayrollRunStatus')
-    run.value = row
+    ++linesRequestId
+    linesLoading.value = false
+    linesError.value = ''
+    lineFieldAccess.value = {}
+
+    openDetail(row.id)
     lines.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: `薪资批次详情 · ${row.runNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       loading: true,
       loadingText: '正在加载薪资明细…',
       onOpen: async (_data, api) => {
         try {
-          run.value = (await fetchPayrollRunDetail(row.id)).data ?? row
-          await reload()
+          await reloadDetail()
         } finally {
           api.setLoading(false)
         }
@@ -288,21 +371,6 @@
   .payroll-detail {
     display: grid;
     gap: 18px;
-  }
-
-  .payroll-detail__summary {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 16px;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: var(--el-border-radius-base);
-  }
-
-  .payroll-detail__summary > div {
-    display: grid;
-    gap: 4px;
   }
 
   .payroll-detail__toolbar-actions {

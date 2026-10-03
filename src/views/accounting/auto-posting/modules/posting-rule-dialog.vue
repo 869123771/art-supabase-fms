@@ -140,6 +140,7 @@
 
   function createInitialForm(): FormData {
     return {
+      id: undefined,
       accountSetId: '',
       ruleCode: '',
       ruleName: '',
@@ -388,6 +389,14 @@
   }
 
   function openAuxiliaryDialog(row: Line): void {
+    if (!form.data.sourceEvent) {
+      ElMessage.warning('请先选择业务事件，再配置核算维度绑定')
+      return
+    }
+    if (!payloadOptions.value.length) {
+      ElMessage.warning('当前业务事件暂无可绑定的实体来源，请核对业务事件配置')
+      return
+    }
     void auxiliaryDialogRef.value?.handleOpen(
       row.auxiliaryBindings,
       context.auxiliaryTypes,
@@ -475,7 +484,7 @@
       label: '金额口径',
       required: true,
       requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录未选择金额口径`,
-      width: 150,
+      width: 190,
       formatter: (row) => (
         <ElSelect v-model={row.amountKey} class="w-full!">
           {amountKeyOptions.value.map((item) => (
@@ -495,7 +504,7 @@
           message: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录倍率必须大于 0`
         }
       ],
-      width: 120,
+      width: 168,
       formatter: (row) => (
         <ElInputNumber
           v-model={row.amountMultiplier}
@@ -540,6 +549,7 @@
       prop: 'operation',
       label: '操作',
       width: 64,
+      fixed: 'right',
       align: 'center',
       formatter: (row) => (
         <ArtButtonTable
@@ -593,7 +603,7 @@
       string
     ]
     try {
-      await savePostingRule({
+      const { error } = await savePostingRule({
         id: form.data.id,
         accountSetId: form.data.accountSetId,
         ruleCode: form.data.ruleCode.trim().toUpperCase(),
@@ -618,6 +628,7 @@
           auxiliaryBindings: { ...line.auxiliaryBindings }
         }))
       })
+      if (error) return false
       emit('success')
       return true
     } catch (error) {
@@ -631,32 +642,34 @@
     row?: Rule,
     loadContext?: () => Promise<Omit<DialogContext, 'cashFlowItems'> | undefined>
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsBalanceDirection'),
-      userStore.ensureDictLoaded('fmsPostingAmountKey'),
-      userStore.ensureDictLoaded('fmsPostingAuxiliaryPayloadKey'),
-      userStore.ensureDictLoaded('fmsPostingSourceEvent'),
-      userStore.ensureDictLoaded('fmsPostingSubmissionMode'),
-      userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-      userStore.ensureDictLoaded('fmsVoucherType')
-    ])
     Object.assign(context, dialogContext)
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
     form.lines = [createLine(1, 'debit'), createLine(2, 'credit')]
     const prepare = async (): Promise<boolean> => {
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsBalanceDirection'),
+        userStore.ensureDictLoaded('fmsPostingAmountKey'),
+        userStore.ensureDictLoaded('fmsPostingAuxiliaryPayloadKey'),
+        userStore.ensureDictLoaded('fmsPostingSourceEvent'),
+        userStore.ensureDictLoaded('fmsPostingSubmissionMode'),
+        userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
+        userStore.ensureDictLoaded('fmsVoucherType')
+      ])
       if (loadContext) {
         const loaded = await loadContext()
-        if (!loaded) return false
+        if (!loaded) throw new Error('当前账套不可用，请重新选择账套后重试')
         Object.assign(context, loaded)
       }
-      const { data: cashFlowItems } = await fetchFinancialStatementItems(
+      const { data: cashFlowItems, error: cashFlowError } = await fetchFinancialStatementItems(
         context.accountSet.value,
         'cash_flow_statement'
       )
+      if (cashFlowError) throw cashFlowError
       context.cashFlowItems = cashFlowItems ?? []
       if (row?.id) {
-        const { data } = await fetchPostingRuleDetail(row.id)
-        if (!data) return false
+        const { data, error } = await fetchPostingRuleDetail(row.id)
+        if (error) throw error
+        if (!data) throw new Error('当前入账规则已不存在，请刷新列表后重试')
         if (!canEditField(data.fieldAccess, 'ruleConfiguration')) {
           ElMessage.warning('当前账号无权编辑该规则的制证配置')
           return false
@@ -711,6 +724,9 @@
           }
           formRef.value?.clearValidate()
           lineTableRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '入账规则加载失败，请重新打开重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

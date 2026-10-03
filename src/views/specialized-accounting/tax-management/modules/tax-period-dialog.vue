@@ -2,7 +2,12 @@
   <ArtDialog ref="dialogRef" size="md"
     ><template #subtitle
       >同一会计期间、同一税种仅保留一份台账；税率和调整金额不在前端硬编码。</template
-    ><ArtForm
+    >
+    <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon class="mb-4">
+      <template #title>会计期间加载失败，请重新加载后再保存。</template>
+      <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+    </ElAlert>
+    <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
       v-model="form"
@@ -16,6 +21,8 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { toRef } from 'vue'
+  import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
@@ -24,12 +31,7 @@
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import {
-    fetchAccountingPeriodList,
-    fetchAccountSetOptions,
-    fetchTaxPeriodDetail,
-    saveTaxPeriod
-  } from '@fms/api'
+  import { fetchAccountSetOptions, fetchTaxPeriodDetail, saveTaxPeriod } from '@fms/api'
   import { canEditField, canViewField } from '@/utils/field-permission'
   import { formatCurrencyValue } from '@/utils/ui'
   import { useUserStore } from '@/store/modules/user'
@@ -42,7 +44,6 @@
   const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
-  const periodOptions = ref<Array<{ label: string; value: string }>>([])
   const currentRecord = shallowRef<Api.Fms.TaxPeriodRecord>()
   const fieldAccess = ref<Api.Fms.TaxFieldAccessMap>({})
   const form = reactive<Api.Fms.SaveTaxPeriodPayload & { accountSetId: string }>({
@@ -53,6 +54,12 @@
     adjustmentAmount: 0,
     remark: null
   })
+  const { periodOptions, periodsLoading, periodLoadFailed, loadPeriods, resetPeriods } =
+    useAccountingPeriodOptions(
+      toRef(form, 'accountSetId'),
+      toRef(form, 'accountingPeriodId'),
+      computed(() => Boolean(form.id))
+    )
   const rules: FormRules = {
     accountSetId: [{ required: true, message: '请选择账套', trigger: 'change' }],
     accountingPeriodId: [{ required: true, message: '请选择期间', trigger: 'change' }],
@@ -75,6 +82,7 @@
         props: {
           options: accountSetOptions.value,
           filterable: true,
+          onChange: loadPeriods,
           disabled: Boolean(form.id),
           noDataText: ACCOUNTING_SELECT_EMPTY_TEXT.accountSet
         }
@@ -86,7 +94,12 @@
         span: 24,
         props: {
           options: periodOptions.value,
-          disabled: Boolean(form.id) || !form.accountSetId,
+          disabled:
+            Boolean(form.id) ||
+            !form.accountSetId ||
+            periodsLoading.value ||
+            periodLoadFailed.value,
+          loading: periodsLoading.value,
           noDataText: form.accountSetId
             ? ACCOUNTING_SELECT_EMPTY_TEXT.openAccountingPeriod
             : ACCOUNTING_SELECT_EMPTY_TEXT.chooseAccountSet
@@ -96,6 +109,7 @@
         label: '税种',
         key: 'taxType',
         type: 'select',
+        span: 24,
         props: { options: getDictMap.value.fmsTaxType ?? [], disabled: Boolean(form.id) }
       }
     ]
@@ -147,20 +161,11 @@
     })
     return result
   })
-  async function loadPeriods() {
-    periodOptions.value = []
-    if (!form.accountSetId) return
-    const { data } = await fetchAccountingPeriodList(form.accountSetId)
-    periodOptions.value = (data ?? [])
-      .filter((i) => i.status === 'open')
-      .map((i) => ({ label: `${i.fiscalYear} 年第 ${i.periodNo} 期`, value: i.id }))
-    if (!form.id) form.accountingPeriodId = periodOptions.value[0]?.value ?? ''
-  }
-  watch(() => form.accountSetId, loadPeriods)
   async function submit() {
     try {
+      if (periodsLoading.value || periodLoadFailed.value) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
-      await saveTaxPeriod({
+      const result = await saveTaxPeriod({
         id: form.id,
         accountingPeriodId: form.accountingPeriodId,
         taxType: form.taxType,
@@ -172,6 +177,7 @@
           : {}),
         remark: form.remark
       })
+      if (result.error) throw result.error
       emit('success')
       return true
     } catch (error) {
@@ -179,17 +185,33 @@
       return false
     }
   }
-  async function handleOpen(row?: Api.Fms.TaxPeriodRecord) {
-    await userStore.ensureDictLoaded('fmsTaxType')
+  async function handleOpen(row?: Api.Fms.TaxPeriodRecord, accountSetId?: string) {
+    resetPeriods()
+    accountSetOptions.value = []
+    currentRecord.value = undefined
+    form.id = undefined
     const prepare = async () => {
-      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      await userStore.ensureDictLoaded('fmsTaxType')
+      const { data, error } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      if (error) throw error
       accountSetOptions.value = data ?? []
-      const record = row ? ((await fetchTaxPeriodDetail(row.id)).data ?? row) : undefined
+      const detailResult = row ? await fetchTaxPeriodDetail(row.id) : undefined
+      if (detailResult?.error) throw detailResult.error
+      if (row && !detailResult?.data) throw new Error('税务期间不存在或已不可访问，请刷新列表')
+      const record = detailResult?.data ?? undefined
+      if (
+        !record &&
+        accountSetId &&
+        !accountSetOptions.value.some((item) => item.value === accountSetId)
+      ) {
+        throw new Error('所选账套已不可用，请刷新列表后重试')
+      }
       currentRecord.value = record
       fieldAccess.value = record?.fieldAccess ?? {}
       Object.assign(form, {
         id: record?.id,
-        accountSetId: record?.accountSetId || accountSetOptions.value[0]?.value || '',
+        accountSetId:
+          record?.accountSetId ?? accountSetId ?? accountSetOptions.value[0]?.value ?? '',
         accountingPeriodId: record?.accountingPeriodId || '',
         taxType: record?.taxType || 'vat',
         transferableInputAmount: canEditField(record?.fieldAccess, 'taxAmounts')
@@ -212,6 +234,9 @@
         try {
           await prepare()
           formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '税务期间加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

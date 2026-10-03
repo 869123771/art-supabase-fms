@@ -106,7 +106,7 @@
     getFieldAccess,
     formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
 
   defineOptions({ name: 'FinanceCashTransactionDetailDrawer' })
@@ -323,8 +323,10 @@
       }
       if (detail.data) await loadDetail(detail.data.id)
       emit('changed')
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '撤销核销失败，请刷新记录后重试。')
+      }
     }
   }
 
@@ -333,7 +335,6 @@
     await drawerRef.value?.handleOpen(row, {
       title: `${row.direction === 'payment' ? '付款' : '收款'}详情 · ${row.transactionNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

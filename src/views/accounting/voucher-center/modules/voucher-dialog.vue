@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { voucherSourceOptions } from '../../../modules/voucher-summary'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -319,7 +320,9 @@
   const voucherTypeOptions = computed(() =>
     (getDictMap.value.fmsVoucherType ?? []).filter((item) => item.value !== 'reversal')
   )
-  const sourceTypeOptions = computed(() => getDictMap.value.fmsVoucherSourceType ?? [])
+  const sourceTypeOptions = computed(() =>
+    voucherSourceOptions(getDictMap.value.fmsVoucherSourceType)
+  )
 
   const attachmentColumns = computed<ColumnOption<Api.Fms.VoucherAttachment>[]>(() => [
     { type: 'globalIndex', label: '序号', width: 72 },

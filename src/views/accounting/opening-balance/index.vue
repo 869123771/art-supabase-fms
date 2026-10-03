@@ -36,6 +36,7 @@
             aria-label="账套"
             filterable
             :loading="scope.loading"
+            :disabled="workspace.statusChanging"
             placeholder="请选择账套"
             @change="handleAccountSetChange"
           >
@@ -53,6 +54,7 @@
             v-model="scope.fiscalYear"
             aria-label="会计年度"
             placeholder="请选择年度"
+            :disabled="workspace.statusChanging"
             @change="loadBalances"
           >
             <ElOption
@@ -86,6 +88,7 @@
         <ElButton
           v-if="hasAuth('FinanceOpeningBalance:Add') && summary.status === 'draft'"
           type="primary"
+          :disabled="workspace.loading || Boolean(workspace.error)"
           @click="openDialog()"
         >
           <ArtSvgIcon icon="ri:add-line" />录入余额
@@ -112,6 +115,7 @@
         <ElButton
           v-if="hasAuth('FinanceOpeningBalance:Reopen') && summary.status === 'confirmed'"
           plain
+          :disabled="workspace.loading || Boolean(workspace.error)"
           :loading="workspace.statusChanging"
           @click="reopenOpeningBalance"
         >
@@ -173,7 +177,7 @@
         :empty="filteredBalances.length === 0"
         empty-text="暂无期初余额"
         empty-description="按末级科目录入期初借贷余额；借贷合计平衡后方可确认。"
-        @retry="loadBalances"
+        @retry="scope.accountSetId ? loadFoundation() : loadAccountSets()"
       >
         <ArtTable
           :data="filteredBalances"
@@ -218,7 +222,7 @@
     isMaskedValue,
     mergeFieldAccessMaps
   } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -316,7 +320,13 @@
     canEditField(row.fieldAccess, 'auxiliaryDetails')
   const summaryAmountAccess = computed(() => getFieldAccess(summary.fieldAccess, 'balanceAmounts'))
   const canConfirmOpeningBalance = computed(
-    () => summary.entryCount > 0 && summary.isBalanced && summary.status === 'draft'
+    () =>
+      !workspace.loading &&
+      !workspace.error &&
+      !workspace.statusChanging &&
+      summary.entryCount > 0 &&
+      summary.isBalanced &&
+      summary.status === 'draft'
   )
   const confirmOpeningBalanceHint = computed(() =>
     summary.entryCount === 0 ? '请先录入至少一条期初余额' : '借贷合计平衡后才能确认锁定'
@@ -558,15 +568,28 @@
     return labels.join('；') || '—'
   }
 
+  let balanceRequestId = 0
+  let foundationRequestId = 0
+
   async function loadBalances(): Promise<void> {
-    if (!scope.accountSetId || !scope.fiscalYear) return
+    const requestId = ++balanceRequestId
+    const accountSetId = scope.accountSetId
+    const fiscalYear = scope.fiscalYear
+    const isCurrent = () =>
+      requestId === balanceRequestId &&
+      accountSetId === scope.accountSetId &&
+      fiscalYear === scope.fiscalYear
+    if (!accountSetId || !fiscalYear) return
     workspace.loading = true
     workspace.error = ''
     try {
       const [balanceResult, summaryResult] = await Promise.all([
-        fetchOpeningBalanceList(scope.accountSetId, scope.fiscalYear),
-        fetchOpeningBalanceSummary(scope.accountSetId, scope.fiscalYear)
+        fetchOpeningBalanceList(accountSetId, fiscalYear),
+        fetchOpeningBalanceSummary(accountSetId, fiscalYear)
       ])
+      if (!isCurrent()) return
+      if (balanceResult.error) throw balanceResult.error
+      if (summaryResult.error) throw summaryResult.error
       workspace.balances = balanceResult.data ?? []
       workspace.fieldAccess = balanceResult.fieldAccess ?? {}
       delete summary.openingDebit
@@ -574,25 +597,35 @@
       delete summary.difference
       if (summaryResult.data) Object.assign(summary, summaryResult.data)
     } catch (error) {
+      if (!isCurrent()) return
       workspace.error = getFriendlySupabaseErrorMessage(error, '期初余额加载失败')
     } finally {
-      workspace.loading = false
+      if (isCurrent()) workspace.loading = false
     }
   }
 
   async function loadFoundation(): Promise<void> {
-    if (!scope.accountSetId) return
+    const requestId = ++foundationRequestId
+    ++balanceRequestId
+    const accountSetId = scope.accountSetId
+    const isCurrent = () => requestId === foundationRequestId && accountSetId === scope.accountSetId
+    if (!accountSetId) return
+    let balancesStarted = false
     workspace.loading = true
     workspace.error = ''
     try {
       const [periodResult, subjectResult, currencyResult, typeResult, itemResult] =
         await Promise.all([
-          fetchAccountingPeriodList(scope.accountSetId),
-          fetchSubjectList(scope.accountSetId),
-          fetchCurrencyList(scope.accountSetId),
-          fetchAuxiliaryTypeList(scope.accountSetId),
-          fetchAuxiliaryItemList(scope.accountSetId)
+          fetchAccountingPeriodList(accountSetId),
+          fetchSubjectList(accountSetId),
+          fetchCurrencyList(accountSetId),
+          fetchAuxiliaryTypeList(accountSetId),
+          fetchAuxiliaryItemList(accountSetId)
         ])
+      if (!isCurrent()) return
+      for (const result of [periodResult, subjectResult, currencyResult, typeResult, itemResult]) {
+        if (result.error) throw result.error
+      }
       const periods = periodResult.data ?? []
       scope.fiscalYears = [...new Set(periods.map((item) => item.fiscalYear))].sort(
         (left, right) => right - left
@@ -606,11 +639,13 @@
       workspace.currencies = currencyResult.data ?? []
       workspace.auxiliaryTypes = typeResult.data ?? []
       workspace.auxiliaryItems = itemResult.data ?? []
+      balancesStarted = true
       await loadBalances()
     } catch (error) {
+      if (!isCurrent()) return
       workspace.error = getFriendlySupabaseErrorMessage(error, '期初基础数据加载失败')
     } finally {
-      workspace.loading = false
+      if (isCurrent() && !balancesStarted) workspace.loading = false
     }
   }
 
@@ -622,6 +657,7 @@
   }
 
   async function openDialog(row?: OpeningBalance): Promise<void> {
+    if (workspace.loading || workspace.error) return
     if (summary.status !== 'draft') return
     if (row && !canEditRow(row)) return
     if (
@@ -646,49 +682,64 @@
   }
 
   async function removeBalance(row: OpeningBalance): Promise<void> {
-    if (
-      await inspectDeleteReferences([
-        { id: row.id, label: `${row.subject?.subjectCode ?? ''} ${row.subject?.subjectName ?? ''}` }
-      ])
-    )
-      return
-    await confirmAction(
-      `确定删除“${row.subject?.subjectCode ?? ''} ${row.subject?.subjectName ?? ''}”的期初余额吗？`,
-      '删除期初余额'
-    )
-    await deleteOpeningBalance(row.id)
-    await loadBalances()
+    const records = [
+      { id: row.id, label: `${row.subject?.subjectCode ?? ''} ${row.subject?.subjectName ?? ''}` }
+    ]
+    if (await inspectDeleteReferences(records)) return
+    try {
+      await confirmAction(`确定删除“${records[0].label}”的期初余额吗？`, '删除期初余额')
+      await deleteOpeningBalance(row.id)
+      await loadBalances()
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '期初余额删除失败，请检查引用后重试')
+      await inspectDeleteReferences(records)
+    }
   }
 
   async function confirmOpeningBalance(): Promise<void> {
-    await confirmAction(
-      `确认 ${scope.fiscalYear} 年期初余额后将锁定全部记录，确定继续吗？`,
-      '确认期初余额',
-      { type: 'success', confirmButtonText: '确认并锁定' }
-    )
+    if (!canConfirmOpeningBalance.value) return
+    const accountSetId = scope.accountSetId
+    const fiscalYear = scope.fiscalYear
     workspace.statusChanging = true
     try {
-      await setOpeningBalanceStatus(scope.accountSetId, scope.fiscalYear, 'confirmed')
+      await confirmAction(
+        `确认 ${fiscalYear} 年期初余额后将锁定全部记录，确定继续吗？`,
+        '确认期初余额',
+        { type: 'success', confirmButtonText: '确认并锁定' }
+      )
+      await setOpeningBalanceStatus(accountSetId, fiscalYear, 'confirmed')
       await loadBalances()
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '期初余额确认失败，请刷新状态后重试')
+      }
     } finally {
       workspace.statusChanging = false
     }
   }
 
   async function reopenOpeningBalance(): Promise<void> {
-    const reason = await promptReason(
-      '反确认后可重新调整期初余额，操作原因将写入审计记录。',
-      '反确认期初余额',
-      {
-        confirmButtonText: '确认反确认',
-        emptyMessage: '请填写反确认原因',
-        placeholder: '请说明差错原因和调整安排'
-      }
-    )
+    if (workspace.statusChanging || workspace.loading || workspace.error) return
+    const accountSetId = scope.accountSetId
+    const fiscalYear = scope.fiscalYear
     workspace.statusChanging = true
     try {
-      await setOpeningBalanceStatus(scope.accountSetId, scope.fiscalYear, 'draft', reason)
+      const reason = await promptReason(
+        '反确认后可重新调整期初余额，操作原因将写入审计记录。',
+        '反确认期初余额',
+        {
+          confirmButtonText: '确认反确认',
+          emptyMessage: '请填写反确认原因',
+          placeholder: '请说明差错原因和调整安排'
+        }
+      )
+      await setOpeningBalanceStatus(accountSetId, fiscalYear, 'draft', reason)
       await loadBalances()
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '期初余额反确认失败，请刷新状态后重试')
+      }
     } finally {
       workspace.statusChanging = false
     }
@@ -696,15 +747,21 @@
 
   async function loadAccountSets(): Promise<void> {
     scope.loading = true
+    workspace.loading = true
+    workspace.error = ''
     try {
       const result = await fetchAccountSetOptions({ from: 0, to: 999 })
+      if (result.error) throw result.error
       scope.options = result.data ?? []
       if (!scope.accountSetId && scope.options.length) {
         scope.accountSetId = scope.options[0].value
         await loadFoundation()
       }
+    } catch (error) {
+      workspace.error = getFriendlySupabaseErrorMessage(error, '账套加载失败，请重试')
     } finally {
       scope.loading = false
+      workspace.loading = false
     }
   }
 

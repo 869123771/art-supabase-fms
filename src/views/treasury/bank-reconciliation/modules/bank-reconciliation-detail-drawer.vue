@@ -21,7 +21,11 @@
             <span>已匹配 {{ detail.matchedCount }}/{{ detail.lineCount }} 行</span>
           </div>
           <div v-if="['draft', 'reconciling'].includes(detail.status)">
-            <ElButton v-auth="'FinanceBankReconciliation:AutoMatch'" @click="handleAutoMatch">
+            <ElButton
+              v-auth="'FinanceBankReconciliation:AutoMatch'"
+              :loading="autoMatching"
+              @click="handleAutoMatch"
+            >
               <ArtSvgIcon icon="ri:magic-line" />
               自动匹配
             </ElButton>
@@ -126,7 +130,7 @@
     transitionBankReconciliation,
     unmatchBankStatementLine
   } from '@fms/api'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useUserStore } from '@/store/modules/user'
   import { formatCurrencyValue } from '@/utils/ui'
@@ -367,6 +371,12 @@
     matchesLoading.value = false
     matchesError.value = null
     try {
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsBankReconciliationStatus'),
+        userStore.ensureDictLoaded('fmsFundLedgerDirection'),
+        userStore.ensureDictLoaded('fmsBankStatementLineStatus'),
+        userStore.ensureDictLoaded('fmsBankMatchType')
+      ])
       const [batchResult, lineResult] = await Promise.all([
         fetchBankReconciliationDetail(batchId, { showErrorMessage: false }),
         fetchBankStatementLines(batchId, { showErrorMessage: false })
@@ -429,11 +439,19 @@
     void loadDetail()
   }
 
+  const autoMatching = ref(false)
   async function handleAutoMatch(): Promise<void> {
-    if (!detail.value) return
-    await autoMatchBankReconciliation(detail.value.id)
-    await loadDetail()
-    emit('changed')
+    if (!detail.value || autoMatching.value) return
+    autoMatching.value = true
+    try {
+      await autoMatchBankReconciliation(detail.value.id)
+      await loadDetail()
+      emit('changed')
+    } catch (error) {
+      notifyFriendlyError(error, '自动匹配失败，请刷新银行流水后重试。')
+    } finally {
+      autoMatching.value = false
+    }
   }
 
   async function handleComplete(): Promise<void> {
@@ -449,8 +467,9 @@
       })
       if (data) detail.value = { ...detail.value, ...data, status: 'reconciled' }
       emit('changed')
-    } catch {
-      // 用户取消或数据库校验阻止时不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '完成对账失败，请刷新批次并检查未匹配项和余额差。')
     }
   }
 
@@ -472,8 +491,9 @@
       if (data) detail.value = { ...detail.value, ...data, status: 'voided' }
       await loadDetail()
       emit('changed')
-    } catch {
-      // 用户取消或数据库校验阻止时不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '作废对账批次失败，请刷新批次状态后重试。')
     }
   }
 
@@ -490,8 +510,9 @@
       await ignoreBankStatementLine(row.id, reason)
       await loadDetail()
       emit('changed')
-    } catch {
-      // 用户取消时不处理。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '忽略银行流水失败，请刷新流水状态后重试。')
     }
   }
 
@@ -504,8 +525,9 @@
       await unmatchBankStatementLine(row.id)
       await loadDetail()
       emit('changed')
-    } catch {
-      // 用户取消时不处理。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '撤销匹配失败，请刷新匹配记录后重试。')
     }
   }
 
@@ -515,12 +537,6 @@
   }
 
   async function handleOpen(row: Batch): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsBankReconciliationStatus'),
-      userStore.ensureDictLoaded('fmsFundLedgerDirection'),
-      userStore.ensureDictLoaded('fmsBankStatementLineStatus'),
-      userStore.ensureDictLoaded('fmsBankMatchType')
-    ])
     detailRequestVersion += 1
     matchRequestVersion += 1
     activeBatchId.value = row.id
@@ -533,7 +549,6 @@
     await drawerRef.value?.handleOpen(row, {
       title: `银行对账 · ${row.batchNo}`,
       size: '82%',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: loadDetail,
       drawerProps: { appendToBody: true, resizable: false, closeOnClickModal: true }
     })

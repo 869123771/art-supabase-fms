@@ -3,6 +3,24 @@
     <template #subtitle>
       账号仅在保存时用于生成掩码和不可逆指纹，系统不存储完整明文账号。
     </template>
+    <ElAlert
+      v-if="currencyError"
+      class="mb-4"
+      type="error"
+      :closable="false"
+      show-icon
+      title="账户币种加载失败"
+    >
+      <span>请重试后再选择币种。</span>
+      <ElButton
+        type="primary"
+        link
+        :loading="currencyLoading"
+        @click="loadCurrencies(form.data.accountSetId)"
+      >
+        重新加载
+      </ElButton>
+    </ElAlert>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -47,6 +65,9 @@
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const currencyOptions = ref<Array<{ label: string; value: string }>>([])
+  const currencyLoading = ref(false)
+  const currencyError = ref(false)
+  let currencyRequestId = 0
   const canViewSensitiveField = (field: Api.Fms.FundAccountFieldKey): boolean =>
     canViewField(form.data.fieldAccess, field, form.data.id ? 'hidden' : 'edit')
   const canEditSensitiveField = (field: Api.Fms.FundAccountFieldKey): boolean =>
@@ -54,6 +75,7 @@
 
   const createInitialForm = (): FormData => ({
     id: undefined,
+    fieldAccess: {},
     accountSetId: '',
     currencyId: '',
     accountCode: '',
@@ -153,8 +175,13 @@
       props: {
         options: currencyOptions.value,
         filterable: true,
-        disabled: Boolean(form.data.id),
-        placeholder: '选择币种'
+        disabled:
+          Boolean(form.data.id) ||
+          !form.data.accountSetId ||
+          currencyLoading.value ||
+          currencyError.value,
+        loading: currencyLoading.value,
+        placeholder: !form.data.accountSetId ? '请先选择所属账套' : '选择币种'
       }
     },
     {
@@ -285,24 +312,40 @@
   ])
 
   async function loadCurrencies(accountSetId: string, reset = false): Promise<void> {
+    const requestId = ++currencyRequestId
+    currencyOptions.value = []
+    currencyError.value = false
+    currencyLoading.value = false
     if (reset) form.data.currencyId = ''
     if (!accountSetId) {
       currencyOptions.value = []
       return
     }
-    const { data } = await fetchCurrencyList(accountSetId)
-    currencyOptions.value = (data ?? [])
-      .filter((item) => item.isEnabled)
-      .map((item) => ({
-        label: `${item.currencyCode} · ${item.currencyName}${item.isBase ? '（本位币）' : ''}`,
-        value: item.id
-      }))
-    if (reset && currencyOptions.value.length === 1) {
-      form.data.currencyId = currencyOptions.value[0].value
+    currencyLoading.value = true
+    try {
+      const { data, error } = await fetchCurrencyList(accountSetId)
+      if (requestId !== currencyRequestId) return
+      if (error) throw error
+      currencyOptions.value = (data ?? [])
+        .filter((item) => item.isEnabled)
+        .map((item) => ({
+          label: `${item.currencyCode} · ${item.currencyName}${item.isBase ? '（本位币）' : ''}`,
+          value: item.id
+        }))
+      if (reset && currencyOptions.value.length === 1) {
+        form.data.currencyId = currencyOptions.value[0].value
+      }
+    } catch (error) {
+      if (requestId !== currencyRequestId) return
+      currencyError.value = true
+      notifyFriendlyError(error, '账户币种加载失败，请重试')
+    } finally {
+      if (requestId === currencyRequestId) currencyLoading.value = false
     }
   }
 
   async function handleSubmit(): Promise<boolean> {
+    if (currencyLoading.value || currencyError.value) return false
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
       const payload: Partial<Api.Fms.SaveFundAccountPayload> = {
@@ -339,11 +382,10 @@
   }
 
   async function handleOpen(row?: Account): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('commonBoolean'),
-      userStore.ensureDictLoaded('fmsFundAccountStatus'),
-      userStore.ensureDictLoaded('fmsFundAccountType')
-    ])
+    currencyRequestId++
+    currencyOptions.value = []
+    currencyLoading.value = false
+    currencyError.value = false
     accountSetOptions.value = []
     Object.assign(
       form.data,
@@ -380,12 +422,25 @@
       onOpen: async (_openData, api) => {
         formRef.value?.clearValidate()
         try {
-          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          await Promise.all([
+            userStore.ensureDictLoaded('commonBoolean'),
+            userStore.ensureDictLoaded('fmsFundAccountStatus'),
+            userStore.ensureDictLoaded('fmsFundAccountType')
+          ])
+          const { data, error } = await fetchAccountSetOptions({
+            status: 'active',
+            from: 0,
+            to: 999
+          })
+          if (error) throw error
           accountSetOptions.value = data ?? []
           if (!form.data.accountSetId && accountSetOptions.value.length === 1) {
             form.data.accountSetId = accountSetOptions.value[0].value
           }
           if (form.data.accountSetId) await loadCurrencies(form.data.accountSetId)
+        } catch (error) {
+          notifyFriendlyError(error, '资金账户基础资料加载失败，请重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

@@ -144,9 +144,14 @@
 
   function createPayload(): FormData {
     return {
-      ...toRaw(form.data),
+      id: form.data.id,
+      tenantId: form.data.tenantId,
+      accountSetId: form.data.accountSetId,
       typeCode: form.data.typeCode.trim().toUpperCase(),
       typeName: form.data.typeName.trim(),
+      sourceType: form.data.sourceType,
+      isEnabled: form.data.isEnabled,
+      sort: form.data.sort,
       remark: normalizeNullableText(form.data.remark)
     }
   }
@@ -167,10 +172,6 @@
     accountSet: Api.Fms.AccountSetOption,
     row?: AuxiliaryType
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('commonBoolean'),
-      userStore.ensureDictLoaded('fmsAuxiliarySourceType')
-    ])
     context.isSystem = row?.isSystem ?? false
     Object.assign(form.data, createInitialForm(), {
       ...(row ?? {}),
@@ -183,8 +184,23 @@
       title: row ? `编辑维度 · ${row.typeName}` : '新增辅助核算维度',
       confirmText: row ? '保存修改' : '创建维度',
       contentMaxHeight: '65vh',
+      loading: true,
+      loadingText: '正在加载核算维度选项…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await Promise.all([
+            userStore.ensureDictLoaded('commonBoolean'),
+            userStore.ensureDictLoaded('fmsAuxiliarySourceType')
+          ])
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '核算维度选项加载失败，请重新打开重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

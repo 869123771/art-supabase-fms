@@ -4,7 +4,13 @@
       <div class="voucher-entry-lines__header">
         <div>
           <ArtSectionTitle :show-line="false">凭证分录</ArtSectionTitle>
-          <p>借贷金额必须平衡；科目启用外币、数量或辅助核算时，请同步填写对应信息。</p>
+          <p>
+            {{
+              isTemplateMode
+                ? '设置科目、借贷方向和默认金额；套用后可调整，生成的凭证提交前须借贷平衡。'
+                : '借贷金额必须平衡；科目启用外币、数量或辅助核算时，请同步填写对应信息。'
+            }}
+          </p>
         </div>
         <ElButton v-if="!readonly" type="primary" plain @click="addLine">
           <ArtSvgIcon icon="ri:add-line" />新增分录

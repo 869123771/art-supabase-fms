@@ -513,38 +513,59 @@
     Object.assign(appliedItemFilter, createDefaultItemFilter())
   }
 
+  let itemRequestId = 0
+  let workspaceRequestId = 0
+
   async function loadItems(): Promise<void> {
-    if (!scope.accountSetId || !workspace.selectedTypeId) {
+    const requestId = ++itemRequestId
+    const accountSetId = scope.accountSetId
+    const typeId = workspace.selectedTypeId
+    const isCurrent = () =>
+      requestId === itemRequestId &&
+      accountSetId === scope.accountSetId &&
+      typeId === workspace.selectedTypeId
+    if (!accountSetId || !typeId) {
       workspace.items = []
+      workspace.itemLoading = false
+      workspace.itemError = ''
       return
     }
     workspace.itemLoading = true
     workspace.itemError = ''
     try {
-      const result = await fetchAuxiliaryItemList(scope.accountSetId, workspace.selectedTypeId)
+      const result = await fetchAuxiliaryItemList(accountSetId, typeId)
+      if (!isCurrent()) return
+      if (result.error) throw result.error
       workspace.items = result.data ?? []
     } catch (error) {
+      if (!isCurrent()) return
       workspace.itemError = getFriendlySupabaseErrorMessage(error, '辅助核算项目加载失败')
     } finally {
-      workspace.itemLoading = false
+      if (isCurrent()) workspace.itemLoading = false
     }
   }
 
   async function loadWorkspace(): Promise<void> {
-    if (!scope.accountSetId) return
+    const requestId = ++workspaceRequestId
+    const accountSetId = scope.accountSetId
+    const isCurrent = () => requestId === workspaceRequestId && accountSetId === scope.accountSetId
+    if (!accountSetId) return
     workspace.loading = true
     workspace.error = ''
     try {
-      const result = await fetchAuxiliaryTypeList(scope.accountSetId)
+      const result = await fetchAuxiliaryTypeList(accountSetId)
+      if (!isCurrent()) return
+      if (result.error) throw result.error
       workspace.types = result.data ?? []
       if (!workspace.types.some((item) => item.id === workspace.selectedTypeId)) {
         workspace.selectedTypeId = workspace.types[0]?.id ?? ''
       }
       await loadItems()
     } catch (error) {
+      if (!isCurrent()) return
       workspace.error = getFriendlySupabaseErrorMessage(error, '辅助核算维度加载失败')
     } finally {
-      workspace.loading = false
+      if (isCurrent()) workspace.loading = false
     }
   }
 

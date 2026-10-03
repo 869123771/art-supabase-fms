@@ -5,10 +5,16 @@
         <template #title>折旧数据加载失败</template>
         <ElButton link type="primary" @click="loadInitialData">重新加载</ElButton>
       </ElAlert>
+      <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon>
+        <template #title>会计期间加载失败，请重新加载后再计算。</template>
+        <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+      </ElAlert>
       <section class="depreciation-workbench__controls">
         <ElSelect
           v-model="accountSetId"
           filterable
+          aria-label="所属账套"
+          :disabled="calculating"
           placeholder="选择账套"
           :no-data-text="ACCOUNTING_SELECT_EMPTY_TEXT.accountSet"
           @change="loadPeriods"
@@ -20,8 +26,10 @@
         /></ElSelect>
         <ElSelect
           v-model="periodId"
+          aria-label="会计期间"
           placeholder="选择开放期间"
-          :disabled="!accountSetId"
+          :loading="periodsLoading"
+          :disabled="!accountSetId || periodsLoading || periodLoadFailed || calculating"
           :no-data-text="
             accountSetId
               ? ACCOUNTING_SELECT_EMPTY_TEXT.openAccountingPeriod
@@ -36,7 +44,15 @@
         <ElButton
           v-auth="'FinanceFixedAsset:Depreciation'"
           type="primary"
-          :disabled="!periodId || !canCalculate"
+          :disabled="
+            !periodId ||
+            !canCalculate ||
+            periodsLoading ||
+            periodLoadFailed ||
+            runsLoading ||
+            Boolean(runsError)
+          "
+          :loading="calculating"
           :title="canCalculate ? undefined : '需要资产价值字段编辑权限'"
           @click="calculate"
           >计算本期折旧</ElButton
@@ -45,6 +61,9 @@
       <ArtSectionCard
         title="折旧批次"
         subtitle="选择批次查看资产折旧明细"
+        :loading="runsLoading"
+        :error="runsError"
+        @retry="loadRuns"
         :empty="!runs.length"
         empty-title="暂无折旧批次"
         empty-description="选择开放期间并计算本期折旧后，批次会显示在这里。"
@@ -54,6 +73,8 @@
       >
         <ArtTable
           v-if="!isCompact"
+          class="h-auto!"
+          height="auto"
           :border="false"
           :pagination="false"
           :show-table-header="false"
@@ -80,11 +101,7 @@
                 :value="row.status"
                 display="tag" /></template
           ></ElTableColumn>
-          <ElTableColumn
-            v-if="hasAuth('FinanceFixedAsset:Depreciation')"
-            label="操作"
-            width="80"
-            fixed="right"
+          <ElTableColumn v-if="hasRunActions" label="操作" width="80" fixed="right"
             ><template #default="{ row }"
               ><BusinessTableRowActions
                 @click.stop
@@ -134,6 +151,9 @@
       <ArtSectionCard
         v-if="selectedRun"
         :title="`${selectedRun.runNo} · 折旧明细`"
+        :loading="linesLoading"
+        :error="linesError"
+        @retry="selectRun(selectedRun)"
         :empty="!lines.length"
         empty-title="暂无资产折旧明细"
         empty-description="此批次没有可展示的资产明细。"
@@ -143,6 +163,8 @@
       >
         <ArtTable
           v-if="!isCompact"
+          class="h-auto!"
+          height="auto"
           :border="false"
           :pagination="false"
           :show-table-header="false"
@@ -196,6 +218,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
@@ -204,7 +227,7 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { formatCurrencyValue } from '@/utils/ui'
   import { useMediaQuery } from '@vueuse/core'
@@ -213,7 +236,6 @@
   import {
     actAssetDepreciationRun,
     calculateAssetDepreciation,
-    fetchAccountingPeriodList,
     fetchAccountSetOptions,
     fetchAssetDepreciationLines,
     fetchAssetDepreciationRuns
@@ -225,11 +247,28 @@
   const drawerRef = ref<ArtDrawerExpose>()
   const prerequisiteOverlay = createFinancePrerequisiteOverlay(drawerRef)
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
-  const periodOptions = ref<Array<{ label: string; value: string }>>([])
   const accountSetId = ref('')
   const loadError = ref(false)
   const requestedAccountSetId = ref<string>()
   const periodId = ref('')
+  const {
+    periodOptions,
+    periodsLoading,
+    periodLoadFailed,
+    loadPeriods: loadPeriodOptions,
+    resetPeriods
+  } = useAccountingPeriodOptions(
+    accountSetId,
+    periodId,
+    computed(() => false)
+  )
+  const runsLoading = ref(false)
+  const runsError = ref('')
+  const linesLoading = ref(false)
+  const linesError = ref('')
+  const calculating = ref(false)
+  let runsRequestId = 0
+  let linesRequestId = 0
   const runs = ref<Api.Fms.AssetDepreciationRunRecord[]>([])
   const selectedRun = ref<Api.Fms.AssetDepreciationRunRecord>()
   const lines = ref<Api.Fms.AssetDepreciationLineRecord[]>([])
@@ -242,6 +281,13 @@
     mergeFieldAccessMaps(lineFieldAccess.value, ...lines.value.map((row) => row.fieldAccess))
   )
   const { hasAuth } = useAuth()
+  const hasRunActions = computed(
+    () =>
+      hasAuth('FinanceFixedAsset:Depreciation') &&
+      runs.value.some(
+        (run) => run.status === 'calculated' && canEditField(run.fieldAccess, 'assetValues')
+      )
+  )
   const canCalculate = computed(
     () =>
       hasAuth('FinanceFixedAsset:Depreciation') && canEditField(runFieldAccess.value, 'assetValues')
@@ -249,39 +295,76 @@
   const canViewRunValues = computed(() => canViewField(effectiveRunAccess.value, 'assetValues'))
   const canViewLineValues = computed(() => canViewField(effectiveLineAccess.value, 'assetValues'))
   async function loadPeriods(): Promise<void> {
-    periodId.value = ''
-    periodOptions.value = []
-    if (!accountSetId.value) return
-    const { data } = await fetchAccountingPeriodList(accountSetId.value)
-    periodOptions.value = (data ?? [])
-      .filter((item) => item.status === 'open')
-      .map((item) => ({
-        label: `${item.fiscalYear} 年第 ${item.periodNo} 期（${item.startDate} 至 ${item.endDate}）`,
-        value: item.id
-      }))
-    periodId.value = periodOptions.value[0]?.value ?? ''
-    await loadRuns()
+    selectedRun.value = undefined
+    ++linesRequestId
+    lines.value = []
+    linesError.value = ''
+    linesLoading.value = false
+    runs.value = []
+    runFieldAccess.value = {}
+    await Promise.all([loadPeriodOptions(), loadRuns()])
   }
   async function loadRuns(): Promise<void> {
-    const result = await fetchAssetDepreciationRuns(accountSetId.value)
-    runs.value = result.data ?? []
-    runFieldAccess.value = result.fieldAccess
+    const requestId = ++runsRequestId
+    const currentAccountSetId = accountSetId.value
+    runsError.value = ''
+    runsLoading.value = Boolean(currentAccountSetId)
+    if (!currentAccountSetId) return
+    try {
+      const result = await fetchAssetDepreciationRuns(currentAccountSetId)
+      if (requestId !== runsRequestId || currentAccountSetId !== accountSetId.value) return
+      if (result.error) {
+        runsError.value = '折旧批次加载失败，请重试。'
+        return
+      }
+      runs.value = result.data ?? []
+      runFieldAccess.value = result.fieldAccess
+    } catch {
+      if (requestId === runsRequestId) runsError.value = '折旧批次加载失败，请重试。'
+    } finally {
+      if (requestId === runsRequestId) runsLoading.value = false
+    }
   }
   async function selectRun(rawRow: object): Promise<void> {
     const row = rawRow as Api.Fms.AssetDepreciationRunRecord
+    const requestId = ++linesRequestId
     selectedRun.value = row
-    const result = await fetchAssetDepreciationLines(row.id)
-    lines.value = result.data ?? []
-    lineFieldAccess.value = result.fieldAccess
+    lines.value = []
+    lineFieldAccess.value = {}
+    linesError.value = ''
+    linesLoading.value = true
+    try {
+      const result = await fetchAssetDepreciationLines(row.id)
+      if (requestId !== linesRequestId || selectedRun.value?.id !== row.id) return
+      if (result.error) {
+        linesError.value = '资产折旧明细加载失败，请重试。'
+        return
+      }
+      lines.value = result.data ?? []
+      lineFieldAccess.value = result.fieldAccess
+    } catch {
+      if (requestId === linesRequestId) linesError.value = '资产折旧明细加载失败，请重试。'
+    } finally {
+      if (requestId === linesRequestId) linesLoading.value = false
+    }
   }
   async function calculate(): Promise<void> {
+    if (calculating.value || periodsLoading.value || periodLoadFailed.value || !periodId.value)
+      return
     if (!canCalculate.value) {
       ElMessage.warning('你没有资产价值字段的编辑权限，无法计算折旧')
       return
     }
-    await calculateAssetDepreciation(periodId.value)
-    await loadRuns()
-    emit('success')
+    calculating.value = true
+    try {
+      await calculateAssetDepreciation(periodId.value)
+      await loadRuns()
+      emit('success')
+    } catch (error) {
+      notifyFriendlyError(error, '折旧计算失败，请检查期间和资产状态后重试')
+    } finally {
+      calculating.value = false
+    }
   }
   async function postRun(rawRow: object): Promise<void> {
     const row = rawRow as Api.Fms.AssetDepreciationRunRecord
@@ -298,15 +381,21 @@
       await actAssetDepreciationRun(row.id, 'post')
       await loadRuns()
       emit('success')
-    } catch {
-      /* 用户取消 */
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '折旧入账失败，请刷新批次状态后重试')
+      }
     }
   }
   async function loadInitialData(): Promise<void> {
     loadError.value = false
     drawerRef.value?.setLoading(true)
     try {
-      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      const { data, error } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      if (error) {
+        loadError.value = true
+        return
+      }
       accountSetOptions.value = data ?? []
       accountSetId.value = requestedAccountSetId.value || accountSetOptions.value[0]?.value || ''
       await loadPeriods()
@@ -317,6 +406,17 @@
     }
   }
   async function handleOpen(currentAccountSetId?: string): Promise<void> {
+    ++runsRequestId
+    ++linesRequestId
+    resetPeriods()
+    accountSetId.value = ''
+    periodId.value = ''
+    selectedRun.value = undefined
+    lines.value = []
+    runsError.value = ''
+    linesError.value = ''
+    runsLoading.value = false
+    linesLoading.value = false
     requestedAccountSetId.value = currentAccountSetId
     loadError.value = false
     accountSetOptions.value = []

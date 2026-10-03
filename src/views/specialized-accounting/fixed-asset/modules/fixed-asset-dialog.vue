@@ -3,6 +3,12 @@
     <template #subtitle
       >资产先以草稿登记；确认转固后进入折旧与处置生命周期，核心价值字段不可直接修改。</template
     >
+    <ElAlert v-if="categoriesFailed" type="error" :closable="false" show-icon class="mb-4">
+      <template #title>资产类别加载失败，请重新加载后再保存。</template>
+      <ElButton text type="primary" @click="loadCategories(form.accountSetId)"
+        >重新加载类别</ElButton
+      >
+    </ElAlert>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -48,6 +54,9 @@
   const categoryOptions = ref<Array<{ label: string; value: string; life: number; rate: number }>>(
     []
   )
+  const categoriesLoading = ref(false)
+  const categoriesFailed = ref(false)
+  let categoryRequestId = 0
   const initial = (): Api.Fms.SaveFixedAssetPayload => ({
     accountSetId: '',
     categoryId: '',
@@ -104,7 +113,12 @@
         label: '资产类别',
         key: 'categoryId',
         type: 'select',
-        props: { options: categoryOptions.value, filterable: true }
+        props: {
+          options: categoryOptions.value,
+          filterable: true,
+          loading: categoriesLoading.value,
+          disabled: !form.accountSetId || categoriesLoading.value || categoriesFailed.value
+        }
       },
       {
         label: '资产编号',
@@ -241,20 +255,34 @@
     return result
   })
   async function loadCategories(accountSetId: string): Promise<void> {
-    const { data } = await fetchAssetCategoryList(accountSetId)
-    categoryOptions.value = (data ?? [])
-      .filter((item) => item.isEnabled)
-      .map((item) => ({
-        label: `${item.categoryName}（${item.categoryCode}）`,
-        value: item.id,
-        life: item.defaultUsefulLifeMonths,
-        rate: item.defaultResidualRate
-      }))
+    const requestId = ++categoryRequestId
+    categoryOptions.value = []
+    categoriesFailed.value = false
+    categoriesLoading.value = Boolean(accountSetId)
+    if (!accountSetId) return
+    try {
+      const { data, error } = await fetchAssetCategoryList(accountSetId)
+      if (requestId !== categoryRequestId || accountSetId !== form.accountSetId) return
+      if (error) throw error
+      categoryOptions.value = (data ?? [])
+        .filter((item) => item.isEnabled)
+        .map((item) => ({
+          label: `${item.categoryName}（${item.categoryCode}）`,
+          value: item.id,
+          life: item.defaultUsefulLifeMonths,
+          rate: item.defaultResidualRate
+        }))
+    } catch {
+      if (requestId === categoryRequestId) categoriesFailed.value = true
+    } finally {
+      if (requestId === categoryRequestId) categoriesLoading.value = false
+    }
   }
   watch(
     () => form.accountSetId,
     async (value) => {
-      if (value) await loadCategories(value)
+      if (!form.id) form.categoryId = ''
+      await loadCategories(value)
     }
   )
   watch(
@@ -269,6 +297,7 @@
   )
   async function submit(): Promise<boolean> {
     try {
+      if (categoriesLoading.value || categoriesFailed.value) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
       if (
         dayjs(form.readyForUseDate).isBefore(form.acquisitionDate) ||
@@ -319,17 +348,22 @@
       return false
     }
   }
-  async function handleOpen(row?: Api.Fms.FixedAssetRecord): Promise<void> {
+  async function handleOpen(row?: Api.Fms.FixedAssetRecord, accountSetId?: string): Promise<void> {
     currentRecord.value = row
+    form.id = undefined
     Object.assign(form, initial())
     const prepare = async () => {
-      const { data: accountSets } = await fetchAccountSetOptions({
+      const { data: accountSets, error: accountSetError } = await fetchAccountSetOptions({
         status: 'active',
         from: 0,
         to: 999
       })
+      if (accountSetError) throw accountSetError
       accountSetOptions.value = accountSets ?? []
-      const record = row ? ((await fetchFixedAssetDetail(row.id)).data ?? row) : undefined
+      const detailResult = row ? await fetchFixedAssetDetail(row.id) : undefined
+      if (detailResult?.error) throw detailResult.error
+      if (row && !detailResult?.data) throw new Error('资产记录不存在，请刷新列表后重试')
+      const record = detailResult?.data ?? undefined
       currentRecord.value = record
       fieldAccess.value = record?.fieldAccess ?? {}
       Object.assign(
@@ -368,7 +402,12 @@
           remark: record.remark
         }
       )
-      if (!record) form.accountSetId = accountSetOptions.value[0]?.value ?? ''
+      if (!record) {
+        if (accountSetId && !accountSetOptions.value.some((item) => item.value === accountSetId)) {
+          throw new Error('所选账套已不可用，请刷新列表后重试')
+        }
+        form.accountSetId = accountSetId ?? accountSetOptions.value[0]?.value ?? ''
+      }
       if (form.accountSetId) await loadCategories(form.accountSetId)
     }
     await dialogRef.value?.handleOpen(undefined, {
@@ -381,6 +420,9 @@
         try {
           await prepare()
           formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '资产资料加载失败，请重新打开重试')
+          dialogRef.value?.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

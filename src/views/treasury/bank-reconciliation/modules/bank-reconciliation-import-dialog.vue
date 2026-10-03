@@ -329,7 +329,6 @@
   }
 
   async function handleOpen(): Promise<void> {
-    await userStore.ensureDictLoaded('fmsFundLedgerDirection')
     accountSetOptions.value = []
     accountSetId.value = ''
     accountOptions.value = []
@@ -340,14 +339,23 @@
       loading: true,
       loadingText: '正在加载账套…',
       onConfirm: handleSubmit,
-      onOpen: async () => {
+      onOpen: async (_openData, api) => {
         formRef.value?.clearValidate()
         try {
-          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          await userStore.ensureDictLoaded('fmsFundLedgerDirection')
+          const { data, error } = await fetchAccountSetOptions({
+            status: 'active',
+            from: 0,
+            to: 999
+          })
+          if (error) throw error
           accountSetOptions.value = data ?? []
           if (accountSetOptions.value.length === 1) {
             await handleAccountSetChange(accountSetOptions.value[0].value)
           }
+        } catch (error) {
+          notifyFriendlyError(error, '银行对账导入基础资料加载失败，请重试')
+          await api.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <div class="voucher-template-dialog">
       <ArtForm
         ref="formRef"
@@ -7,7 +7,7 @@
         v-model="form.data"
         :items="form.items"
         :rules="form.rules"
-        :span="8"
+        :span="12"
         :gutter="18"
         label-width="96px"
         :show-reset="false"
@@ -131,6 +131,7 @@
 
   function createInitialForm(): FormData {
     return {
+      id: undefined,
       accountSetId: '',
       templateCode: '',
       templateName: '',
@@ -150,7 +151,7 @@
         label: '账套',
         key: 'accountSetId',
         type: 'select',
-        span: 12,
+        span: 24,
         props: {
           options: [{ label: context.accountSet.label, value: context.accountSet.value }],
           disabled: true
@@ -160,14 +161,14 @@
         label: '模板编码',
         key: 'templateCode',
         type: 'input',
-        span: 6,
+        span: 12,
         props: { maxlength: 30, placeholder: '如 CASH_RECEIPT' }
       },
       {
         label: '模板名称',
         key: 'templateName',
         type: 'input',
-        span: 6,
+        span: 12,
         props: { maxlength: 80, placeholder: '请输入模板名称' }
       },
       ...(canShowEntries.value
@@ -341,24 +342,25 @@
     row?: Template,
     loadContext?: () => Promise<DialogContext | undefined>
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsBalanceDirection'),
-      userStore.ensureDictLoaded('fmsVoucherType')
-    ])
     Object.assign(context, dialogContext)
     fieldAccess.value = {}
     detailLineCount.value = 0
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
     form.lines = [createLine(1, 'debit'), createLine(2, 'credit')]
     const prepare = async (): Promise<boolean> => {
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsBalanceDirection'),
+        userStore.ensureDictLoaded('fmsVoucherType')
+      ])
       if (loadContext) {
         const loaded = await loadContext()
-        if (!loaded) return false
+        if (!loaded) throw new Error('凭证模板核算基础加载失败，请重试')
         Object.assign(context, loaded)
       }
       if (!row?.id) return true
-      const { data } = await fetchVoucherTemplateDetail(row.id)
-      if (!data) return false
+      const { data, error } = await fetchVoucherTemplateDetail(row.id)
+      if (error) throw error
+      if (!data) throw new Error('凭证模板不存在或无权查看，请刷新列表')
       fieldAccess.value = data.fieldAccess ?? {}
       detailLineCount.value = data.lineCount ?? 0
       Object.assign(form.data, {
@@ -400,7 +402,7 @@
       contentMaxHeight: '78vh',
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },
-      loading: Boolean(row?.id || loadContext),
+      loading: true,
       loadingText: '正在加载凭证模板…',
       onConfirm: handleSubmit,
       onOpen: async (_openData, api) => {
@@ -410,6 +412,9 @@
             return
           }
           formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '凭证模板加载失败，请重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

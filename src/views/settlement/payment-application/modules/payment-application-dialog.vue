@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <ArtForm
       ref="formRef"
       v-model="form.data"
@@ -105,7 +105,13 @@
     <ElAlert
       v-if="canViewApplicationField('applicationAmounts')"
       class="payment-application-dialog__summary"
-      :type="allocationSummary.remaining === 0 ? 'success' : 'warning'"
+      :type="
+        allocationSummary.limit <= 0
+          ? 'info'
+          : allocationSummary.remaining === 0
+            ? 'success'
+            : 'warning'
+      "
       :closable="false"
       show-icon
       :title="summaryText"
@@ -352,6 +358,7 @@
     if (getFieldAccess(fieldAccess.value, 'applicationAmounts') === 'masked') {
       return '申请金额与付款分配已脱敏'
     }
+    if (allocationSummary.value.limit <= 0) return '填写申请金额并选择对账单后，核对付款分配合计。'
     return `申请金额 ${money(allocationSummary.value.limit)}，已分配 ${money(allocationSummary.value.allocated)}，待分配 ${money(allocationSummary.value.remaining)}`
   })
 
@@ -439,19 +446,21 @@
   }
 
   async function fetchCarrierSelectorData(params: DataSelectFetchParams) {
-    const { data } = await fetchCarrierOptions({ companyName: params.keyword })
+    const { data, error } = await fetchCarrierOptions({ companyName: params.keyword })
+    if (error) throw error
     return { data: data ?? [], total: data?.length ?? 0 }
   }
 
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.data.carrierId) return { data: [], total: 0 }
     const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
-    const { data, total } = await fetchCarrierStatementAllocatableList({
+    const { data, total, error } = await fetchCarrierStatementAllocatableList({
       carrierId: form.data.carrierId,
       keyword: params.keyword,
       from,
       to
     })
+    if (error) throw error
     return {
       data: (data ?? []).map((item) => ({
         ...item,
@@ -547,7 +556,10 @@
   }
 
   async function loadApplication(id: string): Promise<void> {
-    const { data } = await fetchCarrierPaymentApplicationDetail(id)
+    const { data, error } = await fetchCarrierPaymentApplicationDetail(id, {
+      showErrorMessage: false
+    })
+    if (error) throw error
     if (!data) throw new Error('付款申请不存在')
     fieldAccess.value = data.fieldAccess ?? {}
     Object.assign(form.data, {
@@ -591,7 +603,6 @@
   }
 
   async function handleOpen(row?: Application): Promise<void> {
-    await userStore.ensureDictLoaded('tmsCashPaymentMethod')
     await resetForm()
     if (row) fieldAccess.value = row.fieldAccess ?? {}
     await dialogRef.value?.handleOpen(row, {
@@ -603,8 +614,12 @@
       loadingText: '正在准备付款申请…',
       onOpen: async (_data, api) => {
         try {
+          await userStore.ensureDictLoaded('tmsCashPaymentMethod')
           await applicationNumber.loadRule()
           if (row) await loadApplication(row.id)
+        } catch (error) {
+          notifyFriendlyError(error, '付款申请基础资料加载失败，请重新打开后重试')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

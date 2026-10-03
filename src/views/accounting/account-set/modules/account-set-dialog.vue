@@ -29,7 +29,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { saveAccountSet } from '@fms/api'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
+  import { fetchEnabledTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import { canEditField, getFieldAccess, type FieldAccessLevel } from '@/utils/field-permission'
 
@@ -134,7 +134,7 @@
       key: 'tenantId',
       type: 'select',
       span: 24,
-      api: fetchGetEnableTenantList,
+      api: fetchEnabledTenantList,
       resultField: 'data',
       labelField: 'tenantName',
       valueField: 'id',

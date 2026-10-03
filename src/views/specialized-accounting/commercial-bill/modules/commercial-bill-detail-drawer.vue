@@ -192,11 +192,10 @@
       userStore.ensureDictLoaded('fmsBillStatus'),
       userStore.ensureDictLoaded('fmsBillEventType')
     ])
-    openDetail(row.id, { record: row, events: [] })
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: '票据详情',
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

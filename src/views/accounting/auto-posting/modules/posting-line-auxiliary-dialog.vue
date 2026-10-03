@@ -8,6 +8,18 @@
         title="系统按业务实体 ID 匹配当前账套已同步的核算项目；未匹配时该事件会进入待配置。"
       />
 
+      <ArtEmptyState
+        v-if="!bindings.length"
+        size="compact"
+        title="尚未配置核算维度绑定"
+        description="需要辅助核算的科目可添加绑定；其他科目无需配置。"
+        :visual-size="96"
+      >
+        <ElButton type="primary" plain @click="addBinding">
+          <ArtSvgIcon icon="ri:add-line" />新增绑定
+        </ElButton>
+      </ArtEmptyState>
+
       <div
         v-for="(binding, index) in bindings"
         :key="binding.key"
@@ -48,7 +60,12 @@
         />
       </div>
 
-      <ElButton plain class="posting-auxiliary-dialog__add" @click="addBinding">
+      <ElButton
+        v-if="bindings.length"
+        plain
+        class="posting-auxiliary-dialog__add"
+        @click="addBinding"
+      >
         <ArtSvgIcon icon="ri:add-line" />新增绑定
       </ElButton>
     </div>
@@ -61,6 +78,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
 
   defineOptions({ name: 'FinancePostingLineAuxiliaryDialog' })
 

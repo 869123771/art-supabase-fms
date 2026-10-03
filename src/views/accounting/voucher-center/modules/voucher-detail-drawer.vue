@@ -142,7 +142,7 @@
   import { downloadAttachment } from '@/utils/file'
   import { canViewField, formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
-  import { formatVoucherSummary } from '../../../modules/voucher-summary'
+  import { formatVoucherSummary, voucherSourceLabel } from '../../../modules/voucher-summary'
 
   defineOptions({ name: 'FinanceVoucherDetailDrawer' })
 
@@ -185,7 +185,12 @@
       field: 'periodNo',
       formatter: (_value, row) => `${row.fiscalYear} 年第 ${row.periodNo} 期`
     },
-    { key: 'sourceType', label: '业务来源', field: 'sourceType', dictCode: 'fmsVoucherSourceType' },
+    {
+      key: 'sourceType',
+      label: '业务来源',
+      field: 'sourceType',
+      formatter: (value) => voucherSourceLabel(value, getDictMap.value.fmsVoucherSourceType)
+    },
     ...(canViewSourceReferences.value && detail.value?.sourceNo
       ? [{ key: 'sourceNo', label: '来源单号', field: 'sourceNo', copyable: true }]
       : []),

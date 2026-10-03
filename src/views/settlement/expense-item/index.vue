@@ -62,7 +62,7 @@
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useUserStore } from '@/store/modules/user'
   import { deleteExpenseItem, fetchExpenseItemTree } from '@fms/api'
-  import { fetchGetTenantList } from '@/api/system-manage'
+  import { fetchTenantList } from '@/api/system-manage'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import ExpenseItemDialog from './modules/expense-item-dialog.vue'
@@ -320,7 +320,7 @@
 
   async function loadTenantOptions(): Promise<void> {
     if (!isPlatformSuper.value) return
-    const { data } = await fetchGetTenantList({ from: 0, to: 999 })
+    const { data } = await fetchTenantList({ from: 0, to: 999 })
     tenantOptions.value = (data ?? [])
       .filter((tenant) => tenant.id)
       .map((tenant) => ({

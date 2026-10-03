@@ -277,6 +277,9 @@
       fetchCurrencyList(accountSet.value),
       fetchAuxiliaryItemList(accountSet.value)
     ])
+    if (subjectResult.error) throw subjectResult.error
+    if (currencyResult.error) throw currencyResult.error
+    if (auxiliaryResult.error) throw auxiliaryResult.error
     entryContext.value = {
       accountSet,
       subjects: subjectResult.data ?? [],
@@ -335,6 +338,17 @@
     }
   }
 
+  watch(
+    () => [
+      canViewListField('templateEntries'),
+      canViewListField('templateNarrative'),
+      canViewListField('maintenanceAudit')
+    ],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableQueryRef.value?.resetColumns())
+    }
+  )
   onMounted(() => {
     void userStore.ensureDictLoaded('fmsVoucherType').catch(() => undefined)
     void loadAccountSets()

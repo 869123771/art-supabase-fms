@@ -75,7 +75,7 @@
     getFieldAccess,
     mergeFieldAccessMaps
   } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useUserStore } from '@/store/modules/user'
@@ -117,10 +117,14 @@
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<
-    { handleOpen: (row?: Asset) => Promise<void> } & FinancePrerequisiteOverlay
+    {
+      handleOpen: (row?: Asset, accountSetId?: string) => Promise<void>
+    } & FinancePrerequisiteOverlay
   >()
   const disposalDialogRef = ref<{ handleOpen: (row: Asset) => Promise<void> }>()
-  const categoryDialogRef = ref<{ handleOpen: () => Promise<void> } & FinancePrerequisiteOverlay>()
+  const categoryDialogRef = ref<
+    { handleOpen: (accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
+  >()
   const depreciationRef = ref<
     { handleOpen: (accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
   >()
@@ -251,7 +255,7 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen(),
+          () => dialogRef.value?.handleOpen(undefined, table.search.accountSetId),
           dialogRef.value
         )
     },
@@ -269,7 +273,7 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => categoryDialogRef.value?.handleOpen(),
+          () => categoryDialogRef.value?.handleOpen(table.search.accountSetId),
           categoryDialogRef.value
         )
     },
@@ -498,8 +502,12 @@
         await actFixedAsset(row.id, item.key as Api.Fms.FixedAssetAction)
       }
       await refreshAll()
-    } catch {
-      // 用户取消或业务约束阻止时保持当前列表。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, `${item.label}失败，请刷新资产状态后重试。`)
+      if (item.key === 'delete') {
+        await inspectDeleteReferences([{ id: row.id, label: row.assetName }])
+      }
     }
   }
 
@@ -522,6 +530,13 @@
     }
   )
 
+  watch(
+    () => [canViewListField('assetValues'), canViewListField('assetCustody')],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
   onMounted(async () => {
     await userStore.ensureDictLoaded('fmsAssetStatus').catch(() => undefined)
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })

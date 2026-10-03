@@ -369,7 +369,7 @@
         label: '登记单号',
         key: 'invoiceRecordNo',
         type: 'input',
-        span: 8,
+        span: 12,
         props: {
           maxlength: 50,
           ...invoiceRecordNumber.inputProps(Boolean(form.data.id), '请输入开票登记号', true)
@@ -380,7 +380,7 @@
         label: '发票方向',
         key: 'direction',
         type: 'select',
-        span: 8,
+        span: 12,
         props: {
           options: getDictMap.value.tmsInvoiceDirection ?? [],
           disabled: Boolean(form.data.id),
@@ -399,7 +399,7 @@
         label: '开票日期',
         key: 'issueDate',
         type: 'date',
-        span: 8,
+        span: 12,
         props: { valueFormat: 'YYYY-MM-DD', class: '!w-full' }
       },
       ...(canViewInvoiceField('invoiceAmounts')
@@ -411,7 +411,7 @@
                 getFieldAccess(fieldAccess.value, 'invoiceAmounts') === 'masked'
                   ? ('input' as const)
                   : ('number' as const),
-              span: 8,
+              span: 12,
               props: {
                 min: 0,
                 max: 100,

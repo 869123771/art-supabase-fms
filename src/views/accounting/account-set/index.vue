@@ -85,7 +85,7 @@
     initializeAccountingDefaults,
     setAccountSetStatus
   } from '@fms/api'
-  import { fetchGetEnableTenantList } from '@/api/system-manage'
+  import { fetchEnabledTenantList } from '@/api/system-manage'
   import AccountSetDialog from './modules/account-set-dialog.vue'
   import AccountingPeriodDrawer from './modules/accounting-period-drawer.vue'
 
@@ -504,7 +504,7 @@
 
   async function loadTenantOptions(): Promise<void> {
     if (!isPlatformSuper.value) return
-    const { data } = await fetchGetEnableTenantList()
+    const { data } = await fetchEnabledTenantList()
     table.tenantOptions = (data ?? [])
       .filter((tenant): tenant is Api.SystemManage.TenantListItem & { id: string } =>
         Boolean(tenant.id)
@@ -520,6 +520,17 @@
     () => void loadOverview()
   )
 
+  watch(
+    () => [
+      canViewListField('accountingPolicy'),
+      canViewListField('taxRegistration'),
+      canViewListField('administrativeAudit')
+    ],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
   onMounted(() => {
     void Promise.allSettled([
       userStore.ensureDictLoaded('fmsAccountSetStatus'),

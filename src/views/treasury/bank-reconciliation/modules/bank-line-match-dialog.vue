@@ -1,8 +1,18 @@
 <template>
-  <ArtDialog ref="dialogRef" size="md">
+  <ArtDialog
+    ref="dialogRef"
+    size="md"
+    :confirm-disabled="candidatesLoading || candidateLoadFailed || !ledgerOptions.length"
+  >
     <template #subtitle>
       可按剩余金额进行部分匹配；同一银行流水与资金流水均可分摊到多条匹配记录。
     </template>
+    <ElAlert v-if="candidateLoadFailed" type="error" :closable="false" show-icon class="mb-4">
+      <template #title>匹配候选加载失败，请重试。</template>
+      <ElButton text type="primary" :loading="candidatesLoading" @click="loadCandidates">
+        重新加载候选
+      </ElButton>
+    </ElAlert>
     <ArtForm
       ref="formRef"
       v-model="form.data"
@@ -40,6 +50,13 @@
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const line = shallowRef<Api.Fms.BankStatementLineRecord>()
   const ledgerOptions = ref<Array<{ label: string; value: string; amount: number }>>([])
+  const candidatesLoading = ref(false)
+  const candidateLoadFailed = ref(false)
+  let candidateRequestId = 0
+  watch(
+    () => candidatesLoading.value || candidateLoadFailed.value || !ledgerOptions.value.length,
+    (confirmDisabled) => dialogRef.value?.setOptions({ confirmDisabled })
+  )
   const form = reactive<{ data: FormData; rules: FormRules<FormData> }>({
     data: { ledgerEntryId: '', amount: 0, remark: '' },
     rules: {
@@ -75,6 +92,9 @@
       type: 'select',
       props: {
         options: ledgerOptions.value,
+        loading: candidatesLoading.value,
+        disabled: candidatesLoading.value || candidateLoadFailed.value,
+        noDataText: '暂无同账户、同方向的可匹配资金流水',
         filterable: true,
         placeholder: '选择同账户、同方向的资金流水'
       }
@@ -101,6 +121,7 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
+      if (candidatesLoading.value || candidateLoadFailed.value) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
       if (!line.value) return false
       await matchBankStatementLine(
@@ -118,6 +139,8 @@
   }
 
   async function handleOpen(row: Api.Fms.BankStatementLineRecord): Promise<void> {
+    ++candidateRequestId
+    candidateLoadFailed.value = false
     line.value = row
     Object.assign(form.data, {
       ledgerEntryId: '',
@@ -134,18 +157,40 @@
       onOpen: async (_openData, api) => {
         formRef.value?.clearValidate()
         try {
-          const { data } = await fetchBankMatchCandidates(row.id)
-          ledgerOptions.value = (data ?? []).map((item) => ({
-            label: `${item.entryDate} · ${item.summary} · ${formatCurrencyValue(item.amount)}${item.sourceNo ? ` · ${item.sourceNo}` : ''}`,
-            value: item.id,
-            amount: Number(item.amount ?? 0)
-          }))
+          await loadCandidates()
         } finally {
           api.setLoading(false)
         }
       },
       dialogProps: { closeOnClickModal: false }
     })
+  }
+
+  async function loadCandidates(): Promise<void> {
+    const currentLineId = line.value?.id
+    const requestId = ++candidateRequestId
+    candidateLoadFailed.value = false
+    ledgerOptions.value = []
+    form.data.ledgerEntryId = ''
+    if (!currentLineId) return
+    candidatesLoading.value = true
+    try {
+      const { data, error } = await fetchBankMatchCandidates(currentLineId)
+      if (requestId !== candidateRequestId || line.value?.id !== currentLineId) return
+      if (error) {
+        candidateLoadFailed.value = true
+        return
+      }
+      ledgerOptions.value = (data ?? []).map((item) => ({
+        label: `${item.entryDate} · ${item.summary} · ${formatCurrencyValue(item.amount)}${item.sourceNo ? ` · ${item.sourceNo}` : ''}`,
+        value: item.id,
+        amount: Number(item.amount ?? 0)
+      }))
+    } catch {
+      if (requestId === candidateRequestId) candidateLoadFailed.value = true
+    } finally {
+      if (requestId === candidateRequestId) candidatesLoading.value = false
+    }
   }
 
   function getRemainingAmount(): number {

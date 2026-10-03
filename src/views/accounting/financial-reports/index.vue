@@ -598,6 +598,13 @@
     await tableRef.value?.getData()
   }
 
+  watch(
+    () => [canViewReportAmounts.value, primaryAmountLabel.value, secondaryAmountLabel.value],
+    (columns, previousColumns) => {
+      if (columns.every((value, index) => value === previousColumns?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
   onMounted(() => void initialize())
 </script>
 

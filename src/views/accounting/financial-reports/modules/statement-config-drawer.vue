@@ -24,6 +24,8 @@
         title="账套报表项目"
         subtitle="项目结构决定报表展示，科目映射与公式关系决定可审计取数口径。"
         :loading="loading"
+        :error="loadError"
+        @retry="loadConfiguration"
         :empty="!items.length"
         empty-title="尚未配置报表项目"
         empty-description="初始化标准项目，或新增一条报表项目开始配置。"
@@ -33,11 +35,15 @@
       >
         <template v-if="canEditBaseRules" #actions>
           <div class="statement-config-drawer__actions">
-            <ElButton :loading="loading" @click="initializeItems">
+            <ElButton :loading="loading" :disabled="Boolean(loadError)" @click="initializeItems">
               <ArtSvgIcon icon="ri:magic-line" />
               初始化标准项目
             </ElButton>
-            <ElButton type="primary" @click="openItemDialog()">
+            <ElButton
+              type="primary"
+              :disabled="loading || Boolean(loadError)"
+              @click="openItemDialog()"
+            >
               <ArtSvgIcon icon="ri:add-line" />
               新增项目
             </ElButton>
@@ -235,6 +241,7 @@
   const subjects = ref<Api.Fms.SubjectRecord[]>([])
   const listFieldAccess = ref<Api.Fms.FinancialReportFieldAccessMap>({})
   const loading = ref(false)
+  const loadError = ref('')
   const isNarrow = useMediaQuery('(max-width: 640px)')
 
   const statementTypeLabel = computed(() =>
@@ -294,14 +301,21 @@
   async function loadConfiguration(): Promise<void> {
     if (!accountSetId.value) return
     loading.value = true
+    loadError.value = ''
     try {
       const [itemResult, subjectResult] = await Promise.all([
         fetchFinancialStatementItems(accountSetId.value, statementType.value),
         fetchSubjectList(accountSetId.value)
       ])
+      if (itemResult.error) throw itemResult.error
+      if (subjectResult.error) throw subjectResult.error
       items.value = itemResult.data ?? []
       listFieldAccess.value = itemResult.fieldAccess
       subjects.value = subjectResult.data ?? []
+    } catch {
+      items.value = []
+      subjects.value = []
+      loadError.value = '报表配置加载失败，请重试后再维护。'
     } finally {
       loading.value = false
     }
@@ -350,7 +364,6 @@
     await drawerRef.value?.handleOpen(undefined, {
       title: '财务报表取数口径',
       subtitle: `${statementTypeLabel.value} · 账套级配置`,
-      contentHeight: 'calc(100vh - 116px)',
       onOpen: loadConfiguration,
       drawerProps: { appendToBody: true, closeOnClickModal: true }
     })

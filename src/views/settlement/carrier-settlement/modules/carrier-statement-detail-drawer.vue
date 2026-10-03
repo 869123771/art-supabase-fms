@@ -192,11 +192,10 @@
       : [])
   ])
   async function handleOpen(row: Statement) {
-    openDetail(row.id, row)
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: `承运商对账单 · ${row.statementNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

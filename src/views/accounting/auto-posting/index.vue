@@ -606,6 +606,8 @@
       fetchSubjectList(accountSet.value),
       fetchAuxiliaryTypeList(accountSet.value)
     ])
+    if (subjectResult.error) throw subjectResult.error
+    if (auxiliaryTypeResult.error) throw auxiliaryTypeResult.error
     ruleContext.value = {
       accountSet,
       subjects: subjectResult.data ?? [],

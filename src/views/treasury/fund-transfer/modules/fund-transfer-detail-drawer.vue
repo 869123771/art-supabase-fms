@@ -178,11 +178,10 @@
   }
 
   async function handleOpen(row: Transfer): Promise<void> {
-    openDetail(row.id, { record: row, actions: [] })
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: `资金调拨详情 · ${row.transferNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

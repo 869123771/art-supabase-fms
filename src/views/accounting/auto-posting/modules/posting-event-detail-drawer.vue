@@ -60,6 +60,7 @@
           preserve-content-structure
         >
           <ArtTable
+            class="posting-event-detail__payload-table"
             :border="false"
             :data="payloadRows"
             :columns="payloadColumns"
@@ -67,6 +68,12 @@
             table-layout="fixed"
             empty-text="暂无业务载荷"
           />
+          <dl class="posting-event-detail__payload-list">
+            <div v-for="row in payloadRows" :key="row.key">
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
+            </div>
+          </dl>
         </ArtSectionCard>
 
         <section v-if="canOpenVoucher" class="posting-event-detail__voucher art-card-xs">
@@ -115,6 +122,10 @@
   )
 
   const payloadLabelMap: Record<string, string> = {
+    runId: '核算批次 ID',
+    periodId: '会计期间 ID',
+    assetCount: '资产数量',
+    grossAmount: '业务总额',
     gross_amount: '业务总额',
     net_amount: '不含税金额',
     tax_amount: '税额',
@@ -264,7 +275,7 @@
   }
 
   async function handleOpen(row: Event): Promise<void> {
-    openDetail(row.id, row)
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: `自动入账事件 · ${
         ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'eventSourceReferences'))
@@ -273,7 +284,6 @@
       }`,
       subtitle: '查看规则命中、凭证生成、错误原因与业务事件载荷。',
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
@@ -342,6 +352,10 @@
       min-width: 0;
     }
 
+    &__payload-list {
+      display: none;
+    }
+
     &__voucher {
       display: flex;
       gap: var(--art-space-4);
@@ -363,6 +377,33 @@
     }
 
     @media (width <= 640px) {
+      &__payload-table {
+        display: none;
+      }
+
+      &__payload-list {
+        display: grid;
+        gap: var(--art-space-3);
+        margin: 0;
+
+        > div {
+          display: grid;
+          gap: 4px;
+          padding-bottom: var(--art-space-3);
+          border-bottom: 1px solid var(--el-border-color-lighter);
+        }
+
+        dt {
+          color: var(--el-text-color-secondary);
+        }
+
+        dd {
+          margin: 0;
+          color: var(--el-text-color-primary);
+          overflow-wrap: anywhere;
+        }
+      }
+
       &__voucher {
         flex-direction: column;
         align-items: flex-start;

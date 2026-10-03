@@ -95,7 +95,9 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
-  const dialogRef = ref<{ handleOpen: (row?: Row) => Promise<void> } & FinancePrerequisiteOverlay>()
+  const dialogRef = ref<
+    { handleOpen: (row?: Row, accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
+  >()
   const drawerRef = ref<{ handleOpen: (row: Row) => Promise<void> }>()
   const fundExecutionRef = ref<
     {
@@ -203,7 +205,7 @@
             foundationRequired: true,
             available: accountSetOptions.value.length > 0
           },
-          () => dialogRef.value?.handleOpen(),
+          () => dialogRef.value?.handleOpen(undefined, table.search.accountSetId),
           dialogRef.value
         )
     }
@@ -448,6 +450,13 @@
     return formatCurrencyValue(value)
   }
   watch(() => table.search.accountSetId, loadSummary)
+  watch(
+    () => [canViewListField('taxAmounts'), canViewListField('filingReferences')],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
   onMounted(async () => {
     await Promise.allSettled([
       userStore.ensureDictLoaded('fmsTaxType'),

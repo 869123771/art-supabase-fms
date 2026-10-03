@@ -12,7 +12,26 @@
       label-width="100px"
       :show-reset="false"
       :show-submit="false"
-  /></ArtDialog>
+    >
+      <template #employeeId>
+        <ElInput
+          v-if="currentLine"
+          :model-value="employeeSnapshotLabel"
+          :title="employeeSnapshotLabel"
+          disabled
+        />
+        <ArtEmployeeSelect
+          v-else
+          v-model="form.employeeId"
+          :tenant-id="runTenantId"
+          :api-fn="fetchEmployees"
+          :display-fields="[]"
+          subtitle="选择本薪资批次所属租户的员工"
+          search-placeholder="搜索姓名或工号"
+        />
+      </template>
+    </ArtForm>
+  </ArtDialog>
 </template>
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
@@ -21,6 +40,11 @@
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
+  import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
+  import type {
+    EmployeeIntegrationItem,
+    EmployeeSelectorContractParams
+  } from '@/api/integration/employees'
   import { fetchPayrollEmployeeOptions, savePayrollLine } from '@fms/api'
   import { canEditField } from '@/utils/field-permission'
   defineOptions({ name: 'FinancePayrollLineDialog' })
@@ -28,7 +52,7 @@
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const runId = ref('')
-  const employeeOptions = ref<Array<{ label: string; value: string }>>([])
+  const runTenantId = ref('')
   const form = reactive({
     employeeId: '',
     grossAmount: 0,
@@ -45,13 +69,8 @@
     {
       label: '员工',
       key: 'employeeId',
-      type: 'select',
-      span: 24,
-      props: {
-        options: employeeOptions.value,
-        filterable: true,
-        disabled: Boolean(currentLine.value)
-      }
+      type: 'input',
+      span: 24
     },
     {
       label: '应发金额',
@@ -74,9 +93,12 @@
     {
       label: '实发金额',
       key: 'netAmount',
-      type: 'input',
+      type: 'number',
       props: {
-        disabled: true
+        disabled: true,
+        precision: 2,
+        controls: false,
+        class: '!w-full'
       }
     },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
@@ -89,6 +111,11 @@
     { immediate: true }
   )
   const currentLine = ref<Api.Fms.PayrollLineRecord>()
+  const employeeSnapshotLabel = computed(() =>
+    [currentLine.value?.employeeNameSnapshot, currentLine.value?.employeeNoSnapshot]
+      .filter(Boolean)
+      .join(' · ')
+  )
   async function submit(): Promise<boolean> {
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
@@ -96,7 +123,7 @@
         ElMessage.warning('扣款金额不能超过应发金额')
         return false
       }
-      await savePayrollLine(runId.value, {
+      const result = await savePayrollLine(runId.value, {
         employeeId: form.employeeId,
         earningItems: { gross: form.grossAmount },
         deductionItems: { deduction: form.deductionAmount },
@@ -106,6 +133,7 @@
         employerCostAmount: form.employerCostAmount,
         remark: form.remark
       })
+      if (result.error) throw result.error
       emit('success')
       return true
     } catch (error) {
@@ -123,8 +151,8 @@
       return
     }
     runId.value = run.id
+    runTenantId.value = run.tenantId
     currentLine.value = line
-    employeeOptions.value = []
     Object.assign(form, {
       employeeId: line?.employeeId || '',
       grossAmount: toFiniteNumber(line?.grossAmount),
@@ -135,23 +163,30 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: line ? `编辑薪资 · ${line.employeeNameSnapshot}` : '新增员工薪资',
       confirmText: '保存明细',
-      loading: true,
-      loadingText: '正在加载员工选项…',
       onConfirm: submit,
-      onOpen: async (_openData, api) => {
+      onOpen: () => {
         formRef.value?.clearValidate()
-        try {
-          const { data } = await fetchPayrollEmployeeOptions(run.id)
-          employeeOptions.value = (data ?? []).map((item) => ({
-            label: `${item.employeeName}（${item.employeeNo}）`,
-            value: item.id
-          }))
-        } finally {
-          api.setLoading(false)
-        }
       },
       dialogProps: { closeOnClickModal: false }
     })
+  }
+  async function fetchEmployees(params: EmployeeSelectorContractParams = {}) {
+    const result = await fetchPayrollEmployeeOptions(runId.value)
+    const keyword = params.keyword?.trim().toLocaleLowerCase() || ''
+    const records: EmployeeIntegrationItem[] = (result.data ?? [])
+      .filter(
+        (item) =>
+          !keyword ||
+          `${item.employeeName} ${item.employeeNo}`.toLocaleLowerCase().includes(keyword)
+      )
+      .map((item) => ({ ...item, tenantId: runTenantId.value, employmentStatus: '' }))
+    const from = Math.max(params.from ?? 0, 0)
+    return {
+      data: records.slice(from, (params.to ?? from + 9) + 1),
+      total: records.length,
+      error: result.error,
+      fieldAccess: {}
+    }
   }
   function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
     const numberValue = Number(value)

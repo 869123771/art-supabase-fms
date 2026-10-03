@@ -145,7 +145,6 @@
     selectedCurrency?: Api.Fms.CurrencyRecord,
     row?: Api.Fms.ExchangeRateRecord
   ): Promise<void> {
-    await userStore.ensureDictLoaded('fmsExchangeRateType')
     currencyOptions.value = currencies
       .filter((item) => !item.isBase && item.isEnabled)
       .map((item) => ({ label: `${item.currencyName}（${item.currencyCode}）`, value: item.id }))
@@ -163,8 +162,20 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: row ? '编辑汇率' : '新增汇率',
       confirmText: row ? '保存修改' : '保存汇率',
+      loading: true,
+      loadingText: '正在加载汇率选项…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await userStore.ensureDictLoaded('fmsExchangeRateType')
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '汇率选项加载失败，请重新打开重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }

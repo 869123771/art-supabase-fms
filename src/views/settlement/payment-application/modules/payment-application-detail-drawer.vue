@@ -204,11 +204,10 @@
   }
 
   async function handleOpen(row: Application): Promise<void> {
-    openDetail(row.id, row)
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: `付款申请详情 · ${row.applicationNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

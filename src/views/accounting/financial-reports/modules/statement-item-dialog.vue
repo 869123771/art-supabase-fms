@@ -243,12 +243,6 @@
     items: Item[],
     row?: Item
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsStatementDisplayStyle'),
-      userStore.ensureDictLoaded('fmsStatementCalculationMethod'),
-      userStore.ensureDictLoaded('fmsCashFlowDirection'),
-      userStore.ensureDictLoaded('commonBoolean')
-    ])
     context.items = items
     Object.assign(form.data, createInitialForm(), {
       ...(row ?? {}),
@@ -263,8 +257,25 @@
       title: row ? `编辑报表项目 · ${row.itemCode}` : '新增报表项目',
       confirmText: row ? '保存修改' : '创建项目',
       contentMaxHeight: '72vh',
+      loading: true,
+      loadingText: '正在加载报表项目…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_openData, api) => {
+        try {
+          await Promise.all([
+            userStore.ensureDictLoaded('fmsStatementDisplayStyle'),
+            userStore.ensureDictLoaded('fmsStatementCalculationMethod'),
+            userStore.ensureDictLoaded('fmsCashFlowDirection'),
+            userStore.ensureDictLoaded('commonBoolean')
+          ])
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '报表项目加载失败，请重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { appendToBody: true, closeOnClickModal: false }
     })
   }

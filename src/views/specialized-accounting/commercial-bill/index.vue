@@ -75,7 +75,7 @@
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard, {
     type MasterDataDeleteGuardOpenOptions
   } from '@/components/business/master-data-delete-guard/index.vue'
@@ -653,8 +653,9 @@
         remark
       })
       await refreshAll('update')
-    } catch {
-      // 用户取消确认或数据库业务约束阻止时不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, `${item.label}失败，请刷新票据状态后重试。`)
     }
   }
 
@@ -671,6 +672,14 @@
   async function handleSaved(type: 'add' | 'edit'): Promise<void> {
     await refreshAll(type)
   }
+
+  watch(
+    () => [canViewListField('billParties'), canViewListField('billAmounts')],
+    (visibility, previousVisibility) => {
+      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
+      void nextTick(() => tableRef.value?.resetColumns())
+    }
+  )
 
   watch(
     () => table.search.accountSetId,

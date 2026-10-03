@@ -88,19 +88,19 @@
       label: '计税金额',
       key: 'taxableAmount',
       type: 'number',
-      props: { min: 0, precision: 2, class: '!w-full' }
+      props: { min: 0, precision: 2, controlsPosition: 'right', class: '!w-full' }
     },
     {
       label: '税率',
       key: 'taxRate',
       type: 'number',
-      props: { min: 0, precision: 6, step: 0.01, class: '!w-full' }
+      props: { min: 0, precision: 6, step: 0.01, controlsPosition: 'right', class: '!w-full' }
     },
     {
       label: '税额',
       key: 'taxAmount',
       type: 'number',
-      props: { min: 0, precision: 2, class: '!w-full' }
+      props: { min: 0, precision: 2, controlsPosition: 'right', class: '!w-full' }
     },
     { label: '允许抵扣', key: 'isDeductible', type: 'switch' },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
@@ -108,11 +108,13 @@
   async function submit() {
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
-      await saveTaxLedgerLine(periodId.value, {
+      const { error } = await saveTaxLedgerLine(periodId.value, {
         ...form,
         sourceType: form.sourceType.trim(),
-        sourceNo: normalizeNullableText(form.sourceNo)
+        sourceNo: normalizeNullableText(form.sourceNo),
+        remark: normalizeNullableText(form.remark)
       })
+      if (error) return false
       emit('success')
       return true
     } catch (error) {
@@ -121,7 +123,6 @@
     }
   }
   async function handleOpen(period: Api.Fms.TaxPeriodRecord, line?: Api.Fms.TaxLedgerLineRecord) {
-    await userStore.ensureDictLoaded('fmsTaxLedgerDirection')
     const access = line?.fieldAccess ?? period.fieldAccess
     if (!canEditField(access, 'taxSources') || !canEditField(access, 'taxAmounts')) {
       ElMessage.warning('你没有该税务期间来源与税额字段的编辑权限')
@@ -143,8 +144,20 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: line ? '编辑税务明细' : '新增税务明细',
       confirmText: '保存明细',
+      loading: true,
+      loadingText: '正在加载税务明细…',
       onConfirm: submit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await userStore.ensureDictLoaded('fmsTaxLedgerDirection')
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '税务明细加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { closeOnClickModal: false }
     })
   }
