@@ -126,7 +126,12 @@
       subtitle="本月运输收入、成本、毛利及资金核销概况"
       class="finance-workbench__panel"
     >
-      <ArtDescriptions :data="statsDescriptionData" :items="statsDescriptionItems" :columns="4" />
+      <ArtDescriptions
+        :data="statsDescriptionData"
+        :items="statsDescriptionItems"
+        :columns="4"
+        label-width="104px"
+      />
     </ArtSectionCard>
 
     <ArtSectionCard

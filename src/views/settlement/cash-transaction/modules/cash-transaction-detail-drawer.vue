@@ -14,7 +14,12 @@
       </template>
       <div v-if="detail.data" class="cash-detail">
         <ArtSectionCard :title="`${directionLabel}概览`" preserve-content-structure>
-          <ArtDescriptions :data="detail.data" :items="descriptionItems" :columns="2" />
+          <ArtDescriptions
+            :data="detail.data"
+            :items="descriptionItems"
+            :columns="2"
+            label-width="104px"
+          />
         </ArtSectionCard>
 
         <ArtSectionCard

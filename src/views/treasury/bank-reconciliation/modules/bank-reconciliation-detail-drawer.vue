@@ -44,7 +44,12 @@
         </div>
 
         <ArtSectionCard title="批次信息" preserve-content-structure>
-          <ArtDescriptions :data="detail" :items="descriptionItems" :columns="3" />
+          <ArtDescriptions
+            :data="detail"
+            :items="descriptionItems"
+            :columns="3"
+            label-width="104px"
+          />
         </ArtSectionCard>
 
         <ArtSectionCard

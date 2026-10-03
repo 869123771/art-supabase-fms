@@ -30,7 +30,7 @@
           </section>
 
           <ArtSectionCard title="票据信息" preserve-content-structure>
-            <ArtDescriptions :data="bill" :items="detailItems" :columns="2" />
+            <ArtDescriptions :data="bill" :items="detailItems" :columns="2" label-width="104px" />
           </ArtSectionCard>
 
           <ArtSectionCard

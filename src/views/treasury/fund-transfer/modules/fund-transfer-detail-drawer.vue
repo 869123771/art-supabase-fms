@@ -14,7 +14,12 @@
       </template>
       <div v-if="detail" class="fund-transfer-detail">
         <ArtSectionCard title="调拨信息" preserve-content-structure>
-          <ArtDescriptions :data="detail" :items="descriptionItems" :columns="2" />
+          <ArtDescriptions
+            :data="detail"
+            :items="descriptionItems"
+            :columns="2"
+            label-width="104px"
+          />
         </ArtSectionCard>
 
         <section

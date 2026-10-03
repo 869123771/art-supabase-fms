@@ -71,7 +71,12 @@
         preserve-content-structure
         title="费用信息"
       >
-        <ArtDescriptions :data="detail.data" :items="expenseItems" :columns="4" />
+        <ArtDescriptions
+          :data="detail.data"
+          :items="expenseItems"
+          :columns="4"
+          label-width="104px"
+        />
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -80,7 +85,12 @@
         preserve-content-structure
         title="运输关联"
       >
-        <ArtDescriptions :data="detail.data" :items="transportItems" :columns="4">
+        <ArtDescriptions
+          :data="detail.data"
+          :items="transportItems"
+          :columns="4"
+          label-width="104px"
+        >
           <template #item-waybillNo>
             <RouterLink
               v-if="detail.data.waybillId"
@@ -99,7 +109,12 @@
         preserve-content-structure
         title="发生地点"
       >
-        <ArtDescriptions :data="detail.data" :items="locationItems" :columns="4" />
+        <ArtDescriptions
+          :data="detail.data"
+          :items="locationItems"
+          :columns="4"
+          label-width="104px"
+        />
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -107,7 +122,12 @@
         preserve-content-structure
         title="审核、报销与支付"
       >
-        <ArtDescriptions :data="detail.data" :items="settlementItems" :columns="4">
+        <ArtDescriptions
+          :data="detail.data"
+          :items="settlementItems"
+          :columns="4"
+          label-width="104px"
+        >
           <template #item-reimbursementNo>
             <RouterLink
               v-if="detail.data.reimbursement?.id"

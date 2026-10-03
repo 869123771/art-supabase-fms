@@ -68,6 +68,7 @@
           :data="detail.data"
           :items="reimbursementItems"
           :columns="descriptionColumns"
+          label-width="104px"
         />
       </ArtSectionCard>
 
@@ -80,6 +81,7 @@
           :data="detail.data"
           :items="approvalPaymentItems"
           :columns="descriptionColumns"
+          label-width="104px"
         />
       </ArtSectionCard>
 
