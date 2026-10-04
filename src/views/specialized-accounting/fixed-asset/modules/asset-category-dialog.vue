@@ -20,6 +20,7 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { useMediaQuery } from '@vueuse/core'
+  import { useUserStore } from '@/store/modules/user'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -28,6 +29,14 @@
   import { fetchAccountSetOptions, saveAssetCategory } from '@fms/api'
 
   const fmsDepreciationMethodOptions = useDictionaryOptions('fmsDepreciationMethod')
+  const userStore = useUserStore()
+  const { getDictMap } = storeToRefs(userStore)
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'enabled'
+    }))
+  )
   const isNarrow = useMediaQuery('(max-width: 520px)')
 
   defineOptions({ name: 'FinanceAssetCategoryDialog' })
@@ -45,6 +54,10 @@
     defaultResidualRate: 0.05,
     isEnabled: true,
     sort: 100,
+    assetSubjectId: null,
+    accumulatedDepreciationSubjectId: null,
+    depreciationExpenseSubjectId: null,
+    disposalSubjectId: null,
     remark: null
   })
   const form = reactive(initial())
@@ -60,7 +73,7 @@
       key: 'accountSetId',
       type: 'select',
       span: 24,
-      props: { options: accountSetOptions.value, filterable: true }
+      props: { options: accountSetOptions.value, filterable: true, disabled: Boolean(form.id) }
     },
     {
       label: '类别编码',
@@ -105,7 +118,12 @@
       type: 'number',
       props: { min: 0, max: 9999, controlsPosition: 'right', class: '!w-full' }
     },
-    { label: '启用', key: 'isEnabled', type: 'switch' },
+    {
+      label: '启用状态',
+      key: 'isEnabled',
+      type: 'segment',
+      props: { options: enabledOptions.value }
+    },
     {
       label: '备注',
       key: 'remark',
@@ -130,18 +148,44 @@
       return false
     }
   }
-  async function handleOpen(accountSetId?: string): Promise<void> {
+  async function handleOpen(
+    accountSetId?: string,
+    row?: Api.Fms.AssetCategoryRecord
+  ): Promise<void> {
     accountSetOptions.value = []
+    delete form.id
     Object.assign(form, initial())
+    if (row) {
+      Object.assign(form, {
+        id: row.id,
+        accountSetId: row.accountSetId,
+        categoryCode: row.categoryCode,
+        categoryName: row.categoryName,
+        depreciationMethod: row.depreciationMethod,
+        defaultUsefulLifeMonths: row.defaultUsefulLifeMonths,
+        defaultResidualRate: row.defaultResidualRate,
+        assetSubjectId: row.assetSubjectId,
+        accumulatedDepreciationSubjectId: row.accumulatedDepreciationSubjectId,
+        depreciationExpenseSubjectId: row.depreciationExpenseSubjectId,
+        disposalSubjectId: row.disposalSubjectId,
+        isEnabled: row.isEnabled,
+        sort: row.sort,
+        remark: row.remark
+      })
+    }
     await dialogRef.value?.handleOpen(undefined, {
-      title: '新建资产类别',
-      confirmText: '创建类别',
+      title: row ? '编辑资产类别' : '新建资产类别',
+      confirmText: row ? '保存修改' : '创建类别',
       loading: true,
       loadingText: '正在加载账套…',
       onConfirm: submit,
       onOpen: async () => {
         formRef.value?.clearValidate()
         try {
+          await Promise.all([
+            userStore.ensureDictLoaded('commonEnabledStatus'),
+            userStore.ensureDictLoaded('fmsDepreciationMethod')
+          ])
           const { data, error } = await fetchAccountSetOptions({
             status: 'active',
             from: 0,

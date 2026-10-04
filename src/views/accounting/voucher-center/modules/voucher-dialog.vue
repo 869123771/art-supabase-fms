@@ -29,7 +29,7 @@
         :subjects="context.subjects"
         :currencies="context.currencies"
         :auxiliary-items="context.auxiliaryItems"
-        :readonly="!amountEditable"
+        :readonly="!amountEditable || templateLoading"
       />
 
       <CashFlowAllocationPanel
@@ -84,6 +84,7 @@
         <ElButton :disabled="loading" @click="api.handleClose()">取消</ElButton>
         <ElButton
           :loading="loading && submitMode === 'save'"
+          :disabled="templateLoading"
           @click="handleFooterConfirm(api, 'save')"
         >
           保存草稿
@@ -91,6 +92,7 @@
         <ElButton
           type="primary"
           :loading="loading && submitMode === 'submit'"
+          :disabled="templateLoading"
           @click="handleFooterConfirm(api, 'submit')"
         >
           保存并提交
@@ -179,6 +181,8 @@
   const cashFlowDrafts = ref<Api.Fms.VoucherCashFlowAllocationDraft[]>([])
   const submitMode = ref<SubmitMode>('save')
   const partialSaveError = ref('')
+  const templateLoading = ref(false)
+  let templateRequestId = 0
   const fieldAccess = ref<Api.Fms.VoucherFieldAccessMap>({
     voucherAmounts: 'edit',
     sourceReferences: 'edit',
@@ -276,7 +280,8 @@
           clearable: true,
           filterable: true,
           placeholder: '可选，快速生成分录',
-          disabled: Boolean(form.data.id),
+          disabled: Boolean(form.data.id) || templateLoading.value,
+          loading: templateLoading.value,
           onChange: (value?: string) => void applyTemplate(value)
         }
       },
@@ -379,6 +384,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    if (templateLoading.value) return false
     partialSaveError.value = ''
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
@@ -449,10 +455,14 @@
   }
 
   async function applyTemplate(templateId?: string): Promise<void> {
+    const requestId = ++templateRequestId
     if (!templateId) return
+    templateLoading.value = true
     try {
-      const { data } = await fetchVoucherTemplateDetail(templateId)
-      if (!data) return
+      const { data, error } = await fetchVoucherTemplateDetail(templateId)
+      if (requestId !== templateRequestId) return
+      if (error) throw error
+      if (!data) throw new Error('凭证模板不存在或无权查看，请重新选择')
       const entriesAccess = getFieldAccess(data.fieldAccess, 'templateEntries')
       if (
         !['read', 'edit'].includes(entriesAccess) ||
@@ -481,8 +491,12 @@
         creditAmount: line.entryDirection === 'credit' ? Number(line.defaultAmount || 0) : 0
       }))
       ElMessage.success('凭证模板已套用，请核对金额与核算维度')
-    } catch {
+    } catch (error) {
+      if (requestId !== templateRequestId) return
       form.data.templateId = ''
+      notifyFriendlyError(error, '凭证模板加载失败，请重新选择')
+    } finally {
+      if (requestId === templateRequestId) templateLoading.value = false
     }
   }
 
@@ -524,10 +538,8 @@
     row?: Voucher,
     loadContext?: () => Promise<Omit<DialogContext, 'cashFlowItems'> | undefined>
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsVoucherSourceType'),
-      userStore.ensureDictLoaded('fmsVoucherType')
-    ])
+    ++templateRequestId
+    templateLoading.value = false
     Object.assign(context, dialogContext)
     cashFlowDrafts.value = []
     partialSaveError.value = ''
@@ -539,6 +551,10 @@
     }
     Object.assign(form.data, createInitialForm(), { accountSetId: context.accountSet.value })
     const prepare = async (): Promise<boolean> => {
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsVoucherSourceType'),
+        userStore.ensureDictLoaded('fmsVoucherType')
+      ])
       if (loadContext) {
         const loaded = await loadContext()
         if (!loaded) return false
@@ -608,6 +624,9 @@
           }
           formRef.value?.clearValidate()
           lineEditorRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '凭证资料加载失败，请重新打开')
+          await api.handleClose()
         } finally {
           api.setLoading(false)
         }

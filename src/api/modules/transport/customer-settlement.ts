@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import type { ApiFeedbackOptions } from '@/types/api/request'
@@ -25,8 +26,7 @@ const toListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_customer_id: params.customerId || null,
     p_record_id: params.recordId || null,
     p_status: params.status || null,
@@ -81,8 +81,7 @@ export async function fetchCustomerStatementEligibleWaybills(params: EligibleWay
         p_period_start: params.periodStart,
         p_period_end: params.periodEnd,
         p_keyword: normalizeNullableText(String(params.keyword ?? '')),
-        p_from: Math.max(params.from ?? 0, 0),
-        p_to: Math.max(params.to ?? 9, params.from ?? 0)
+        ...buildSupabaseRpcRange(params.from ?? 0, params.to ?? 9)
       }),
     { showErrorMessage: true }
   )

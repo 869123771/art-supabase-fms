@@ -32,6 +32,12 @@
   const emit = defineEmits<{ success: [] }>()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
+  const booleanOptions = computed(() =>
+    (getDictMap.value.commonBoolean ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'true'
+    }))
+  )
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const periodId = ref('')
@@ -81,7 +87,7 @@
     {
       label: '税额方向',
       key: 'direction',
-      type: 'select',
+      type: 'segment',
       props: { options: getDictMap.value.fmsTaxLedgerDirection ?? [] }
     },
     {
@@ -102,7 +108,12 @@
       type: 'number',
       props: { min: 0, precision: 2, controlsPosition: 'right', class: '!w-full' }
     },
-    { label: '允许抵扣', key: 'isDeductible', type: 'switch' },
+    {
+      label: '允许抵扣',
+      key: 'isDeductible',
+      type: 'segment',
+      props: { options: booleanOptions.value }
+    },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
   ])
   async function submit() {
@@ -149,7 +160,10 @@
       onConfirm: submit,
       onOpen: async (_data, api) => {
         try {
-          await userStore.ensureDictLoaded('fmsTaxLedgerDirection')
+          await Promise.all([
+            userStore.ensureDictLoaded('fmsTaxLedgerDirection'),
+            userStore.ensureDictLoaded('commonBoolean')
+          ])
           formRef.value?.clearValidate()
         } catch (error) {
           notifyFriendlyError(error, '税务明细加载失败，请重新打开重试')

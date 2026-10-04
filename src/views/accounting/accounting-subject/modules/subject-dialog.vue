@@ -118,6 +118,12 @@
 
   const categoryOptions = computed(() => getDictMap.value.fmsSubjectCategory ?? [])
   const directionOptions = computed(() => getDictMap.value.fmsBalanceDirection ?? [])
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'enabled'
+    }))
+  )
   const booleanOptions = computed(() =>
     (getDictMap.value.commonBoolean ?? []).map((item) => ({
       ...item,
@@ -194,7 +200,7 @@
     {
       label: '余额方向',
       key: 'balanceDirection',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       props: { options: directionOptions.value, disabled: Boolean(parentSubject.value) }
     },
@@ -202,7 +208,7 @@
     {
       label: '数量核算',
       key: 'allowQuantity',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       props: { options: booleanOptions.value }
     },
@@ -216,14 +222,14 @@
     {
       label: '外币核算',
       key: 'allowForeignCurrency',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       props: { options: booleanOptions.value, onChange: handleForeignCurrencyChange }
     },
     {
       label: '期末调汇',
       key: 'allowPeriodEndRevaluation',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       help: '仅资产、负债类外币科目可启用期末调汇。',
       props: {
@@ -234,16 +240,16 @@
     {
       label: '现金流必录',
       key: 'cashFlowRequired',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       props: { options: booleanOptions.value }
     },
     {
       label: '启用状态',
       key: 'isEnabled',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
-      props: { options: booleanOptions.value }
+      props: { options: enabledOptions.value }
     },
     { label: '辅助核算', key: 'auxiliarySection', type: 'divider', span: 24 },
     {
@@ -363,11 +369,6 @@
     auxiliaryTypes: Api.Fms.AuxiliaryTypeRecord[],
     row?: Subject
   ): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('commonBoolean'),
-      userStore.ensureDictLoaded('fmsBalanceDirection'),
-      userStore.ensureDictLoaded('fmsSubjectCategory')
-    ])
     context.accountSet = accountSet
     context.subjects = subjects
     context.auxiliaryTypes = auxiliaryTypes
@@ -390,8 +391,25 @@
       title: row ? `编辑科目 · ${row.subjectCode}` : '新增会计科目',
       confirmText: row ? '保存修改' : '创建科目',
       contentMaxHeight: '72vh',
+      loading: true,
+      loadingText: '正在加载科目选项…',
       onConfirm: handleSubmit,
-      onOpen: () => formRef.value?.clearValidate(),
+      onOpen: async (_data, api) => {
+        try {
+          await Promise.all([
+            userStore.ensureDictLoaded('commonBoolean'),
+            userStore.ensureDictLoaded('commonEnabledStatus'),
+            userStore.ensureDictLoaded('fmsBalanceDirection'),
+            userStore.ensureDictLoaded('fmsSubjectCategory')
+          ])
+          formRef.value?.clearValidate()
+        } catch (error) {
+          notifyFriendlyError(error, '科目选项加载失败，请重新打开重试')
+          await api.handleClose()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       dialogProps: { appendToBody: true, closeOnClickModal: false }
     })
   }

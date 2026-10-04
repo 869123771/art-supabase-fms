@@ -1,5 +1,6 @@
 <template>
   <FinanceAccountingWorkspaceShell class="fixed-asset-page">
+    <MasterDeleteProcessingNotice v-if="deleteContext.active" />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="FIXED ASSET LEDGER"
@@ -38,7 +39,7 @@
 
     <FixedAssetDialog ref="dialogRef" @success="handleSaved" />
     <FixedAssetDisposalDialog ref="disposalDialogRef" @success="refreshAll" />
-    <AssetCategoryDialog ref="categoryDialogRef" @success="handleCategorySaved" />
+    <AssetCategoryDrawer ref="categoryDialogRef" @success="handleCategorySaved" />
     <AssetDepreciationDrawer ref="depreciationRef" @success="refreshAll" />
     <MasterDataDeleteGuard ref="deleteGuardRef" />
   </FinanceAccountingWorkspaceShell>
@@ -78,18 +79,21 @@
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
+  import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
+  import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useUserStore } from '@/store/modules/user'
   import {
     actFixedAsset,
     deleteFixedAsset,
     fetchAccountSetOptions,
     fetchAssetCategoryList,
+    fetchFixedAssetDetail,
     fetchFixedAssetList,
     fetchFixedAssetSummary
   } from '@fms/api'
   import FixedAssetDialog from './modules/fixed-asset-dialog.vue'
   import FixedAssetDisposalDialog from './modules/fixed-asset-disposal-dialog.vue'
-  import AssetCategoryDialog from './modules/asset-category-dialog.vue'
+  import AssetCategoryDrawer from './modules/asset-category-drawer.vue'
   import AssetDepreciationDrawer from './modules/asset-depreciation-drawer.vue'
 
   defineOptions({ name: 'FinanceFixedAsset' })
@@ -113,6 +117,8 @@
     '固定资产'
   )
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
+  const deleteContext = useMasterDataDeleteProcessingContext()
+  const navigationReady = ref(false)
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
@@ -260,7 +266,7 @@
         )
     },
     {
-      auth: 'FinanceFixedAsset:ManageCategory',
+      permission: 'FinanceFixedAsset:ManageCategory',
       key: 'manage-category',
       label: '资产类别',
       icon: 'ri:folder-add-line',
@@ -278,7 +284,7 @@
         )
     },
     {
-      auth: 'FinanceFixedAsset:Depreciation',
+      permission: 'FinanceFixedAsset:Depreciation',
       key: 'depreciation',
       label: '折旧管理',
       icon: 'ri:calendar-todo-line',
@@ -522,6 +528,33 @@
     await loadCategories()
   }
 
+  async function locateReferencedAsset(): Promise<boolean> {
+    const context = deleteContext.value
+    if (!context.active || !context.recordId || !context.recordNo) return false
+    await categoryDialogRef.value?.dismiss()
+    const { data, error } = await fetchFixedAssetDetail(context.recordId)
+    if (error || !data) return true
+    table.search.accountSetId = data.accountSetId
+    table.search.keyword = data.assetNo
+    table.search.categoryId = undefined
+    table.search.status = undefined
+    await tableRef.value?.getData()
+    return true
+  }
+
+  watch(
+    () => deleteContext.value.recordId,
+    () => {
+      if (!navigationReady.value) return
+      if (deleteContext.value.active) void locateReferencedAsset()
+      else {
+        table.search.keyword = ''
+        void tableRef.value?.getData()
+      }
+    },
+    { flush: 'post' }
+  )
+
   watch(
     () => table.search.accountSetId,
     async () => {
@@ -543,7 +576,8 @@
     accountSetOptions.value = data ?? []
     table.search.accountSetId = accountSetOptions.value[0]?.value
     await Promise.all([loadCategories(), loadSummary()])
-    await tableRef.value?.getData()
+    navigationReady.value = true
+    if (!(await locateReferencedAsset())) await tableRef.value?.getData()
   })
 </script>
 

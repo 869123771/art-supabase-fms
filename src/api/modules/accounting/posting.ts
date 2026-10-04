@@ -123,13 +123,13 @@ export async function fetchPostingEventDetail(
 export async function retryPostingEvent(id: string) {
   return await responseHandle<PostingEvent>(
     () => supabase.rpc('retry_fms_posting_event_secure', { p_event_id: id }),
-    { breakReturn: true, showMessage: true, message: '自动入账事件已重新处理' }
+    { breakReturn: true, showErrorMessage: false }
   )
 }
 
 export async function processPendingPostingEvents(limit = 50) {
   return await responseHandle<Api.Fms.PostingEventProcessResult[]>(
     () => supabase.rpc('process_pending_fms_posting_events_secure', { p_limit: limit }),
-    { showMessage: true, message: '待处理事件批量处理完成' }
+    { breakReturn: true, showErrorMessage: false }
   )
 }

@@ -34,13 +34,64 @@
           :min-height="152"
           :show-scrollbar="false"
         >
+          <template #actions>
+            <div class="accounting-period-drawer__year-actions">
+              <ElSelect
+                v-model="selectedYear"
+                aria-label="会计年度"
+                class="accounting-period-drawer__year-select"
+                :disabled="extending"
+              >
+                <ElOption
+                  v-for="year in fiscalYears"
+                  :key="year"
+                  :value="year"
+                  :label="`${year} 会计年度`"
+                />
+              </ElSelect>
+              <ElButton
+                v-if="hasAuth('FinanceAccountSet:ManagePeriod')"
+                type="primary"
+                plain
+                :loading="extending"
+                :disabled="!canExtendYear"
+                @click="addFiscalYear"
+              >
+                <ArtSvgIcon icon="ri:add-line" />新增年度
+              </ElButton>
+            </div>
+          </template>
           <ArtTable
+            v-if="!isNarrow"
             :border="false"
-            :data="state.periods"
+            :data="visiblePeriods"
             :columns="columns"
             :pagination="false"
-            :show-table-header="false"
           />
+          <div v-else class="accounting-period-drawer__cards">
+            <article
+              v-for="period in visiblePeriods"
+              :key="period.id"
+              class="accounting-period-drawer__period-card art-card-xs"
+            >
+              <header class="accounting-period-drawer__card-heading">
+                <strong>{{ period.fiscalYear }} 年第 {{ period.periodNo }} 期</strong>
+                <ArtDictDisplay dict-code="fmsAccountingPeriodStatus" :value="period.status" />
+              </header>
+              <ArtDescriptions
+                :data="period"
+                :items="periodDescriptionItems"
+                :columns="1"
+                label-width="88px"
+              />
+              <BusinessTableRowActions
+                v-if="hasAuth('FinanceAccountSet:ManagePeriod')"
+                class="accounting-period-drawer__card-actions"
+              >
+                <PeriodActions :period="period" />
+              </BusinessTableRowActions>
+            </article>
+          </div>
         </ArtSectionCard>
       </div>
     </ArtAsyncState>
@@ -48,6 +99,11 @@
 </template>
 
 <script setup lang="tsx">
+  import { useMediaQuery } from '@vueuse/core'
+  import { uniq } from 'lodash-es'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
@@ -60,6 +116,7 @@
   import {
     fetchAccountingFoundationSummary,
     fetchAccountingPeriodList,
+    extendAccountingPeriods,
     setAccountingPeriodStatus
   } from '@fms/api'
   import { formatWithDayjs } from '@/utils/time'
@@ -83,6 +140,21 @@
   const { confirmAction, promptReason } = useArtFeedback()
   const { hasAuth } = useAuth()
   const userStore = useUserStore()
+  const isNarrow = useMediaQuery('(max-width: 640px)')
+  const PeriodActions = (props: { period: AccountingPeriod }) => renderPeriodActions(props.period)
+  const periodDescriptionItems: ArtDescriptionItem<AccountingPeriod>[] = [
+    { key: 'startDate', field: 'startDate', label: '开始日期' },
+    { key: 'endDate', field: 'endDate', label: '结束日期' },
+    {
+      key: 'closedAt',
+      label: '最近结账',
+      formatter: (_value, row) =>
+        row.closedAt
+          ? `${row.closedBy || '系统'} · ${formatWithDayjs(row.closedAt, 'YYYY-MM-DD HH:mm')}`
+          : '—'
+    },
+    { key: 'reopenCount', label: '反结账', formatter: (_value, row) => `${row.reopenCount} 次` }
+  ]
   const drawerRef = ref<ArtDrawerExpose<AccountSet>>()
   const state = reactive<DrawerState>({
     accountSet: undefined,
@@ -92,6 +164,24 @@
     error: null
   })
   let requestVersion = 0
+  const extending = ref(false)
+  const selectedYear = ref<number>()
+  const fiscalYears = computed(() =>
+    uniq(state.periods.map((period) => period.fiscalYear)).sort((a, b) => b - a)
+  )
+  const visiblePeriods = computed(() =>
+    state.periods.filter((period) => period.fiscalYear === selectedYear.value)
+  )
+  const nextFiscalYear = computed(() =>
+    fiscalYears.value.length ? fiscalYears.value[0] + 1 : undefined
+  )
+  const canExtendYear = computed(
+    () =>
+      state.accountSet?.status === 'active' &&
+      Boolean(nextFiscalYear.value && nextFiscalYear.value <= 2999) &&
+      !state.loading &&
+      !state.error
+  )
 
   const overviewMetrics = computed(() => [
     {
@@ -242,6 +332,7 @@
     state.loading = true
     state.error = null
     try {
+      await userStore.ensureDictLoaded('fmsAccountingPeriodStatus')
       const [periodResult, summaryResult] = await Promise.all([
         fetchAccountingPeriodList(accountSetId, { showErrorMessage: false }),
         fetchAccountingFoundationSummary(accountSetId, { showErrorMessage: false })
@@ -251,6 +342,9 @@
       if (version !== requestVersion) return
       state.periods = periodResult.data ?? []
       state.summary = summaryResult.data ?? undefined
+      if (!selectedYear.value || !fiscalYears.value.includes(selectedYear.value)) {
+        selectedYear.value = fiscalYears.value[0]
+      }
     } catch (cause) {
       if (version !== requestVersion) return
       state.periods = []
@@ -263,6 +357,32 @@
 
   function retryLoad(): void {
     if (state.accountSet?.id) void loadData(state.accountSet.id)
+  }
+
+  async function addFiscalYear(): Promise<void> {
+    if (extending.value || !canExtendYear.value || !state.accountSet || !nextFiscalYear.value)
+      return
+    const accountSetId = state.accountSet.id
+    const fiscalYear = nextFiscalYear.value
+    extending.value = true
+    try {
+      await confirmAction(
+        `为“${state.accountSet.accountSetName}”生成 ${fiscalYear} 会计年度的 12 个期间？新期间均为未启用，需要另行启用后才能记账。`,
+        '新增会计年度',
+        { confirmButtonText: '生成年度', cancelButtonText: '取消', type: 'info' }
+      )
+      const result = await extendAccountingPeriods(accountSetId, fiscalYear)
+      if (result.error) return
+      if (state.accountSet?.id === accountSetId) {
+        selectedYear.value = fiscalYear
+        await loadData(accountSetId)
+      }
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '会计年度生成失败，请刷新期间后重试。')
+    } finally {
+      extending.value = false
+    }
   }
 
   async function changeStatus(
@@ -313,11 +433,11 @@
   }
 
   async function handleOpen(row: AccountSet): Promise<void> {
-    await userStore.ensureDictLoaded('fmsAccountingPeriodStatus')
     const policyAccess = getFieldAccess(row.fieldAccess, 'accountingPolicy')
-    const subtitle = [`${row.accountSetCode}`]
+    const subtitle = [row.accountSetName, row.accountSetCode]
     if (policyAccess !== 'hidden') subtitle.push(`本位币 ${row.baseCurrencyCode || '--'}`)
     requestVersion += 1
+    selectedYear.value = undefined
     Object.assign(state, {
       accountSet: row,
       periods: [],
@@ -326,10 +446,9 @@
       error: null
     })
     await drawerRef.value?.handleOpen(row, {
-      title: `会计期间 · ${row.accountSetName}`,
+      title: '会计期间',
       subtitle: subtitle.join(' · '),
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       scrollbarAlways: true,
       onOpen: () => loadData(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
@@ -342,6 +461,41 @@
 <style scoped lang="scss">
   .accounting-period-drawer {
     min-width: 0;
+
+    &__year-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-3);
+      align-items: center;
+    }
+
+    &__year-select {
+      width: 160px;
+    }
+
+    &__cards {
+      display: grid;
+      gap: var(--art-space-3);
+    }
+
+    &__period-card {
+      min-width: 0;
+      padding: var(--art-space-3);
+    }
+
+    &__card-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--art-space-3);
+    }
+
+    &__card-actions {
+      justify-content: flex-end;
+      margin-top: var(--art-space-3);
+    }
 
     &__overview {
       display: grid;
@@ -401,12 +555,6 @@
     @media (width <= 900px) {
       &__overview {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (width <= 560px) {
-      &__overview {
-        grid-template-columns: 1fr;
       }
     }
   }

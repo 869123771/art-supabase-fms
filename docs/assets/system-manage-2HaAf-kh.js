@@ -1,0 +1,1 @@
+import{H as e,w as t}from"./sys-BPuhl_AI.js";import"./tenant-scope-C6AyYVde.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

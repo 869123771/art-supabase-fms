@@ -5,7 +5,7 @@
         type="info"
         :closable="false"
         show-icon
-        title="系统按业务实体 ID 匹配当前账套已同步的核算项目；未匹配时该事件会进入待配置。"
+        title="按业务来源匹配当前账套已同步的核算项目；未匹配时，入账事件会进入待配置。"
       />
 
       <ArtEmptyState
@@ -25,33 +25,43 @@
         :key="binding.key"
         class="posting-auxiliary-dialog__row"
       >
-        <ElSelect
-          v-model="binding.auxiliaryTypeId"
-          filterable
-          clearable
-          placeholder="选择核算维度"
-          aria-label="核算维度"
-        >
-          <ElOption
-            v-for="item in auxiliaryTypeOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </ElSelect>
-        <ElSelect
-          v-model="binding.payloadKey"
-          clearable
-          placeholder="选择业务实体"
-          aria-label="业务实体来源"
-        >
-          <ElOption
-            v-for="item in payloadOptions"
-            :key="String(item.value)"
-            :label="item.label"
-            :value="item.value"
-          />
-        </ElSelect>
+        <div class="posting-auxiliary-dialog__field">
+          <span :id="`binding-dimension-${binding.key}`" class="posting-auxiliary-dialog__label"
+            >核算维度</span
+          >
+          <ElSelect
+            v-model="binding.auxiliaryTypeId"
+            filterable
+            clearable
+            placeholder="选择核算维度"
+            :aria-labelledby="`binding-dimension-${binding.key}`"
+          >
+            <ElOption
+              v-for="item in auxiliaryTypeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </ElSelect>
+        </div>
+        <div class="posting-auxiliary-dialog__field">
+          <span :id="`binding-source-${binding.key}`" class="posting-auxiliary-dialog__label"
+            >业务实体来源</span
+          >
+          <ElSelect
+            v-model="binding.payloadKey"
+            clearable
+            placeholder="选择业务实体"
+            :aria-labelledby="`binding-source-${binding.key}`"
+          >
+            <ElOption
+              v-for="item in payloadOptions"
+              :key="String(item.value)"
+              :label="item.label"
+              :value="item.value"
+            />
+          </ElSelect>
+        </div>
         <ArtButtonTable
           type="delete"
           label="删除核算维度绑定"
@@ -74,6 +84,7 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
+  import { uniq } from 'lodash-es'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
@@ -114,7 +125,7 @@
       return false
     }
     const typeIds = completed.map((item) => item.auxiliaryTypeId)
-    if (new Set(typeIds).size !== typeIds.length) {
+    if (uniq(typeIds).length !== typeIds.length) {
       ElMessage.warning('同一核算维度只能绑定一次')
       return false
     }
@@ -162,7 +173,19 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
       gap: var(--art-space-3);
-      align-items: center;
+      align-items: end;
+    }
+
+    &__field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--art-space-2);
+      min-width: 0;
+    }
+
+    &__label {
+      font-size: 13px;
+      color: var(--el-text-color-regular);
     }
 
     &__add {
@@ -173,7 +196,7 @@
       &__row {
         grid-template-columns: 1fr auto;
 
-        .el-select:nth-child(2) {
+        .posting-auxiliary-dialog__field:nth-child(2) {
           grid-row: 2;
           grid-column: 1 / -1;
         }

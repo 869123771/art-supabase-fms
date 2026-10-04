@@ -204,8 +204,8 @@
       {
         label: '启用状态',
         key: 'isEnabled',
-        type: 'switch',
-        props: { activeText: '启用', inactiveText: '停用', inlinePrompt: true }
+        type: 'segment',
+        props: { options: enabledOptions.value }
       },
       {
         label: '排序',
@@ -248,6 +248,12 @@
 
   const voucherTypeOptions = computed(() =>
     (getDictMap.value.fmsVoucherType ?? []).filter((item) => item.value !== 'reversal')
+  )
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'enabled'
+    }))
   )
   const sensitiveFieldFallback = computed<FieldAccessLevel>(() =>
     form.data.id ? 'hidden' : 'edit'
@@ -350,7 +356,8 @@
     const prepare = async (): Promise<boolean> => {
       await Promise.all([
         userStore.ensureDictLoaded('fmsBalanceDirection'),
-        userStore.ensureDictLoaded('fmsVoucherType')
+        userStore.ensureDictLoaded('fmsVoucherType'),
+        userStore.ensureDictLoaded('commonEnabledStatus')
       ])
       if (loadContext) {
         const loaded = await loadContext()
@@ -397,7 +404,7 @@
       return true
     }
     await dialogRef.value?.handleOpen(row, {
-      title: row ? `编辑凭证模板 · ${row.templateCode}` : '新增凭证模板',
+      title: row ? '编辑凭证模板' : '新增凭证模板',
       subtitle: '模板仅用于生成草稿凭证，不会绕过审核与过账控制。默认金额可在套用后调整。',
       contentMaxHeight: '78vh',
       showFullscreenButton: true,

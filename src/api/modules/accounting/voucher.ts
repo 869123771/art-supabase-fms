@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 type Voucher = Api.Fms.SecureVoucherRecord
@@ -25,8 +26,7 @@ function toVoucherListRpcParams(
 ) {
   const { accountSetId, from = 0, ids, keyword, sourceType, status, to = 19, voucherType } = params
   return {
-    p_from: Math.max(from, 0),
-    p_to: Math.max(to, from),
+    ...buildSupabaseRpcRange(from, to),
     p_account_set_id: accountSetId || null,
     p_status: status || null,
     p_voucher_type: voucherType || null,
@@ -131,8 +131,7 @@ export async function fetchVoucherTemplateList(params: VoucherTemplateSearchPara
   const result = await responseHandle<VoucherTemplateListPayload>(
     () =>
       supabase.rpc('fms_list_voucher_templates_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_voucher_type: voucherType || null,
         p_is_enabled: typeof isEnabled === 'boolean' ? isEnabled : null,

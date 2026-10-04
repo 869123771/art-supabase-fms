@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { startWorkflow } from '@/api/workflow'
@@ -22,8 +23,7 @@ const toListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_carrier_id: params.carrierId || null,
     p_status: params.status || null,
     p_record_id: params.recordId || null,

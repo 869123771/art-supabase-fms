@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -19,8 +20,7 @@ export async function fetchPeriodCloseRuns(params: Api.Fms.PeriodCloseSearchPara
   const result = await responseHandle<PeriodCloseRunListPayload>(
     () =>
       supabase.rpc('fms_list_period_close_runs_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_status: status || null,
         p_tenant_id: null

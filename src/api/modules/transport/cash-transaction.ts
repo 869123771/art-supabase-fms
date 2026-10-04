@@ -1,5 +1,5 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { readTenantScopeId, TENANT_SCOPE_HEADER } from '@/utils/tenant-scope-context'
@@ -30,8 +30,7 @@ const toCashListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_direction: params.direction || null,
     p_status: params.status || null,
     p_customer_id: params.customerId || null,
@@ -82,8 +81,7 @@ export async function fetchCustomerStatementAllocatableList(
       supabase.rpc('tms_list_customer_statement_allocatable_secure', {
         p_customer_id: customerId,
         p_keyword: normalizeNullableText(String(keyword ?? '')),
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from)
+        ...buildSupabaseRpcRange(from, to)
       }),
     {
       showErrorMessage: true
@@ -103,8 +101,7 @@ export async function fetchCarrierStatementAllocatableList(params: CarrierAlloca
       supabase.rpc('tms_list_carrier_statement_allocatable_secure', {
         p_carrier_id: carrierId,
         p_keyword: normalizeNullableText(String(keyword ?? '')),
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from)
+        ...buildSupabaseRpcRange(from, to)
       }),
     { showErrorMessage: true }
   )

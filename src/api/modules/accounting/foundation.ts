@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import type { ApiFeedbackOptions } from '@/types/api/request'
@@ -36,8 +37,7 @@ export async function fetchAccountSetList(params: AccountSetSearchParams = {}) {
   const result = await responseHandle<AccountSetListPayload>(
     () =>
       supabase.rpc('fms_list_account_sets_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_keyword: normalizeNullableText(keyword),
         p_status: status || null,
         p_tenant_id: tenantId || null
@@ -74,8 +74,7 @@ export async function fetchAccountSetOptions(params: AccountSetSearchParams = {}
   const result = await responseHandle<AccountSetOptionListPayload>(
     () =>
       supabase.rpc('fms_list_account_set_options_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_status: status || null,
         p_tenant_id: tenantId || null,
         p_ids: null
@@ -99,8 +98,7 @@ export async function fetchAccountSetIdentities(ids: string[]) {
   const result = await responseHandle<AccountSetOptionListPayload>(
     () =>
       supabase.rpc('fms_list_account_set_options_secure', {
-        p_from: 0,
-        p_to: Math.max(ids.length - 1, 0),
+        ...buildSupabaseRpcRange(0, ids.length - 1),
         p_status: null,
         p_tenant_id: null,
         p_ids: ids
@@ -169,6 +167,17 @@ export async function setAccountingPeriodStatus(
         p_reason: reason || null
       }),
     { breakReturn: true, showMessage: true, message: '会计期间状态已更新' }
+  )
+}
+
+export async function extendAccountingPeriods(accountSetId: string, fiscalYear: number) {
+  return await responseHandle<Api.Fms.AccountingPeriodExtensionResult>(
+    () =>
+      supabase.rpc('extend_fms_accounting_periods', {
+        p_account_set_id: accountSetId,
+        p_fiscal_year: fiscalYear
+      }),
+    { breakReturn: true, showMessage: true, message: `${fiscalYear} 会计年度已生成` }
   )
 }
 

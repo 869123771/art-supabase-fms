@@ -424,7 +424,6 @@
     await drawerRef.value?.handleOpen(undefined, {
       title: '固定资产折旧管理',
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       loading: true,
       loadingText: '正在加载折旧数据…',
       onOpen: loadInitialData,

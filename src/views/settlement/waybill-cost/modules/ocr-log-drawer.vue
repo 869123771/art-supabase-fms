@@ -38,6 +38,7 @@
 
 <script setup lang="tsx">
   import type { ComputedRef } from 'vue'
+  import { useMediaQuery } from '@vueuse/core'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -61,6 +62,7 @@
   }
 
   const userStore = useUserStore()
+  const isNarrowScreen = useMediaQuery('(max-width: 640px)')
 
   const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Record<string, never>>>()
@@ -79,19 +81,20 @@
         label: '识别时间',
         key: 'createTimeRange',
         type: 'date',
-        span: 16,
+        span: isNarrowScreen.value ? 24 : 16,
         props: {
           type: 'daterange',
           valueFormat: 'YYYY-MM-DD',
           startPlaceholder: '开始日期',
-          endPlaceholder: '结束日期'
+          endPlaceholder: '结束日期',
+          style: { width: '100%' }
         }
       },
       {
         label: '关键词',
         key: 'keyword',
         type: 'input',
-        span: 16,
+        span: isNarrowScreen.value ? 24 : 16,
         props: { clearable: true, placeholder: '模型、错误码、错误详情或发起人' }
       }
     ])
@@ -144,7 +147,6 @@
         title: 'OCR 识别记录',
         size: 'xl',
         showFooter: false,
-        contentHeight: 'calc(100vh - 120px)',
         onOpen: async () => {
           await nextTick()
           await tableQueryRef.value?.getData()

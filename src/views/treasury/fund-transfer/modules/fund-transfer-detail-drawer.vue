@@ -28,6 +28,12 @@
           :class="{ 'is-amount-only': !canViewAccounts }"
           aria-label="资金流向"
         >
+          <p
+            v-if="detail.status === 'reversed'"
+            class="col-span-full m-0 text-sm text-[var(--el-text-color-secondary)]"
+          >
+            原调拨已冲销，以下为原始转账方向；反向流水已恢复本次调拨金额。
+          </p>
           <div v-if="canViewAccounts">
             <small>转出账户</small>
             <strong>{{ detail.sourceAccountName || '--' }}</strong>
@@ -157,20 +163,43 @@
 
   const actionColumns: ColumnOption<Action>[] = [
     {
-      prop: 'actionTime',
-      label: '时间',
-      width: 165,
-      formatter: (row) => formatWithDayjs(row.actionTime, 'YYYY-MM-DD HH:mm') || '--'
+      prop: 'action',
+      label: '业务操作',
+      minWidth: 190,
+      formatter: (row) =>
+        h('div', { class: 'grid gap-1' }, [
+          h(
+            'strong',
+            { class: 'text-sm text-[var(--el-text-color-primary)]' },
+            actionLabels[row.action] || '业务操作'
+          ),
+          h(
+            'span',
+            { class: 'text-xs text-[var(--el-text-color-secondary)]' },
+            formatWithDayjs(row.actionTime, 'YYYY-MM-DD HH:mm') || '--'
+          )
+        ])
     },
     { prop: 'actionBy', label: '操作人', minWidth: 150, showOverflowTooltip: true },
     {
       prop: 'toStatus',
       label: '状态',
       width: 105,
+      fixed: 'right',
       dict: { code: 'fmsFundTransferStatus', display: 'tag' }
     },
     { prop: 'actionRemark', label: '说明', minWidth: 180, showOverflowTooltip: true }
   ]
+
+  const actionLabels: Record<Api.Fms.FundTransferAction, string> = {
+    create: '创建调拨',
+    edit: '编辑调拨',
+    submit: '提交审批',
+    approve: '审批通过',
+    reject: '驳回调拨',
+    execute: '执行入账',
+    reverse: '冲销调拨'
+  }
 
   function formatMoney(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'
@@ -180,7 +209,8 @@
   async function handleOpen(row: Transfer): Promise<void> {
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
-      title: `资金调拨详情 · ${row.transferNo}`,
+      title: '资金调拨详情',
+      subtitle: row.transferNo,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

@@ -1,4 +1,6 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
+import { uniq } from 'lodash-es'
 import { useSupabase } from '@/hooks'
 import type { ApiFeedbackOptions } from '@/types/api/request'
 import { fetchAccountSetIdentities } from '@fms/api/modules/accounting/foundation'
@@ -48,8 +50,8 @@ type FundAccountOptionPayload = Omit<Api.Fms.FundAccountOption, 'label' | 'value
 
 async function enrichFundAccounts(rows: FundAccount[]): Promise<FundAccount[]> {
   if (!rows.length) return rows
-  const accountSetIds = [...new Set(rows.map((row) => row.accountSetId))]
-  const currencyIds = [...new Set(rows.map((row) => row.currencyId))]
+  const accountSetIds = uniq(rows.map((row) => row.accountSetId))
+  const currencyIds = uniq(rows.map((row) => row.currencyId))
   const [accountSets, currencies] = await Promise.all([
     fetchAccountSetIdentities(accountSetIds),
     responseHandle<Api.Fms.CurrencyRecord[]>(
@@ -75,8 +77,7 @@ export async function fetchFundAccountList(params: Api.Fms.FundAccountSearchPara
   const result = await responseHandle<FundAccountListPayload>(
     () =>
       supabase.rpc('fms_list_fund_accounts_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_account_type: accountType || null,
         p_status: status || null,
@@ -154,8 +155,7 @@ export async function fetchFundLedgerList(
   const result = await responseHandle<FundLedgerListPayload>(
     () =>
       supabase.rpc('fms_list_fund_ledger_entries_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: params.accountSetId || null,
         p_fund_account_id: params.fundAccountId || null,
         p_direction: params.direction || null,
@@ -189,8 +189,7 @@ export async function fetchFundTransferList(params: Api.Fms.FundTransferSearchPa
   const result = await responseHandle<FundTransferListPayload>(
     () =>
       supabase.rpc('fms_list_fund_transfers_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_source_account_id: sourceAccountId || null,
         p_target_account_id: targetAccountId || null,
@@ -267,8 +266,7 @@ export async function fetchBankReconciliationList(
   const result = await responseHandle<BankReconciliationListPayload>(
     () =>
       supabase.rpc('fms_list_bank_reconciliations_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_fund_account_id: fundAccountId || null,
         p_status: status || null,

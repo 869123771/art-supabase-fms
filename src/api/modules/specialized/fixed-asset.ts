@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
@@ -39,8 +40,7 @@ export async function fetchFixedAssetList(params: Api.Fms.FixedAssetSearchParams
   const result = await responseHandle<FixedAssetListPayload>(
     () =>
       supabase.rpc('fms_list_fixed_assets_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_category_id: categoryId || null,
         p_status: status || null,

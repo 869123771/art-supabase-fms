@@ -170,12 +170,19 @@
       loadingText: '正在加载资金账户…',
       onOpen: async () => {
         try {
-          const { data } = await fetchFundAccountOptions({
+          const { data, error } = await fetchFundAccountOptions({
             accountSetId: options.accountSetId,
             status: 'active',
             baseCurrencyOnly: true
           })
+          if (error) {
+            await dialogRef.value?.handleClose(true)
+            return
+          }
           accountOptions.value = data ?? []
+        } catch (error) {
+          notifyFriendlyError(error, '资金账户加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose(true)
         } finally {
           prerequisiteOverlay.finishLoading()
         }

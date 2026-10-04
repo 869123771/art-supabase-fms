@@ -78,10 +78,10 @@
     }
   })
 
-  const booleanOptions = computed(() =>
-    (getDictMap.value.commonBoolean ?? []).map((item) => ({
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
       ...item,
-      value: item.value === 'true'
+      value: item.value === 'enabled'
     }))
   )
 
@@ -122,9 +122,9 @@
     {
       label: '启用状态',
       key: 'isEnabled',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
-      props: { options: booleanOptions.value }
+      props: { options: enabledOptions.value }
     },
     {
       label: '排序号',
@@ -190,7 +190,7 @@
       onOpen: async (_data, api) => {
         try {
           await Promise.all([
-            userStore.ensureDictLoaded('commonBoolean'),
+            userStore.ensureDictLoaded('commonEnabledStatus'),
             userStore.ensureDictLoaded('fmsAuxiliarySourceType')
           ])
           formRef.value?.clearValidate()

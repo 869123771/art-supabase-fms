@@ -94,10 +94,10 @@
     }
   })
 
-  const booleanOptions = computed(() =>
-    (getDictMap.value.commonBoolean ?? []).map((item) => ({
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
       ...item,
-      value: item.value === 'true'
+      value: item.value === 'enabled'
     }))
   )
 
@@ -168,8 +168,8 @@
     {
       label: '启用状态',
       key: 'isEnabled',
-      type: 'radioGroup',
-      props: { options: booleanOptions.value }
+      type: 'segment',
+      props: { options: enabledOptions.value }
     },
     { label: '取数规则', key: 'calculationSection', type: 'divider', span: 24 },
     {
@@ -266,7 +266,7 @@
             userStore.ensureDictLoaded('fmsStatementDisplayStyle'),
             userStore.ensureDictLoaded('fmsStatementCalculationMethod'),
             userStore.ensureDictLoaded('fmsCashFlowDirection'),
-            userStore.ensureDictLoaded('commonBoolean')
+            userStore.ensureDictLoaded('commonEnabledStatus')
           ])
           formRef.value?.clearValidate()
         } catch (error) {

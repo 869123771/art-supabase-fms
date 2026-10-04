@@ -843,7 +843,12 @@
   async function fetchPartySelectorData(params: DataSelectFetchParams) {
     const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
     if (form.data.direction === 'output') {
-      const { data, total } = await fetchCustomerSelectorList({ keyword: params.keyword, from, to })
+      const { data, total, error } = await fetchCustomerSelectorList({
+        keyword: params.keyword,
+        from,
+        to
+      })
+      if (error) throw error
       return {
         data: (data ?? []).map((item) => ({
           ...item,
@@ -854,7 +859,8 @@
       }
     }
 
-    const { data } = await fetchCarrierOptions({ companyName: params.keyword })
+    const { data, error } = await fetchCarrierOptions({ companyName: params.keyword })
+    if (error) throw error
     const records = (data ?? []).map((item) => ({
       ...item,
       partyName: item.companyName,
@@ -866,7 +872,7 @@
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.data.counterpartyId) return { data: [], total: 0 }
     const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
-    const { data, total } = await fetchInvoiceableStatementList({
+    const { data, total, error } = await fetchInvoiceableStatementList({
       direction: form.data.direction,
       counterpartyId: form.data.counterpartyId,
       keyword: params.keyword,
@@ -874,6 +880,7 @@
       from,
       to
     })
+    if (error) throw error
     return {
       data: (data ?? []).map((item) => ({
         ...item,
@@ -1077,8 +1084,9 @@
   }
 
   async function loadDetail(id: string): Promise<void> {
-    const { data } = await fetchInvoiceDetail(id)
-    if (!data) return
+    const { data, error } = await fetchInvoiceDetail(id, { showErrorMessage: false })
+    if (error) throw error
+    if (!data) throw new Error('发票记录已不可用，请刷新列表后重试')
     recordTenantId.value = data.tenantId || ''
     fieldAccess.value = data.fieldAccess ?? {}
     const links = data.statementLinks ?? []
@@ -1229,11 +1237,6 @@
   }
 
   async function handleOpen(row?: Invoice, ocrContext?: InvoiceOcrContext): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('tmsInvoiceDirection'),
-      userStore.ensureDictLoaded('tmsInvoiceStatus'),
-      userStore.ensureDictLoaded('tmsInvoiceType')
-    ])
     await resetForm()
     recordTenantId.value = row?.tenantId || ''
     if (row) fieldAccess.value = row.fieldAccess ?? {}
@@ -1249,9 +1252,17 @@
       loadingText: '正在准备发票…',
       onOpen: async (_data, api) => {
         try {
+          await Promise.all([
+            userStore.ensureDictLoaded('tmsInvoiceDirection'),
+            userStore.ensureDictLoaded('tmsInvoiceStatus'),
+            userStore.ensureDictLoaded('tmsInvoiceType')
+          ])
           await invoiceRecordNumber.loadRule()
           if (ocrContext) await handleApplyOcrResult(ocrContext.result)
           else if (row) await loadDetail(row.id)
+        } catch (error) {
+          notifyFriendlyError(error, '发票资料加载失败，请重新打开后重试')
+          await api.handleClose(true)
         } finally {
           api.setLoading(false)
         }

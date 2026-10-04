@@ -9,6 +9,7 @@ export {
   fetchAccountingFoundationSummary,
   fetchAccountingReadiness,
   fetchAccountingPeriodList,
+  extendAccountingPeriods,
   fetchAccountSetDetail,
   fetchAccountSetList,
   fetchAccountSetOverview,

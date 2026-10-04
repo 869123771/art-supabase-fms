@@ -25,6 +25,7 @@
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
+  import { useMediaQuery } from '@vueuse/core'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -42,6 +43,13 @@
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
+  const isNarrow = useMediaQuery('(max-width: 520px)')
+  const booleanOptions = computed(() =>
+    (getDictMap.value.commonBoolean ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'true'
+    }))
+  )
   const dialogRef = ref<ArtDialogExpose>()
   const prerequisiteOverlay = createFinancePrerequisiteOverlay(dialogRef)
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
@@ -118,13 +126,13 @@
       {
         label: '票据方向',
         key: 'direction',
-        type: 'select',
+        type: 'segment',
         props: { options: getDictMap.value.fmsBillDirection ?? [], placeholder: '选择方向' }
       },
       {
         label: '票据类型',
         key: 'billType',
-        type: 'select',
+        type: isNarrow.value ? 'select' : 'segment',
         props: { options: getDictMap.value.fmsBillType ?? [], placeholder: '选择类型' }
       },
       {
@@ -231,8 +239,8 @@
       {
         label: '允许背书',
         key: 'transferable',
-        type: 'switch',
-        props: { activeText: '允许', inactiveText: '禁止' }
+        type: 'segment',
+        props: { options: booleanOptions.value }
       }
     )
 
@@ -318,7 +326,8 @@
     const prepare = async () => {
       await Promise.all([
         userStore.ensureDictLoaded('fmsBillDirection'),
-        userStore.ensureDictLoaded('fmsBillType')
+        userStore.ensureDictLoaded('fmsBillType'),
+        userStore.ensureDictLoaded('commonBoolean')
       ])
       const { data, error } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
       if (error) throw error
@@ -378,7 +387,7 @@
       if (!record) form.data.accountSetId = accountSetOptions.value[0]?.value ?? ''
     }
     await dialogRef.value?.handleOpen(undefined, {
-      title: row ? `编辑票据 · ${row.billNo}` : '新建商业票据',
+      title: row ? '编辑商业票据' : '新建商业票据',
       confirmText: row ? '保存修改' : '创建草稿',
       loading: true,
       loadingText: '正在加载票据与账套…',

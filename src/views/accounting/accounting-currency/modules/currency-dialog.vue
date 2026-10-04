@@ -69,10 +69,10 @@
     }
   })
 
-  const booleanOptions = computed(() =>
-    (getDictMap.value.commonBoolean ?? []).map((item) => ({
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
       ...item,
-      value: item.value === 'true'
+      value: item.value === 'enabled'
     }))
   )
   const isBaseCurrency = computed(() => form.data.isBase)
@@ -113,9 +113,9 @@
     {
       label: '启用状态',
       key: 'isEnabled',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
-      props: { disabled: isBaseCurrency.value, options: booleanOptions.value }
+      props: { disabled: isBaseCurrency.value, options: enabledOptions.value }
     },
     {
       label: '排序号',
@@ -182,7 +182,7 @@
       onConfirm: handleSubmit,
       onOpen: async (_data, api) => {
         try {
-          await userStore.ensureDictLoaded('commonBoolean')
+          await userStore.ensureDictLoaded('commonEnabledStatus')
           formRef.value?.clearValidate()
         } catch (error) {
           notifyFriendlyError(error, '币种选项加载失败，请重新打开重试')

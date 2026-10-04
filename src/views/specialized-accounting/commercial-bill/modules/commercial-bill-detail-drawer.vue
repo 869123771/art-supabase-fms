@@ -106,6 +106,12 @@
     openDetail,
     retryLoad
   } = useDetailRecord<BillDetail>(async (id) => {
+    await Promise.all([
+      userStore.ensureDictLoaded('fmsBillStatus'),
+      userStore.ensureDictLoaded('fmsBillEventType'),
+      userStore.ensureDictLoaded('fmsBillDirection'),
+      userStore.ensureDictLoaded('fmsBillType')
+    ])
     const [recordResult, eventResult] = await Promise.all([
       fetchCommercialBillDetail(id, { showErrorMessage: false }),
       fetchCommercialBillEvents(id, { showErrorMessage: false })
@@ -188,10 +194,6 @@
   }
 
   async function handleOpen(row: Bill): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('fmsBillStatus'),
-      userStore.ensureDictLoaded('fmsBillEventType')
-    ])
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: '票据详情',

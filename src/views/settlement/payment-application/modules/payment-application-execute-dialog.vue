@@ -2,7 +2,7 @@
   <ArtDialog ref="dialogRef" size="md">
     <ElAlert
       class="payment-execute-dialog__notice"
-      type="success"
+      type="info"
       :closable="false"
       show-icon
       :title="noticeTitle"
@@ -226,8 +226,8 @@
     fundAccountOptions.value = []
     application.value = row
     await dialogRef.value?.handleOpen(row, {
-      title: `登记付款 · ${row.applicationNo}`,
-      subtitle: '仅审批通过的付款申请可以执行，每份申请只允许成功付款一次',
+      title: '登记付款',
+      subtitle: `${row.applicationNo} · 每份已批准申请仅允许成功付款一次`,
       confirmText: '确认付款并核销',
       contentMaxHeight: '68vh',
       loading: true,
@@ -238,7 +238,10 @@
             transactionNumber.loadRule(),
             fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
           ])
-          if (fundAccounts.error) throw fundAccounts.error
+          if (fundAccounts.error) {
+            await api.handleClose()
+            return
+          }
           fundAccountOptions.value = fundAccounts.data ?? []
         } catch (error) {
           notifyFriendlyError(error, '付款资金账户加载失败，请重新打开后重试')

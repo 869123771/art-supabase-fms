@@ -68,6 +68,11 @@
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const accountOptions = ref<Api.Fms.FundAccountOption[]>([])
   const overviewRows = ref<Ledger[]>([])
+  const overviewLoading = ref(false)
+  const overviewReady = ref(false)
+  const appliedDirection = ref<SearchParams['direction']>()
+  let ledgerRequestId = 0
+  let accountOptionsRequestId = 0
   const currentRows = ref<Ledger[]>([])
   const listFieldAccess = ref<Api.Fms.FundLedgerFieldAccessMap>({})
   const effectiveFieldAccess = computed(() =>
@@ -188,37 +193,41 @@
       {
         key: 'all',
         label: '资金流水',
-        value: rows.length,
+        value: overviewReady.value ? rows.length : '--',
+        loading: overviewLoading.value,
         description: '当前筛选范围记录',
         icon: 'ri:list-check-3',
         tone: 'primary',
         interactive: true,
-        selected: !table.search.direction
+        selected: !appliedDirection.value
       },
       {
         key: 'inflow',
         label: '资金流入',
-        value: inflow.value,
-        description: `${inflow.count} 笔`,
+        value: overviewReady.value ? inflow.value : '--',
+        loading: overviewLoading.value,
+        description: overviewReady.value ? `${inflow.count} 笔` : '当前查询范围',
         icon: 'ri:arrow-left-down-line',
         tone: 'success',
         interactive: true,
-        selected: table.search.direction === 'inflow'
+        selected: appliedDirection.value === 'inflow'
       },
       {
         key: 'outflow',
         label: '资金流出',
-        value: outflow.value,
-        description: `${outflow.count} 笔`,
+        value: overviewReady.value ? outflow.value : '--',
+        loading: overviewLoading.value,
+        description: overviewReady.value ? `${outflow.count} 笔` : '当前查询范围',
         icon: 'ri:arrow-right-up-line',
         tone: 'warning',
         interactive: true,
-        selected: table.search.direction === 'outflow'
+        selected: appliedDirection.value === 'outflow'
       },
       {
         key: 'reversal',
         label: '冲销关联',
-        value: reversalCount,
+        value: overviewReady.value ? reversalCount : '--',
+        loading: overviewLoading.value,
         description: '原流水与反向流水均保留',
         icon: 'ri:arrow-go-back-line',
         tone: reversalCount ? 'warning' : 'info'
@@ -323,30 +332,40 @@
   }
 
   async function fetchTableData(params: TableParams) {
+    const requestId = ++ledgerRequestId
+    overviewLoading.value = true
+    overviewReady.value = false
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
-    const result = await fetchFundLedgerList({ ...params, from, to })
-    listFieldAccess.value = result.fieldAccess
-    currentRows.value = result.data ?? []
-    return result
-  }
-
-  async function loadOverview(): Promise<void> {
-    const result = await fetchFundLedgerList({
-      ...table.search,
-      from: 0,
-      to: 999
-    })
-    overviewRows.value = result.data ?? []
-    listFieldAccess.value = result.fieldAccess
+    try {
+      const [result, overview] = await Promise.all([
+        fetchFundLedgerList({ ...params, from, to }, { showErrorMessage: false }),
+        fetchFundLedgerList({ ...params, from: 0, to: 999 }, { showErrorMessage: false })
+      ])
+      if (result.error) throw result.error
+      if (overview.error) throw overview.error
+      if (requestId === ledgerRequestId) {
+        listFieldAccess.value = result.fieldAccess
+        currentRows.value = result.data ?? []
+        overviewRows.value = overview.data ?? []
+        overviewReady.value = true
+        appliedDirection.value = params.direction
+      }
+      return result
+    } finally {
+      if (requestId === ledgerRequestId) overviewLoading.value = false
+    }
   }
 
   async function loadAccountOptions(accountSetId?: string): Promise<void> {
+    const requestId = ++accountOptionsRequestId
     table.search.fundAccountId = undefined
+    accountOptions.value = []
     if (!accountSetId || !canFilterAccount.value) {
       accountOptions.value = []
       return
     }
     const { data } = await fetchFundAccountOptions({ accountSetId })
+    if (requestId !== accountOptionsRequestId) return
     accountOptions.value = data ?? []
   }
 
@@ -367,14 +386,8 @@
     if (!['all', 'inflow', 'outflow'].includes(String(metric.key))) return
     table.search.direction =
       metric.key === 'all' ? undefined : (metric.key as Api.Fms.FundLedgerDirection)
-    void Promise.all([tableRef.value?.getData(), loadOverview()])
+    void tableRef.value?.getData()
   }
-
-  watch(
-    () => table.search,
-    () => void loadOverview(),
-    { deep: true }
-  )
 
   watch(canFilterAccount, (allowed) => {
     if (!allowed) {
@@ -404,7 +417,6 @@
     ])
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
     accountSetOptions.value = data ?? []
-    await loadOverview()
   })
 </script>
 

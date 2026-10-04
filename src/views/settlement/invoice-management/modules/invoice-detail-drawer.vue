@@ -18,7 +18,7 @@
             :data="detail"
             :items="descriptionItems"
             :columns="2"
-            label-width="104px"
+            label-width="128px"
           />
         </ArtSectionCard>
 
@@ -237,11 +237,10 @@
   }
 
   async function handleOpen(row: Invoice): Promise<void> {
-    openDetail(row.id, row)
+    openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: `发票详情 · ${row.invoiceNo || row.invoiceRecordNo}`,
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

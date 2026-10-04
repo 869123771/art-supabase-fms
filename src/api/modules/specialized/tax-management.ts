@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -19,8 +20,7 @@ export async function fetchTaxPeriodList(params: Api.Fms.TaxPeriodSearchParams =
   const result = await responseHandle<TaxPeriodListPayload>(
     () =>
       supabase.rpc('fms_list_tax_periods_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_tax_type: taxType || null,
         p_status: status || null,

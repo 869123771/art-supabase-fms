@@ -609,8 +609,8 @@
                 accountSetId: row.accountSetId,
                 amount,
                 direction,
-                title: `${item.label} · ${row.billNo}`,
-                subtitle: '选择实际资金账户，系统会同步登记资金日记账和票据会计凭证',
+                title: item.label,
+                subtitle: `${row.billNo} · 选择实际资金账户，系统会同步登记资金日记账和票据会计凭证`,
                 confirmText: `${item.label}并入账`,
                 accountLabel: direction === 'inflow' ? '入账账户' : '扣款账户'
               },

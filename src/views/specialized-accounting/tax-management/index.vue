@@ -90,7 +90,7 @@
     payableAmount: 0,
     pendingCount: 0
   })
-  const { confirmAction, promptReason } = useArtFeedback()
+  const { confirmAction, promptReason, promptText } = useArtFeedback()
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
@@ -390,7 +390,7 @@
         })
         await actTaxPeriod(row.id, 'cancel', { reason })
       } else if (item.key === 'file') {
-        const filingReference = await promptReason(
+        const filingReference = await promptText(
           '请输入电子税务局申报凭证号或申报回执编号。',
           '确认税务申报',
           { emptyMessage: '申报凭证号不能为空', placeholder: '例如：VAT-202608-001' }
@@ -411,7 +411,7 @@
                 accountSetId: row.accountSetId,
                 amount: toFiniteNumber(row.payableAmount),
                 direction: 'outflow',
-                title: `确认缴税 · ${row.taxType}`,
+                title: '确认缴税',
                 subtitle: '选择实际扣款账户，系统会同步登记资金日记账和税费支付凭证',
                 confirmText: '确认缴税并入账',
                 accountLabel: '缴税账户'

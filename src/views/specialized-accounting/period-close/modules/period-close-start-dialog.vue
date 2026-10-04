@@ -101,10 +101,18 @@
       onOpen: async () => {
         formRef.value?.clearValidate()
         try {
-          const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+          const { data, error } = await fetchAccountSetOptions({
+            status: 'active',
+            from: 0,
+            to: 999
+          })
+          if (error) throw error
           accountSetOptions.value = data ?? []
           form.accountSetId = accountSetOptions.value[0]?.value ?? ''
           await loadPeriods()
+        } catch (error) {
+          notifyFriendlyError(error, '账套加载失败，请重新打开重试')
+          await dialogRef.value?.handleClose()
         } finally {
           prerequisiteOverlay.finishLoading()
         }

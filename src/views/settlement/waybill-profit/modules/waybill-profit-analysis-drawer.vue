@@ -277,16 +277,12 @@
         </footer>
       </template>
 
-      <ElResult
+      <ArtAsyncState
         v-else-if="state.error"
-        icon="warning"
-        title="利润诊断失败"
-        :sub-title="state.error"
-      >
-        <template #extra
-          ><ElButton type="primary" @click="loadAssessment">重新诊断</ElButton></template
-        >
-      </ElResult>
+        :error="state.error"
+        error-title="利润诊断失败"
+        @retry="loadAssessment"
+      />
     </div>
   </ArtDrawer>
 </template>
@@ -302,6 +298,7 @@
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
@@ -385,7 +382,6 @@
       {
         title: 'AI 运单利润诊断',
         size: 'xl',
-        contentHeight: 'calc(100vh - 120px)',
         showFooter: false,
         onOpen: loadAssessment,
         onReset: () => Object.assign(state, { data: null, error: '', loading: false }),

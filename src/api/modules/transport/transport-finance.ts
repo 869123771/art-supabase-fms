@@ -1,6 +1,7 @@
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
-import { normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { applyDateRange } from '@/api/providers/supabase/query'
@@ -42,8 +43,7 @@ const toCostListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_record_id: params.recordId || null,
     p_order_id: params.orderId || null,
     p_waybill_id: params.waybillId || null,
@@ -238,8 +238,7 @@ export async function fetchFinanceWaybillOptions(params: WaybillOptionSearchPara
   const result = await responseHandle<SecureListPayload<WaybillOption>>(
     () =>
       supabase.rpc('tms_list_waybill_cost_options_secure', {
-        p_from: Math.max(params.from ?? 0, 0),
-        p_to: Math.max(params.to ?? 999, params.from ?? 0),
+        ...buildSupabaseRpcRange(params.from ?? 0, params.to ?? 999),
         p_keyword: normalizeNullableText(String(params.keyword ?? '')),
         p_order_id: params.orderId || null
       }),
@@ -331,8 +330,7 @@ export async function fetchExpenseReimbursementList(params: ReimbursementSearch)
   >(
     () =>
       supabase.rpc('tms_list_expense_reimbursements_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_keyword: normalizeNullableText(params.keyword),
         p_status: params.status || null,
         p_payment_method: params.paymentMethod || null,
@@ -483,15 +481,14 @@ const toProfitListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_waybill_status: params.waybillStatus || null,
     p_completed_at_start: params.completedAtRange?.[0]
-      ? `${params.completedAtRange[0]}T00:00:00`
+      ? toDateStartTimestamp(params.completedAtRange[0])
       : null,
     p_completed_at_end: params.completedAtRange?.[1]
-      ? `${params.completedAtRange[1]}T23:59:59.999`
+      ? toDateEndTimestamp(params.completedAtRange[1])
       : null,
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose

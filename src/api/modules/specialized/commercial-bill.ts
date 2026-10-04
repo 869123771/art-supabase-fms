@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import type { ApiFeedbackOptions } from '@/types/api/request'
@@ -17,8 +18,7 @@ export async function fetchCommercialBillList(params: Api.Fms.CommercialBillSear
   const result = await responseHandle<CommercialBillListPayload>(
     () =>
       supabase.rpc('fms_list_commercial_bills_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_direction: direction || null,
         p_bill_type: billType || null,

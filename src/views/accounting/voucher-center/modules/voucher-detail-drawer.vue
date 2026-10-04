@@ -151,10 +151,10 @@
 
   const drawerRef = ref<ArtDrawerExpose<Voucher>>()
   const { detail, activeId, loading, loadError, loadDetail, openDetail, retryLoad } =
-    useDetailRecord<Voucher>(
-      (id) => fetchVoucherDetail(id, { showErrorMessage: false }),
-      '凭证详情加载失败，请重试或返回列表重新选择。'
-    )
+    useDetailRecord<Voucher>(async (id) => {
+      await userStore.ensureDictLoaded('fmsPostingWaybillCostType')
+      return fetchVoucherDetail(id, { showErrorMessage: false })
+    }, '凭证详情加载失败，请重试或返回列表重新选择。')
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
 
@@ -320,14 +320,12 @@
   }
 
   async function handleOpen(row: Voucher | string): Promise<void> {
-    void userStore.ensureDictLoaded('fmsPostingWaybillCostType')
     const initialRow = typeof row === 'string' ? undefined : row
-    openDetail(typeof row === 'string' ? row : row.id, initialRow)
+    openDetail(typeof row === 'string' ? row : row.id)
     await drawerRef.value?.handleOpen(initialRow, {
       title: '会计凭证详情',
       subtitle: '查看会计分录、业务来源、附件及全生命周期操作记录。',
       size: 'xl',
-      contentHeight: 'calc(100vh - 132px)',
       onOpen: () => loadDetail(activeId.value),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })

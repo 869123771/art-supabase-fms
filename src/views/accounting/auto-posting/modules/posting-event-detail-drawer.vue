@@ -25,7 +25,13 @@
               </ElTag>
             </div>
             <p>{{ detail.accountSet?.accountSetName || '待匹配账套' }}</p>
-            <span v-if="canViewSourceReferences">{{ detail.summary || '暂无事件摘要' }}</span>
+            <ArtDictDisplay
+              v-if="canViewSourceReferences && detail.sourceType === 'commercial_bill'"
+              dict-code="fmsPostingSourceEvent"
+              :value="detail.sourceEvent"
+              display="text"
+            />
+            <span v-else-if="canViewSourceReferences">{{ detail.summary || '暂无事件摘要' }}</span>
             <span v-else>业务来源信息受字段权限保护</span>
           </div>
         </section>
@@ -51,7 +57,7 @@
         <ArtSectionCard
           v-if="canViewPayload"
           class="posting-event-detail__section"
-          title="业务事件载荷"
+          title="业务数据"
           :empty="!payloadRows.length"
           empty-title="暂无业务载荷"
           empty-description="业务事件生成载荷后，可在此核对字段。"
@@ -90,6 +96,9 @@
 
 <script setup lang="tsx">
   import { ElButton, ElTag } from 'element-plus'
+  import { storeToRefs } from 'pinia'
+  import { useUserStore } from '@/store/modules/user'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -115,13 +124,29 @@
   }
 
   const emit = defineEmits<{ 'view-voucher': [voucherId: string] }>()
+  const userStore = useUserStore()
+  const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Event>>()
   const { detail, loading, loadError, loadDetail, openDetail, retryLoad } = useDetailRecord<Event>(
-    (id) => fetchPostingEventDetail(id, { showErrorMessage: false }),
+    async (id) => {
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsBillType'),
+        userStore.ensureDictLoaded('fmsBillDirection'),
+        userStore.ensureDictLoaded('fmsPostingSourceEvent')
+      ])
+      return fetchPostingEventDetail(id, { showErrorMessage: false })
+    },
     '自动入账事件详情加载失败，请重试或返回列表重新选择。'
   )
 
   const payloadLabelMap: Record<string, string> = {
+    billId: '票据关联标识',
+    billType: '票据类型',
+    direction: '票据方向',
+    referenceNo: '银行流水号',
+    billEventId: '流转关联标识',
+    fundAccountId: '资金账户关联标识',
+    counterpartyName: '往来单位',
     runId: '核算批次 ID',
     periodId: '会计期间 ID',
     assetCount: '资产数量',
@@ -200,9 +225,9 @@
           formatter: (_value, row) => row.voucher?.voucherNo || '—'
         },
         {
-          key: 'sourceId',
-          label: '来源数据 ID',
-          field: 'sourceId',
+          key: 'sourceNo',
+          label: '来源单号',
+          field: 'sourceNo',
           copyable: ['read', 'edit'].includes(
             getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences')
           )
@@ -233,13 +258,22 @@
     Object.entries(detail.value?.payload ?? {}).map(([key, value]) => ({
       key,
       label: payloadLabelMap[key] ?? key,
-      value: value == null ? '—' : typeof value === 'object' ? JSON.stringify(value) : String(value)
+      value:
+        detail.value?.sourceType === 'commercial_bill' && key === 'billType'
+          ? getDictMap.value.fmsBillType?.find((item) => item.value === value)?.label || '未登记'
+          : detail.value?.sourceType === 'commercial_bill' && key === 'direction'
+            ? getDictMap.value.fmsBillDirection?.find((item) => item.value === value)?.label ||
+              '未登记'
+            : value == null
+              ? '—'
+              : typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value)
     }))
   )
 
   const payloadColumns: ColumnOption<PayloadRow>[] = [
     { prop: 'label', label: '字段', minWidth: 150 },
-    { prop: 'key', label: '技术字段', minWidth: 180, showOverflowTooltip: true },
     { prop: 'value', label: '业务值', minWidth: 260, showOverflowTooltip: true }
   ]
 
@@ -277,12 +311,12 @@
   async function handleOpen(row: Event): Promise<void> {
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
-      title: `自动入账事件 · ${
+      title: '自动入账事件',
+      subtitle: `${
         ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'eventSourceReferences'))
-          ? row.sourceNo || row.id
+          ? row.sourceNo || '业务事件'
           : row.eventDate
-      }`,
-      subtitle: '查看规则命中、凭证生成、错误原因与业务事件载荷。',
+      } · 查看规则命中、凭证生成与错误原因。`,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

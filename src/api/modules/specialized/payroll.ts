@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -21,8 +22,7 @@ export async function fetchPayrollRunList(params: Api.Fms.PayrollRunSearchParams
   const result = await responseHandle<PayrollRunListPayload>(
     () =>
       supabase.rpc('fms_list_payroll_runs_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_account_set_id: accountSetId || null,
         p_status: status || null,
         p_tenant_id: null

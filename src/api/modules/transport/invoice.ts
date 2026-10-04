@@ -1,5 +1,9 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { createFriendlySupabaseError, normalizeSupabaseFunctionError } from '@/utils/supabase'
+import {
+  buildSupabaseRpcRange,
+  createFriendlySupabaseError,
+  normalizeSupabaseFunctionError
+} from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
@@ -52,8 +56,7 @@ const toInvoiceListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_direction: params.direction || null,
     p_status: params.status || null,
     p_invoice_type: params.invoiceType || null,
@@ -103,8 +106,7 @@ export async function fetchInvoiceableStatementList(params: InvoiceableSearchPar
       supabase.rpc('tms_list_invoiceable_statements_secure', {
         p_direction: direction,
         p_counterparty_id: counterpartyId,
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_keyword: normalizeNullableText(String(keyword ?? '')),
         p_include_fully_invoiced: Boolean(includeFullyInvoiced)
       }),

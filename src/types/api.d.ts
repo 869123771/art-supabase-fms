@@ -158,6 +158,14 @@ declare global {
         updateTime: string
       }
 
+      interface AccountingPeriodExtensionResult {
+        accountSetId: string
+        fiscalYear: number
+        createdCount: number
+        startDate: string
+        endDate: string
+      }
+
       interface AccountingFoundationSummary {
         accountSetId: string
         subjectCount: number

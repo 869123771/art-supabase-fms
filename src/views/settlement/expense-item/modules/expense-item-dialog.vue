@@ -33,6 +33,7 @@
     'fmsExpenseItemAccountingMode',
     (value) => value === 'true'
   )
+  const enabledOptions = useDictionaryOptions('commonEnabledStatus', (value) => value === 'enabled')
 
   defineOptions({ name: 'FinanceExpenseItemDialog' })
 
@@ -59,6 +60,7 @@
   })
 
   const form = reactive<ExpenseItemForm>(createInitialForm())
+  const parentOptions = ref<ExpenseItem[]>([])
 
   const rules = computed<FormRules<ExpenseItemForm>>(() => ({
     itemName: [
@@ -94,8 +96,7 @@
       key: 'parentId',
       type: 'treeSelect',
       span: 24,
-      api: fetchExpenseItemTree,
-      afterFetch: (result: unknown) => excludeCurrentNode(result),
+      options: parentOptions.value,
       labelField: 'itemName',
       valueField: 'id',
       childrenField: 'children',
@@ -119,7 +120,7 @@
     {
       label: '节点用途',
       key: 'isSelectable',
-      type: 'radioGroup',
+      type: 'segment',
       span: 24,
       props: {
         options: fmsExpenseItemAccountingModeOptions
@@ -146,8 +147,8 @@
     {
       label: '启用状态',
       key: 'isEnabled',
-      type: 'radioGroup',
-      props: { options: booleanOptions.value }
+      type: 'segment',
+      props: { options: enabledOptions }
     },
     {
       label: '备注',
@@ -185,10 +186,7 @@
   }
 
   async function handleOpen(row?: ExpenseItem, parent?: ExpenseItem): Promise<void> {
-    await Promise.all([
-      userStore.ensureDictLoaded('commonBoolean'),
-      userStore.ensureDictLoaded('tmsWaybillCostType')
-    ])
+    parentOptions.value = []
     Object.assign(form, createInitialForm(), row ? structuredClone(toRaw(row)) : {})
     delete (form as ExpenseItem).children
     if (!row && parent?.id) form.parentId = parent.id
@@ -201,8 +199,28 @@
             ? `新增“${parent.itemName}”下级`
             : '新增一级费用项目',
         confirmText: row ? '保存修改' : '确认新增',
+        loading: true,
+        loadingText: '正在加载费用项目选项…',
         onConfirm: handleSubmit,
-        onOpen: () => formRef.value?.clearValidate(),
+        onOpen: async (_data, api) => {
+          try {
+            await Promise.all([
+              userStore.ensureDictLoaded('commonBoolean'),
+              userStore.ensureDictLoaded('commonEnabledStatus'),
+              userStore.ensureDictLoaded('fmsExpenseItemAccountingMode'),
+              userStore.ensureDictLoaded('tmsWaybillCostType')
+            ])
+            const result = await fetchExpenseItemTree()
+            if (result.error) throw result.error
+            parentOptions.value = excludeCurrentNode(result)
+            formRef.value?.clearValidate()
+          } catch (error) {
+            notifyFriendlyError(error, '费用项目选项加载失败，请重新打开重试')
+            await api.handleClose()
+          } finally {
+            api.setLoading(false)
+          }
+        },
         dialogProps: { appendToBody: true, closeOnClickModal: false }
       }
     )

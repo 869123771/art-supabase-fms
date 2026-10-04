@@ -48,16 +48,13 @@
               />
             </template>
           </ElTableColumn>
-          <ElTableColumn label="方向" width="116">
+          <ElTableColumn label="方向" width="140">
             <template #default="{ row }">
-              <ElSelect v-model="row.direction" placeholder="方向">
-                <ElOption
-                  v-for="item in getDictMap.fmsFundLedgerDirection ?? []"
-                  :key="String(item.value)"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </ElSelect>
+              <ElSegmented
+                v-model="row.direction"
+                :options="getDictMap.fmsFundLedgerDirection ?? []"
+                aria-label="银行流水方向"
+              />
             </template>
           </ElTableColumn>
           <ElTableColumn label="金额" width="150">

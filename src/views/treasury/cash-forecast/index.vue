@@ -51,7 +51,7 @@
         <template #header>
           <header class="cash-forecast-page__section-header">
             <div>
-              <ArtSectionTitle :show-line="false">滚动资金曲线</ArtSectionTitle>
+              <ArtSectionTitle :show-line="false">滚动资金预测</ArtSectionTitle>
               <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
             </div>
             <ElTag

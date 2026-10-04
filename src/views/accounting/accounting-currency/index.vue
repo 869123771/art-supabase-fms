@@ -229,7 +229,7 @@
   } from '@/components/core/forms/art-search-bar/index.vue'
   import type { ColumnOption } from '@/types'
   import { formatWithDayjs } from '@/utils/time'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useUserStore } from '@/store/modules/user'
   import {
@@ -528,12 +528,17 @@
   }
 
   async function toggleCurrency(row: Currency): Promise<void> {
-    await confirmAction(
-      `确定${row.isEnabled ? '停用' : '启用'}币种“${row.currencyCode} ${row.currencyName}”吗？`,
-      `${row.isEnabled ? '停用' : '启用'}核算币种`
-    )
-    await setCurrencyEnabled(row.id, !row.isEnabled)
-    await loadWorkspace()
+    try {
+      await confirmAction(
+        `确定${row.isEnabled ? '停用' : '启用'}币种“${row.currencyCode} ${row.currencyName}”吗？`,
+        `${row.isEnabled ? '停用' : '启用'}核算币种`
+      )
+      await setCurrencyEnabled(row.id, !row.isEnabled)
+      await loadWorkspace()
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '币种状态更新失败，请重试')
+    }
   }
 
   function handleAccountSetChange(): void {

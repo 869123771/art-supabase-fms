@@ -167,11 +167,9 @@
                     <p><ArtSvgIcon icon="ri:building-line" />{{ statement.customerName }}</p>
                   </div>
                 </div>
-                <ArtDictDisplay
-                  code="tmsSettlementStatus"
-                  :value="statement.status"
-                  display="tag"
-                />
+                <ElTag :type="getSettlementStatusPresentation(statement.status).type">
+                  {{ getSettlementStatusPresentation(statement.status).label }}
+                </ElTag>
               </header>
               <div class="collection-advisor__statement-metrics">
                 <span
@@ -325,16 +323,12 @@
         </footer>
       </template>
 
-      <ElResult
+      <ArtAsyncState
         v-else-if="state.error"
-        icon="warning"
-        title="回款风险分析失败"
-        :sub-title="state.error"
-      >
-        <template #extra
-          ><ElButton type="primary" @click="loadAssessment">重新分析</ElButton></template
-        >
-      </ElResult>
+        :error="state.error"
+        error-title="回款风险分析失败"
+        @retry="loadAssessment"
+      />
     </div>
   </ArtDrawer>
 </template>
@@ -349,8 +343,9 @@
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
-  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
+  import { getSettlementStatusPresentation } from '../../modules/settlement-status'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
@@ -434,7 +429,6 @@
       {
         title: 'AI 回款风险助手',
         size: 'xl',
-        contentHeight: 'calc(100vh - 120px)',
         showFooter: false,
         onOpen: loadAssessment,
         onReset: () => Object.assign(state, { data: null, error: '', loading: false }),

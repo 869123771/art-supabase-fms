@@ -42,7 +42,7 @@
             rowKey: 'id',
             tableLayout: 'fixed',
             emptyText: '暂无自动入账规则',
-            emptyDescription: '选择账套并新增首条规则，开始连接业务单据与会计凭证。'
+            emptyDescription: '当前筛选范围内没有规则。可调整筛选条件，或新增规则。'
           }"
           focusable
         />
@@ -112,6 +112,7 @@
   import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import {
     canEditField,
     canViewField,
@@ -213,6 +214,8 @@
   const ruleContext = shallowRef<RuleDialogContext>()
   const ruleRows = ref<Rule[]>([])
   const eventRows = ref<Event[]>([])
+  const retryingEventId = ref('')
+  const processingEvents = ref(false)
   const ruleFieldAccess = ref<Api.Fms.AutoPostingFieldAccessMap>({})
   const eventFieldAccess = ref<Api.Fms.AutoPostingFieldAccessMap>({})
   const effectiveRuleFieldAccess = computed(() =>
@@ -357,7 +360,12 @@
               key: 'process-pending',
               label: '批量处理待办',
               icon: 'ri:refresh-line',
-              buttonProps: { type: 'primary', plain: true },
+              buttonProps: {
+                type: 'primary',
+                plain: true,
+                loading: processingEvents.value,
+                disabled: Boolean(retryingEventId.value)
+              },
               onClick: () => void handleBatchProcess()
             }
           ]
@@ -571,28 +579,33 @@
       label: '操作',
       width: 112,
       fixed: 'right',
-      formatter: (row) => (
-        <BusinessTableRowActions>
-          {hasAuth('FinanceAutoPosting:View') ? (
-            <ArtButtonTable
-              type="view"
-              permission="FinanceAutoPosting:View"
-              onClick={() => void eventDetailRef.value?.handleOpen(row)}
-            />
-          ) : null}
-          {hasAuth('FinanceAutoPosting:Retry') &&
-          canEditField(row.fieldAccess, 'processingDiagnostics') &&
-          canRetry(row) ? (
-            <ArtButtonTable
-              type="sign"
-              icon="ri:restart-line"
-              label="重试制证"
-              permission="FinanceAutoPosting:Retry"
-              onClick={() => void handleRetryEvent(row)}
-            />
-          ) : null}
-        </BusinessTableRowActions>
-      )
+      formatter: (row) =>
+        h(BusinessTableRowActions, null, {
+          default: () => (
+            <>
+              {hasAuth('FinanceAutoPosting:View') ? (
+                <ArtButtonTable
+                  type="view"
+                  permission="FinanceAutoPosting:View"
+                  onClick={() => void eventDetailRef.value?.handleOpen(row)}
+                />
+              ) : null}
+              {hasAuth('FinanceAutoPosting:Retry') &&
+              canEditField(row.fieldAccess, 'processingDiagnostics') &&
+              canRetry(row) ? (
+                <ArtButtonTable
+                  type="sign"
+                  icon="ri:restart-line"
+                  label="重试制证"
+                  permission="FinanceAutoPosting:Retry"
+                  loading={retryingEventId.value === row.id}
+                  disabled={Boolean(retryingEventId.value) || processingEvents.value}
+                  onClick={() => void handleRetryEvent(row)}
+                />
+              ) : null}
+            </>
+          )
+        })
     }
   ]
 
@@ -681,22 +694,61 @@
   }
 
   async function handleRetryEvent(row: Event): Promise<void> {
-    if (!canEditField(row.fieldAccess, 'processingDiagnostics')) return
-    await retryPostingEvent(row.id)
-    await eventTableRef.value?.refreshUpdate()
+    if (
+      retryingEventId.value ||
+      processingEvents.value ||
+      !canEditField(row.fieldAccess, 'processingDiagnostics')
+    )
+      return
+    retryingEventId.value = row.id
+    try {
+      const { data } = await retryPostingEvent(row.id)
+      if (data?.status === 'generated') {
+        ElMessage.success('会计凭证已生成，请在凭证中心核对')
+      } else if (data?.status === 'ignored') {
+        ElMessage.info('该事件无需生成会计凭证')
+      } else {
+        ElMessage.warning(
+          getFriendlySupabaseErrorMessage(data?.lastError, '制证尚未完成，请查看事件详情并核对配置')
+        )
+      }
+      await eventTableRef.value?.refreshUpdate()
+    } catch (error) {
+      notifyFriendlyError(error, '重试制证失败，请稍后重试')
+    } finally {
+      retryingEventId.value = ''
+    }
   }
 
   async function handleBatchProcess(): Promise<void> {
-    if (!canEditField(eventFieldAccess.value, 'processingDiagnostics')) return
+    if (
+      processingEvents.value ||
+      retryingEventId.value ||
+      !canEditField(eventFieldAccess.value, 'processingDiagnostics')
+    )
+      return
+    processingEvents.value = true
     try {
       await confirm('系统将重新处理最多 50 条待处理、待配置或失败事件，是否继续？', {
         title: '批量处理确认',
         confirmButtonText: '开始处理'
       })
-      await processPendingPostingEvents(50)
+      const { data } = await processPendingPostingEvents(50)
+      const results = data ?? []
+      const generated = results.filter((item) => item.status === 'generated').length
+      const incomplete = results.filter(
+        (item) => !['generated', 'ignored', 'reversed'].includes(item.status)
+      ).length
+      const message = `处理 ${results.length} 条事件，生成凭证 ${generated} 条${incomplete ? `，未完成 ${incomplete} 条，请查看事件详情` : ''}`
+      if (incomplete) ElMessage.warning(message)
+      else ElMessage.success(message)
       await eventTableRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '批量制证失败，请稍后重试')
+      }
+    } finally {
+      processingEvents.value = false
     }
   }
 

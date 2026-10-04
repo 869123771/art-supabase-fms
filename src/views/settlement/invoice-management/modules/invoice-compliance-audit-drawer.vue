@@ -224,16 +224,12 @@
         </footer>
       </template>
 
-      <ElResult
+      <ArtAsyncState
         v-else-if="state.error"
-        icon="warning"
-        title="发票审核失败"
-        :sub-title="state.error"
-      >
-        <template #extra>
-          <ElButton type="primary" @click="loadAssessment">重新审核</ElButton>
-        </template>
-      </ElResult>
+        :error="state.error"
+        error-title="发票审核失败"
+        @retry="loadAssessment"
+      />
     </div>
   </ArtDrawer>
 </template>
@@ -245,6 +241,7 @@
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
@@ -328,7 +325,6 @@
     await drawerRef.value?.handleOpen(data, {
       title: `AI 发票合规审核 · ${data.invoiceRecordNo}`,
       size: 'lg',
-      contentHeight: 'calc(100vh - 120px)',
       showFooter: false,
       onOpen: loadAssessment,
       onReset: () =>

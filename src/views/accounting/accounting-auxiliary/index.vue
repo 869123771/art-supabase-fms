@@ -227,10 +227,11 @@
   } from '@/components/core/forms/art-search-bar/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import type { ColumnOption } from '@/types'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useAuth } from '@/hooks/core/useAuth'
+  import { useUserStore } from '@/store/modules/user'
   import {
     deleteAuxiliaryType,
     fetchAccountSetOptions,
@@ -296,6 +297,7 @@
   const { focusMode } = useWorkspaceFocus()
   const { ensureAccountSet, goToAccountSet } = useFinanceAccountSetPrerequisite()
   const { hasAuth } = useAuth()
+  const userStore = useUserStore()
   const typeDialogRef = ref<AuxiliaryTypeDialogExpose>()
   const itemDialogRef = ref<AuxiliaryItemDialogExpose>()
   const scope = reactive<ScopeGroup>({ accountSetId: '', loading: true, options: [] })
@@ -553,6 +555,8 @@
     workspace.loading = true
     workspace.error = ''
     try {
+      await userStore.ensureDictLoaded('fmsAuxiliarySourceType')
+      if (!isCurrent()) return
       const result = await fetchAuxiliaryTypeList(accountSetId)
       if (!isCurrent()) return
       if (result.error) throw result.error
@@ -593,18 +597,24 @@
   }
 
   async function handleDeleteType(row: AuxiliaryType): Promise<void> {
-    if (await inspectDeleteReferences([{ id: row.id, label: row.typeName }])) return
-    await confirmAction(
-      `确定删除手工维度“${row.typeName}（${row.typeCode}）”吗？仅未被会计科目和核算项目引用的维度可以删除。`,
-      '删除辅助核算维度',
-      {
-        type: 'warning',
-        confirmButtonText: '确认删除',
-        cancelButtonText: '取消'
-      }
-    )
-    await deleteAuxiliaryType(row.id)
-    await loadWorkspace()
+    try {
+      if (await inspectDeleteReferences([{ id: row.id, label: row.typeName }])) return
+      await confirmAction(
+        `确定删除手工维度“${row.typeName}（${row.typeCode}）”吗？仅未被会计科目和核算项目引用的维度可以删除。`,
+        '删除辅助核算维度',
+        {
+          type: 'warning',
+          confirmButtonText: '确认删除',
+          cancelButtonText: '取消'
+        }
+      )
+      await deleteAuxiliaryType(row.id)
+      await loadWorkspace()
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '核算维度删除失败，请检查引用关系后重试')
+      await inspectDeleteReferences([{ id: row.id, label: row.typeName }])
+    }
   }
 
   async function openItemDialog(row?: AuxiliaryItem): Promise<void> {
@@ -618,18 +628,25 @@
     try {
       await syncAuxiliaryItems(scope.accountSetId, selectedType.value.id)
       await loadItems()
+    } catch (error) {
+      notifyFriendlyError(error, '辅助核算项目同步失败，请重试')
     } finally {
       workspace.syncing = false
     }
   }
 
   async function toggleItem(row: AuxiliaryItem): Promise<void> {
-    await confirmAction(
-      `确定${row.isEnabled ? '停用' : '启用'}项目“${row.itemCode} ${row.itemName}”吗？`,
-      `${row.isEnabled ? '停用' : '启用'}辅助核算项目`
-    )
-    await setAuxiliaryItemEnabled(row.id, !row.isEnabled)
-    await loadItems()
+    try {
+      await confirmAction(
+        `确定${row.isEnabled ? '停用' : '启用'}项目“${row.itemCode} ${row.itemName}”吗？`,
+        `${row.isEnabled ? '停用' : '启用'}辅助核算项目`
+      )
+      await setAuxiliaryItemEnabled(row.id, !row.isEnabled)
+      await loadItems()
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, '辅助核算项目状态更新失败，请重试')
+    }
   }
 
   async function loadAccountSets(): Promise<void> {

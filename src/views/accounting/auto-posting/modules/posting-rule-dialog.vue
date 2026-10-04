@@ -34,6 +34,7 @@
 
         <ArtTable
           ref="lineTableRef"
+          :border="false"
           :data="form.lines"
           :columns="lineColumns"
           :pagination="false"
@@ -54,7 +55,15 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { ElButton, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
+  import {
+    ElButton,
+    ElInput,
+    ElInputNumber,
+    ElMessage,
+    ElOption,
+    ElSegmented,
+    ElSelect
+  } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -127,6 +136,12 @@
   const emit = defineEmits<{ success: [] }>()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
+  const enabledOptions = computed(() =>
+    (getDictMap.value.commonEnabledStatus ?? []).map((item) => ({
+      ...item,
+      value: item.value === 'enabled'
+    }))
+  )
   const dialogRef = ref<ArtDialogExpose<Rule | undefined>>()
   const auxiliaryDialogRef = ref<AuxiliaryDialogExpose>()
   const formRef = ref<FormExpose>()
@@ -313,8 +328,8 @@
       {
         label: '启用状态',
         key: 'isEnabled',
-        type: 'switch',
-        props: { activeText: '启用', inactiveText: '停用', inlinePrompt: true }
+        type: 'segment',
+        props: { options: enabledOptions.value }
       },
       {
         label: '规则说明',
@@ -414,17 +429,14 @@
     {
       prop: 'direction',
       label: '借贷方向',
-      width: 112,
+      width: 140,
       formatter: (row) => (
-        <ElSelect
+        <ElSegmented
           v-model={row.direction}
-          class="w-full!"
+          options={directionOptions.value}
+          aria-label={`第 ${row.lineNo} 行借贷方向`}
           onChange={() => updateLineDirection(row, row.direction)}
-        >
-          {directionOptions.value.map((item) => (
-            <ElOption key={item.value} label={item.label} value={item.value} />
-          ))}
-        </ElSelect>
+        />
       )
     },
     {
@@ -653,7 +665,8 @@
         userStore.ensureDictLoaded('fmsPostingSourceEvent'),
         userStore.ensureDictLoaded('fmsPostingSubmissionMode'),
         userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-        userStore.ensureDictLoaded('fmsVoucherType')
+        userStore.ensureDictLoaded('fmsVoucherType'),
+        userStore.ensureDictLoaded('commonEnabledStatus')
       ])
       if (loadContext) {
         const loaded = await loadContext()
@@ -708,7 +721,7 @@
       return true
     }
     await dialogRef.value?.handleOpen(row, {
-      title: row ? `编辑自动入账规则 · ${row.ruleCode}` : '新增自动入账规则',
+      title: row ? '编辑自动入账规则' : '新增自动入账规则',
       subtitle: '规则只生成草稿或待复核凭证，不会自动审核或过账。',
       contentMaxHeight: '78vh',
       showFullscreenButton: true,

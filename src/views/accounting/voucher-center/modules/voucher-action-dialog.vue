@@ -116,11 +116,12 @@
     action.value = nextAction
     Object.assign(form.data, { reason: '', actionDate: dayjs().format('YYYY-MM-DD') })
     await dialogRef.value?.handleOpen(row, {
-      title: `${title.value} · ${row.voucherNo}`,
-      subtitle:
+      title: title.value,
+      subtitle: `${row.voucherNo} · ${
         nextAction === 'reverse'
           ? '系统将生成借贷方向相反的新凭证并自动过账，原凭证保持完整历史。'
-          : '本次操作会写入凭证审计流水。',
+          : '本次操作会写入凭证审计流水。'
+      }`,
       confirmText: confirmText.value,
       dialogProps: { closeOnClickModal: false },
       onConfirm: handleSubmit,
