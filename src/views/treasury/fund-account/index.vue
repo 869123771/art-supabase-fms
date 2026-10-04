@@ -22,12 +22,13 @@
     <ArtTableQuery
       ref="tableRef"
       v-model="table.search"
+      class="fund-account-page__table"
       :search-items="searchItems"
       :api-fn="fetchTableData"
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -114,7 +115,6 @@
     {
       label: '所属账套',
       key: 'accountSetId',
-      span: 10,
       type: 'select',
       props: {
         options: accountSetOptions.value,
@@ -402,6 +402,14 @@
 </script>
 
 <style scoped lang="scss">
+  .fund-account-page {
+    overflow: auto;
+
+    :deep(.art-table-query.fund-account-page__table) {
+      min-height: 420px;
+    }
+  }
+
   :deep(.fund-account-identity) {
     min-width: 0;
 

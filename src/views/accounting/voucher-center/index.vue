@@ -330,7 +330,10 @@
       minWidth: 220,
       showOverflowTooltip: true,
       formatter: (row: Voucher) =>
-        formatVoucherSummary(row.summary, getDictMap.value.fmsPostingWaybillCostType)
+        formatVoucherSummary(row.summary, getDictMap.value.fmsPostingWaybillCostType, {
+          sourceType: row.sourceType,
+          billEvents: getDictMap.value.fmsBillEventType
+        })
     },
     {
       prop: 'sourceType',
@@ -642,7 +645,8 @@
       userStore.ensureDictLoaded('fmsVoucherStatus'),
       userStore.ensureDictLoaded('fmsVoucherType'),
       userStore.ensureDictLoaded('fmsVoucherSourceType'),
-      userStore.ensureDictLoaded('fmsPostingWaybillCostType')
+      userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
+      userStore.ensureDictLoaded('fmsBillEventType')
     ])
     void loadAccountSets()
   })

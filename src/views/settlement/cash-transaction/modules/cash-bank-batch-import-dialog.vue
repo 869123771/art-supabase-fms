@@ -115,6 +115,7 @@
               :border="false"
               :columns="columns"
               :pagination="false"
+              height="auto"
               :show-table-header="false"
               max-height="430px"
             />

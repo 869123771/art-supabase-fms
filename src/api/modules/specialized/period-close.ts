@@ -35,17 +35,23 @@ export async function fetchPeriodCloseRuns(params: Api.Fms.PeriodCloseSearchPara
   }
 }
 
-export async function fetchPeriodCloseRunDetail(id: string) {
+export async function fetchPeriodCloseRunDetail(
+  id: string,
+  options: { showErrorMessage?: boolean } = {}
+) {
   return await responseHandle<Api.Fms.PeriodCloseRunRecord>(
     () => supabase.rpc('fms_get_period_close_run_secure', { p_run_id: id }),
-    { showErrorMessage: true }
+    { showErrorMessage: options.showErrorMessage ?? true }
   )
 }
 
-export async function fetchPeriodCloseChecks(runId: string) {
+export async function fetchPeriodCloseChecks(
+  runId: string,
+  options: { showErrorMessage?: boolean } = {}
+) {
   const result = await responseHandle<PeriodCloseCheckListPayload>(
     () => supabase.rpc('fms_list_period_close_checks_secure', { p_run_id: runId }),
-    { showErrorMessage: true }
+    { showErrorMessage: options.showErrorMessage ?? true }
   )
   return {
     data: result.data?.records ?? [],

@@ -2,6 +2,7 @@ import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boun
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { fetchAllRangePages } from '@/utils/supabase/pagination'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { applyDateRange } from '@/api/providers/supabase/query'
@@ -137,7 +138,7 @@ export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {})
 }
 
 export async function fetchExpenseItemTree(params: ExpenseItemSearchParams = {}) {
-  const result = await fetchExpenseItemList({ ...params, from: 0, to: 9999 })
+  const result = await fetchAllRangePages((range) => fetchExpenseItemList({ ...params, ...range }))
   return {
     ...result,
     data: expenseItemTreeUtils.listToTree(result.data ?? [], (a, b) => {

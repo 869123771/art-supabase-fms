@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" :size="dialog.mode === 'allocate' ? 'lg' : 'xl'">
     <CashVoucherOcrPanel
       v-if="dialog.mode === 'create'"
       ref="ocrPanelRef"
@@ -58,7 +58,9 @@
             row-key="id"
             label-key="statementNo"
             description-key="periodLabel"
-            placeholder="可暂不核销，后续再分配收款"
+            :placeholder="
+              dialog.mode === 'allocate' ? '请选择需要核销的对账单' : '可暂不核销，后续再分配收款'
+            "
             search-placeholder="对账单号或客户名称"
             dialog-width="xl"
             show-pagination
@@ -87,6 +89,7 @@
               :border="false"
               :columns="allocationColumns"
               :pagination="false"
+              height="auto"
               :show-table-header="false"
               max-height="260px"
             />
@@ -276,7 +279,7 @@
             maxlength: 50,
             ...transactionNumber.inputProps(dialog.mode === 'allocate', '请输入收款流水号', true)
           },
-          description: transactionNumber.description.value
+          description: dialog.mode === 'create' ? transactionNumber.description.value : undefined
         },
         { label: '收款客户', key: 'customerId', type: 'input', span: 12 },
         {
@@ -391,7 +394,9 @@
     const { allocated, limit, remaining } = allocationSummary.value
     const prefix = allocationRows.value.length
       ? `已选 ${allocationRows.value.length} 份对账单`
-      : '本次可以暂不选择对账单'
+      : dialog.mode === 'allocate'
+        ? '请选择对账单并填写核销金额'
+        : '本次可以暂不选择对账单'
     return `${prefix}，可核销 ${formatMoney(limit)}，本次核销 ${formatMoney(allocated)}，剩余 ${formatMoney(remaining)}`
   })
 
@@ -404,35 +409,48 @@
   ]
 
   const statementSelectorColumns: DataSelectColumn[] = [
-    { prop: 'statementNo', label: '对账单号', width: 190 },
     {
-      prop: 'periodLabel',
-      label: '对账账期',
-      width: 205,
-      formatter: (row) =>
-        `${(row as AllocatableStatement).periodStart} 至 ${(row as AllocatableStatement).periodEnd}`
+      prop: 'statementNo',
+      label: '对账单 / 账期',
+      minWidth: 220,
+      formatter: (row) => {
+        const statement = row as AllocatableStatement
+        return (
+          <div class="min-w-0 py-1">
+            <strong class="block truncate text-sm font-semibold">{statement.statementNo}</strong>
+            <small class="block text-xs text-[var(--el-text-color-secondary)]">
+              {statement.periodStart} 至 {statement.periodEnd}
+            </small>
+          </div>
+        )
+      }
     },
-    { prop: 'waybillCount', label: '运单数', width: 90, align: 'center' },
+    { prop: 'waybillCount', label: '运单数', width: 80, align: 'center' },
     {
       prop: 'statementAmount',
       label: '对账金额',
-      width: 130,
+      width: 125,
       align: 'right',
       formatter: (row) => formatMoney((row as AllocatableStatement).statementAmount)
     },
     {
-      prop: 'settledAmount',
-      label: '已结金额',
-      width: 130,
-      align: 'right',
-      formatter: (row) => formatMoney((row as AllocatableStatement).settledAmount)
-    },
-    {
       prop: 'outstandingAmount',
-      label: '未结金额',
-      width: 130,
+      label: '结算余额',
+      width: 150,
       align: 'right',
-      formatter: (row) => formatMoney((row as AllocatableStatement).outstandingAmount)
+      formatter: (row) => {
+        const statement = row as AllocatableStatement
+        return (
+          <div class="py-1">
+            <small class="block text-xs text-[var(--el-text-color-secondary)]">
+              已结 {formatMoney(statement.settledAmount)}
+            </small>
+            <strong class="block text-sm font-semibold">
+              未结 {formatMoney(statement.outstandingAmount)}
+            </strong>
+          </div>
+        )
+      }
     }
   ]
 
@@ -701,6 +719,7 @@
     }
 
     await dialogRef.value?.handleOpen(undefined, {
+      size: transaction ? 'lg' : 'xl',
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记客户收款',
       subtitle: transaction
         ? `本笔收款尚有 ${formatMoney(transaction.unallocatedAmount)} 未核销`

@@ -1,6 +1,5 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>分组用于组织层级；可记账项目会出现在运单费用的必选字段中。</template>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -134,7 +133,7 @@
       hidden: !form.isSelectable,
       props: {
         options: getDictMap.value.tmsWaybillCostType ?? [],
-        placeholder: '用于兼容结算、利润分析等内部规则'
+        placeholder: '请选择费用所属业务分类'
       }
     },
     {
@@ -193,11 +192,12 @@
     await dialogRef.value?.handleOpen(
       { row, parent },
       {
-        title: row
-          ? `编辑费用项目 · ${row.itemName}`
+        title: row ? '编辑费用项目' : parent ? '新增下级费用项目' : '新增一级费用项目',
+        subtitle: row
+          ? `${row.itemName} · ${row.itemCode}`
           : parent
-            ? `新增“${parent.itemName}”下级`
-            : '新增一级费用项目',
+            ? `上级项目：${parent.itemName} · ${parent.itemCode}`
+            : '分组用于组织层级；可记账项目会出现在运单费用的必选字段中。',
         confirmText: row ? '保存修改' : '确认新增',
         loading: true,
         loadingText: '正在加载费用项目选项…',

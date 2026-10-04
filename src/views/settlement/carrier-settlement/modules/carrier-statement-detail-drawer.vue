@@ -36,6 +36,7 @@
             :data="detail.items ?? []"
             :columns="itemColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             max-height="430px"
           />

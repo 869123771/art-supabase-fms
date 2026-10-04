@@ -1,8 +1,5 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>
-      报表行结构、取数方式和现金流方向均进入账套级配置；下拉枚举统一来自系统字典。
-    </template>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -254,7 +251,10 @@
       remark: row?.remark ?? null
     })
     await dialogRef.value?.handleOpen(undefined, {
-      title: row ? `编辑报表项目 · ${row.itemCode}` : '新增报表项目',
+      title: row ? '编辑报表项目' : '新增报表项目',
+      subtitle: row
+        ? `${row.itemName} · ${row.itemCode}`
+        : '设置报表项目的层级、展示方式及金额计算方式。',
       confirmText: row ? '保存修改' : '创建项目',
       contentMaxHeight: '72vh',
       loading: true,

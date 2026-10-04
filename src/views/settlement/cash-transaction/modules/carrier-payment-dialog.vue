@@ -79,6 +79,7 @@
         :border="false"
         :columns="allocationColumns"
         :pagination="false"
+        height="auto"
         :show-table-header="false"
         max-height="300px"
       />

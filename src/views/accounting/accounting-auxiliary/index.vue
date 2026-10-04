@@ -1,8 +1,20 @@
 <template>
   <FinanceAccountingWorkspaceShell
     class="accounting-auxiliary-page"
+    hide-master-delete-notice
     :class="{ 'is-focus-mode': focusMode }"
   >
+    <MasterDeleteProcessingNotice
+      v-if="deleteContext.active"
+      :location-ready="!workspace.loading && !workspace.error"
+      :action-hint="
+        workspace.error
+          ? '关联定位未完成，请重新加载或清除定位后返回检查。'
+          : workspace.loading
+            ? '正在读取关联目标，请稍候。'
+            : '当前列表已按关联记录自动定位。请处理完成后返回原页面继续删除。'
+      "
+    />
     <BusinessWorkspaceHeader
       v-show="!focusMode"
       density="compact"
@@ -71,7 +83,7 @@
         :empty="workspace.types.length === 0"
         empty-title="暂无辅助核算维度"
         empty-description="创建账套时会自动生成客户、承运商、部门、员工和项目维度。"
-        @retry="loadWorkspace"
+        @retry="retryWorkspace"
       >
         <template #actions>
           <ElButton
@@ -185,7 +197,7 @@
           :empty-description="
             canSync ? '点击“同步主数据”从现有业务档案生成核算项目。' : '可新增手工核算项目。'
           "
-          @retry="loadItems"
+          @retry="workspace.error ? retryWorkspace() : loadItems()"
         >
           <ArtTable
             :data="filteredItems"
@@ -229,6 +241,8 @@
   import type { ColumnOption } from '@/types'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
+  import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useUserStore } from '@/store/modules/user'
@@ -236,6 +250,7 @@
     deleteAuxiliaryType,
     fetchAccountSetOptions,
     fetchAuxiliaryItemList,
+    fetchAuxiliaryTypeDetail,
     fetchAuxiliaryTypeList,
     setAuxiliaryItemEnabled,
     syncAuxiliaryItems
@@ -297,6 +312,20 @@
   const { focusMode } = useWorkspaceFocus()
   const { ensureAccountSet, goToAccountSet } = useFinanceAccountSetPrerequisite()
   const { hasAuth } = useAuth()
+  const route = useRoute()
+  const deleteContext = useMasterDataDeleteProcessingContext()
+  const navigationReady = ref(false)
+  let referenceRequestId = 0
+  const referencedItemId = computed(() =>
+    deleteContext.value.active && route.query.dependencyCode === 'fms_auxiliary_item'
+      ? deleteContext.value.recordId
+      : ''
+  )
+  const referencedTypeId = computed(() => {
+    if (!deleteContext.value.active) return ''
+    if (route.query.dependencyCode === 'fms_auxiliary_type') return deleteContext.value.recordId
+    return typeof route.query.referencedRecordId === 'string' ? route.query.referencedRecordId : ''
+  })
   const userStore = useUserStore()
   const typeDialogRef = ref<AuxiliaryTypeDialogExpose>()
   const itemDialogRef = ref<AuxiliaryItemDialogExpose>()
@@ -354,6 +383,7 @@
   const filteredItems = computed(() => {
     const keyword = appliedItemFilter.keyword.trim().toLowerCase()
     return workspace.items.filter((item) => {
+      if (referencedItemId.value && item.id !== referencedItemId.value) return false
       const matched =
         !keyword ||
         item.itemCode.toLowerCase().includes(keyword) ||
@@ -656,18 +686,90 @@
       scope.options = result.data ?? []
       if (!scope.accountSetId && scope.options.length) {
         scope.accountSetId = scope.options[0].value
-        await loadWorkspace()
+        if (!(await locateReferencedItem())) await loadWorkspace()
       }
     } finally {
       scope.loading = false
+      navigationReady.value = true
     }
   }
+
+  async function locateReferencedItem(): Promise<boolean> {
+    if (!deleteContext.value.active) return false
+    Object.assign(workspace, {
+      loading: true,
+      error: '',
+      types: [],
+      selectedTypeId: '',
+      itemLoading: true,
+      itemError: '',
+      items: []
+    })
+    const typeId = referencedTypeId.value
+    if (!typeId) {
+      Object.assign(workspace, {
+        loading: false,
+        itemLoading: false,
+        error: '关联定位信息不完整，请返回后重新检查',
+        itemError: '关联定位信息不完整，请返回后重新检查'
+      })
+      return true
+    }
+    const requestId = ++referenceRequestId
+    const recordId = deleteContext.value.recordId
+    const isCurrent = () =>
+      requestId === referenceRequestId &&
+      deleteContext.value.active &&
+      recordId === deleteContext.value.recordId &&
+      typeId === referencedTypeId.value
+    try {
+      const { data, error } = await fetchAuxiliaryTypeDetail(typeId)
+      if (!isCurrent()) return true
+      if (error) throw error
+      if (!data || !scope.options.some((item) => item.value === data.accountSetId)) {
+        throw new Error('关联维度已不存在或当前账号无法访问，请返回后重新检查')
+      }
+      scope.accountSetId = data.accountSetId
+      workspace.selectedTypeId = data.id
+      resetItemFilters()
+      await loadWorkspace()
+    } catch (error) {
+      if (isCurrent()) {
+        const message = getFriendlySupabaseErrorMessage(error, '关联项目定位失败，请重新加载')
+        Object.assign(workspace, { error: message, itemError: message })
+      }
+    } finally {
+      if (isCurrent()) Object.assign(workspace, { loading: false, itemLoading: false })
+    }
+    return true
+  }
+
+  async function retryWorkspace(): Promise<void> {
+    if (!(await locateReferencedItem())) await loadWorkspace()
+  }
+
+  watch(
+    [() => deleteContext.value.active, referencedTypeId, referencedItemId],
+    () => {
+      if (!navigationReady.value) return
+      if (deleteContext.value.active) void locateReferencedItem()
+      else {
+        referenceRequestId += 1
+        resetItemFilters()
+        void loadWorkspace()
+      }
+    },
+    { flush: 'post' }
+  )
 
   onMounted(loadAccountSets)
 </script>
 
 <style scoped lang="scss">
   .accounting-auxiliary-page {
+    height: auto;
+    min-height: var(--art-full-height);
+
     &.is-focus-mode {
       gap: 0;
     }
@@ -697,7 +799,7 @@
       flex: 1;
       grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
       gap: 12px;
-      min-height: 0;
+      min-height: 360px;
 
       &.is-focused {
         height: 100%;

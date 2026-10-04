@@ -1,5 +1,6 @@
 <template>
   <div class="business-workspace-page art-full-height">
+    <MasterDeleteProcessingNotice />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="EXPENSE TAXONOMY"
@@ -24,7 +25,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 8, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         defaultExpandAll: true,
@@ -57,9 +58,11 @@
   } from '@/components/core/forms/art-button-more/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import type { ColumnOption } from '@/types'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { DeleteReferenceBlockedError } from '@/utils/supabase/delete-reference'
   import { useUserStore } from '@/store/modules/user'
   import { deleteExpenseItem, fetchExpenseItemTree } from '@fms/api'
   import { fetchTenantList } from '@/api/system-manage'
@@ -304,8 +307,12 @@
       )
       await deleteExpenseItem(row.id)
       await tableRef.value?.refreshRemove()
-    } catch {
-      // 用户取消或业务约束阻止删除时，不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      // 外键并发拒绝已由共享响应层打开引用检查，避免重复打开。
+      if (error instanceof DeleteReferenceBlockedError) return
+      notifyFriendlyError(error, '费用项目删除失败，请重新检查关联记录后重试')
+      await inspectDeleteReferences([{ id: row.id, label: row.itemName }])
     }
   }
 
@@ -315,7 +322,7 @@
 
   watch(referencedItemCode, (value) => {
     search.value.keyword = value
-    void nextTick(() => tableRef.value?.refreshContext())
+    void nextTick(() => tableRef.value?.getData())
   })
 
   async function loadTenantOptions(): Promise<void> {

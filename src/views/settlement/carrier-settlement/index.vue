@@ -31,7 +31,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -463,8 +463,10 @@
         businessTitle: `承运商对账单 ${row.statementNo}`
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      /* 用户取消 */
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '驳回失败，请刷新审批状态后重试')
+      }
     }
   }
 
@@ -477,8 +479,10 @@
       })
       await updateCarrierStatementStatus({ id: row.id, status: 'voided', voidReason: reason })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      /* 用户取消 */
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '作废失败，请刷新对账单后重试')
+      }
     }
   }
 

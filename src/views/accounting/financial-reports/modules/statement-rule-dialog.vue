@@ -33,6 +33,9 @@
           :columns="ruleColumns"
           row-key="rowKey"
           :pagination="false"
+          :border="false"
+          :show-table-header="false"
+          height="auto"
           table-layout="fixed"
           max-height="56vh"
         />
@@ -475,6 +478,7 @@
     }
 
     await dialogRef.value?.handleOpen(undefined, {
+      size: isFormula.value ? 'md' : 'lg',
       title: `${editable.value ? '配置' : '查看'}${isFormula.value ? '报表公式' : '科目取数'}`,
       confirmText: '保存取数规则',
       showFooter: editable.value,
@@ -532,6 +536,7 @@
 <style scoped lang="scss">
   .statement-rule-dialog {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--art-space-4);
 
     &__toolbar {

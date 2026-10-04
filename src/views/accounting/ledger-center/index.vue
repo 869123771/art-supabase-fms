@@ -127,11 +127,13 @@
         />
       </ElTabPane>
     </ElTabs>
+    <VoucherDetailDrawer ref="voucherDetailRef" />
   </FinanceAccountingWorkspaceShell>
 </template>
 
 <script setup lang="tsx">
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
+  import VoucherDetailDrawer from '@fms/views/accounting/voucher-center/modules/voucher-detail-drawer.vue'
   import '../../modules/accounting-workspace-tabs.scss'
 
   import { ElTag } from 'element-plus'
@@ -150,6 +152,7 @@
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../modules/accounting-select-text'
   import type { ColumnOption } from '@/types'
   import { useUserStore } from '@/store/modules/user'
+  import { useAuth } from '@/hooks/core/useAuth'
   import {
     canViewField,
     formatSensitiveNumber,
@@ -186,6 +189,8 @@
   }
 
   const userStore = useUserStore()
+  const { hasAuth } = useAuth()
+  const voucherDetailRef = ref<InstanceType<typeof VoucherDetailDrawer>>()
   const { getDictMap } = storeToRefs(userStore)
   const activeTab = ref<LedgerTab>('balance')
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
@@ -1048,6 +1053,28 @@
               formatter: (row: SubsidiaryRecord) => moneyCell(row.balanceAmount)
             }
           ]
+        : []),
+      ...(canViewField(ledgerFieldAccess.subsidiary, 'voucherReferences') &&
+      hasAuth('FinanceVoucherCenter:View')
+        ? [
+            {
+              prop: 'operation',
+              label: '操作',
+              width: 80,
+              fixed: 'right' as const,
+              formatter: (row: SubsidiaryRecord) =>
+                row.rowType === 'transaction' && row.voucherId ? (
+                  <ArtButtonTable
+                    type="view"
+                    permission="FinanceVoucherCenter:View"
+                    label="查看凭证"
+                    onClick={() => void openLedgerVoucher(row)}
+                  />
+                ) : (
+                  '--'
+                )
+            }
+          ]
         : [])
     ]
   }
@@ -1057,6 +1084,18 @@
     const to = Number(search.periodTo || 12)
     search.periodFrom = Math.min(from, to)
     search.periodTo = Math.max(from, to)
+  }
+
+  async function openLedgerVoucher(row: SubsidiaryRecord): Promise<void> {
+    if (
+      row.rowType !== 'transaction' ||
+      !row.voucherId ||
+      !hasAuth('FinanceVoucherCenter:View') ||
+      !canViewField(ledgerFieldAccess.subsidiary, 'voucherReferences')
+    ) {
+      return
+    }
+    await voucherDetailRef.value?.handleOpen(row.voucherId)
   }
 
   function pagedResult<T>(rows: T[], params: TablePageParams) {

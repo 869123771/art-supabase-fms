@@ -1152,20 +1152,20 @@
 
   async function openFromOrderQuery(): Promise<void> {
     const orderId = typeof route.query.orderId === 'string' ? route.query.orderId : ''
-    if (!orderId) {
-      if (expenseTable.search.orderId || expenseTable.search.recordId) {
-        expenseTable.search.orderId = ''
-        expenseTable.search.recordId = ''
-        await expenseTableRef.value?.refreshCreate()
-      }
-      return
-    }
     if (route.query.fromMasterDelete === '1') {
       expenseTable.search.orderId = orderId
       expenseTable.search.recordId =
         typeof route.query.recordId === 'string' ? route.query.recordId : ''
       await nextTick()
-      await expenseTableRef.value?.refreshCreate()
+      await expenseTableRef.value?.getData()
+      return
+    }
+    if (!orderId) {
+      if (expenseTable.search.orderId || expenseTable.search.recordId) {
+        expenseTable.search.orderId = ''
+        expenseTable.search.recordId = ''
+        await expenseTableRef.value?.getData()
+      }
       return
     }
     await nextTick()
@@ -1290,7 +1290,11 @@
       gap: var(--art-space-3);
       min-width: 0;
       min-height: 0;
-      overflow: hidden;
+      overflow: auto;
+    }
+
+    &__tabs {
+      min-height: 360px;
     }
 
     &__workflow {

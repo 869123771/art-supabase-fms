@@ -32,7 +32,7 @@
       :columns-factory="columnsFactory"
       :header-actions="table.headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -67,7 +67,6 @@
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/table-utils'
-  import { formatWithDayjs } from '@/utils/time'
   import {
     canEditField,
     canViewField,
@@ -84,6 +83,7 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
   import { toCashVoucherOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
@@ -279,87 +279,106 @@
 
   const columnsFactory = (): ColumnOption<CashTransaction>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-    { type: 'globalIndex', label: '序号', width: 72 },
-    { prop: 'transactionNo', label: '收付款单号', width: 190 },
     {
-      prop: 'direction',
-      label: '方向',
-      width: 90,
-      dict: { code: 'tmsCashDirection', display: 'tag' }
+      prop: 'transactionNo',
+      label: '收付款单',
+      minWidth: 185,
+      formatter: (row) => (
+        <div class="min-w-0 py-1" title={`${row.transactionNo} · ${row.transactionDate}`}>
+          <strong class="block truncate text-sm font-semibold text-[var(--el-text-color-primary)]">
+            {row.transactionNo}
+          </strong>
+          <small class="flex items-center gap-2 text-xs text-[var(--el-text-color-secondary)]">
+            <span>{row.transactionDate}</span>
+            <ArtDictDisplay dictCode="tmsCashDirection" value={row.direction} display="text" />
+          </small>
+        </div>
+      )
     },
     {
       prop: 'counterpartyName',
       label: '往来单位',
-      minWidth: 190,
-      showOverflowTooltip: true
+      minWidth: 160,
+      formatter: (row) => (
+        <div class="min-w-0 py-1" title={row.counterpartyName}>
+          <strong class="block truncate text-sm font-medium text-[var(--el-text-color-primary)]">
+            {row.counterpartyName}
+          </strong>
+          <small class="block text-xs text-[var(--el-text-color-secondary)]">
+            <ArtDictDisplay
+              dictCode="tmsCashPaymentMethod"
+              value={row.paymentMethod}
+              display="text"
+            />
+          </small>
+        </div>
+      )
     },
-    { prop: 'transactionDate', label: '收付日期', width: 110 },
     ...(canViewListField('transactionAmounts')
       ? [
           {
             prop: 'amount',
             label: '收付金额',
-            width: 135,
+            width: 125,
             align: 'right' as const,
             formatter: (row: CashTransaction) => formatMoney(row.amount)
           },
           {
-            prop: 'allocatedAmount',
-            label: '已核销',
-            width: 135,
-            align: 'right' as const,
-            formatter: (row: CashTransaction) => formatMoney(row.allocatedAmount)
-          },
-          {
             prop: 'unallocatedAmount',
-            label: '未核销',
-            width: 135,
+            label: '核销余额',
+            width: 150,
             align: 'right' as const,
-            formatter: (row: CashTransaction) => formatMoney(row.unallocatedAmount)
+            formatter: (row: CashTransaction) => (
+              <div class="py-1">
+                <small class="block text-xs text-[var(--el-text-color-secondary)]">
+                  已核销 {formatMoney(row.allocatedAmount)}
+                </small>
+                <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
+                  未核销 {formatMoney(row.unallocatedAmount)}
+                </strong>
+              </div>
+            )
           }
         ]
       : []),
-    {
-      prop: 'paymentMethod',
-      label: '收付方式',
-      width: 110,
-      dict: { code: 'tmsCashPaymentMethod', display: 'text' }
-    },
     ...(canViewListField('bankDetails')
       ? [
           {
             prop: 'fundAccount',
             label: '资金账户',
             minWidth: 180,
-            formatter: (row: CashTransaction) =>
-              row.fundAccount
-                ? `${row.fundAccount.accountName} · ${row.fundAccount.accountNoMasked}`
-                : '历史未关联'
-          },
-          {
-            prop: 'bankReference',
-            label: '银行流水号',
-            minWidth: 155,
-            showOverflowTooltip: true
+            formatter: (row: CashTransaction) => (
+              <div
+                class="min-w-0 py-1"
+                title={[
+                  row.fundAccount?.accountName,
+                  row.fundAccount?.accountNoMasked,
+                  row.bankReference
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                <span class="block truncate text-sm">
+                  {row.fundAccount?.accountName || '历史未关联'}
+                </span>
+                <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+                  {row.fundAccount?.accountNoMasked || '—'}
+                </small>
+              </div>
+            )
           }
         ]
       : []),
     {
       prop: 'status',
       label: '核销状态',
-      width: 115,
+      width: 100,
       dict: { code: 'tmsCashTransactionStatus', display: 'tag' }
-    },
-    {
-      prop: 'createTime',
-      label: '登记时间',
-      width: 165,
-      formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
     },
     {
       prop: 'operation',
       label: '操作',
-      width: 138,
+      width: 160,
       fixed: 'right',
       formatter: (row) => (
         <BusinessTableRowActions>

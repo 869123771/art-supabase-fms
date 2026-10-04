@@ -32,7 +32,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -75,7 +75,7 @@
     mergeFieldAccessMaps,
     formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import CustomerStatementDialog from './modules/customer-statement-dialog.vue'
   import CustomerStatementDetailDrawer from './modules/customer-statement-detail-drawer.vue'
@@ -476,8 +476,10 @@
         businessTitle: `客户对账单 ${row.statementNo} · ${row.customerName}`
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '提交审核失败，请检查审批流程配置后重试')
+      }
     }
   }
 
@@ -493,8 +495,10 @@
       })
       await updateCustomerStatementStatus({ id: row.id, status: 'confirmed' })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '审核失败，请刷新审批状态后重试')
+      }
     }
   }
 
@@ -511,8 +515,10 @@
         reviewRemark: reason
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '驳回失败，请刷新审批状态后重试')
+      }
     }
   }
 
@@ -533,8 +539,10 @@
         voidReason: reason
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, '作废失败，请刷新对账单后重试')
+      }
     }
   }
 

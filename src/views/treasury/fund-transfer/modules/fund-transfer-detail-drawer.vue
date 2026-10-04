@@ -68,6 +68,7 @@
             :data="actions"
             :columns="actionColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             table-layout="fixed"
             empty-height="160px"

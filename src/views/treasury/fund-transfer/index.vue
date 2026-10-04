@@ -20,6 +20,7 @@
     </BusinessWorkspaceHeader>
 
     <ArtTableQuery
+      class="fund-transfer-page__table"
       ref="tableRef"
       v-model="table.search"
       :search-items="searchItems"
@@ -27,7 +28,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 86, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -129,7 +130,6 @@
     {
       label: '所属账套',
       key: 'accountSetId',
-      span: 10,
       type: 'select',
       props: {
         options: accountSetOptions.value,
@@ -352,7 +352,7 @@
       {
         prop: 'operation',
         label: '操作',
-        width: 142,
+        width: 160,
         fixed: 'right',
         formatter: (row) => (
           <BusinessTableRowActions>
@@ -590,6 +590,14 @@
 </script>
 
 <style scoped lang="scss">
+  .fund-transfer-page {
+    overflow: auto;
+
+    :deep(.art-table-query.fund-transfer-page__table) {
+      min-height: 420px;
+    }
+  }
+
   :deep(.fund-transfer-link) {
     display: grid;
     gap: 3px;

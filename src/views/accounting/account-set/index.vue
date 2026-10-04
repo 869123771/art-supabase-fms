@@ -32,6 +32,7 @@
         gutter: 16,
         labelPosition: 'left',
         labelWidth: '76px',
+        isExpand: true,
         showExpand: false,
         buttonLeftLimit: 0
       }"
@@ -303,7 +304,7 @@
       {
         prop: 'operation',
         label: '操作',
-        width: 150,
+        width: 160,
         fixed: 'right',
         formatter: (row) => (
           <BusinessTableRowActions>

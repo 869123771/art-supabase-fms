@@ -78,6 +78,7 @@
         :data="state.expenses"
         :columns="columns"
         :pagination="false"
+        height="auto"
         :show-table-header="false"
         table-layout="auto"
         max-height="320px"

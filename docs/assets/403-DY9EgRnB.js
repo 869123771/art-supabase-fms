@@ -1,0 +1,1 @@
+import{Ta as e,Xi as t,aa as n}from"./sys-Bc-jB2Ff.js";import{t as r}from"./art-permission-guard-BRuNw7GZ.js";var i=n({name:`Exception403`,__name:`index`,setup(n){return(n,i)=>(e(),t(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};

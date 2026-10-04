@@ -30,6 +30,7 @@
         </div>
         <ArtTable
           :pagination="false"
+          height="auto"
           :border="false"
           :show-table-header="false"
           :data="form.data.lines"

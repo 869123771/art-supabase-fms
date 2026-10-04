@@ -10,28 +10,9 @@
       @retry="retryLoad"
     >
       <div v-if="run" class="close-detail">
-        <section class="close-detail__summary">
-          <div>
-            <small>关账批次</small>
-            <strong>{{ run.runNo }}</strong>
-            <span>
-              {{ run.period ? `${run.period.fiscalYear} 年第 ${run.period.periodNo} 期` : '--' }}
-            </span>
-          </div>
-          <ArtDictDisplay dict-code="fmsPeriodCloseRunStatus" :value="run.status" display="tag" />
-        </section>
-        <div v-if="canViewDiagnostics" class="close-detail__counts">
-          <article
-            ><span>通过</span><strong>{{ formatProtectedCount(run.passedCount) }}</strong></article
-          >
-          <article
-            ><span>提醒</span><strong>{{ formatProtectedCount(run.warningCount) }}</strong></article
-          >
-          <article
-            ><span>阻断</span
-            ><strong>{{ formatProtectedCount(run.blockingCount) }}</strong></article
-          >
-        </div>
+        <ArtSectionCard title="关账概览" preserve-content-structure>
+          <ArtDescriptions :data="run" :items="descriptionItems" :columns="2" label-width="104px" />
+        </ArtSectionCard>
         <ArtSectionCard
           title="关账检查结果"
           :empty="!checks.length"
@@ -45,7 +26,6 @@
             v-if="!isNarrow"
             :pagination="false"
             :border="false"
-            :show-table-header="false"
             :data="checks"
             row-key="id"
           >
@@ -122,6 +102,8 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import { fetchPeriodCloseChecks, fetchPeriodCloseRunDetail } from '@fms/api'
@@ -135,8 +117,8 @@
     checks: Api.Fms.PeriodCloseCheckRecord[]
   }>(async (id) => {
     const [runResult, checkResult] = await Promise.all([
-      fetchPeriodCloseRunDetail(id),
-      fetchPeriodCloseChecks(id),
+      fetchPeriodCloseRunDetail(id, { showErrorMessage: false }),
+      fetchPeriodCloseChecks(id, { showErrorMessage: false }),
       userStore.ensureDictLoaded('fmsPeriodCloseCheckStatus'),
       userStore.ensureDictLoaded('fmsPeriodCloseRunStatus')
     ])
@@ -150,10 +132,58 @@
   const canViewDiagnostics = computed(() =>
     canViewField(run.value?.fieldAccess, 'closeDiagnostics')
   )
+  const descriptionItems = computed<ArtDescriptionItem<Api.Fms.PeriodCloseRunRecord>[]>(() => [
+    { key: 'runNo', label: '关账批次', field: 'runNo', copyable: true },
+    { key: 'status', label: '状态', field: 'status', dictCode: 'fmsPeriodCloseRunStatus' },
+    {
+      key: 'period',
+      label: '会计期间',
+      field: 'period',
+      formatter: (_value, row) =>
+        row.period ? `${row.period.fiscalYear} 年第 ${row.period.periodNo} 期` : '--'
+    },
+    { key: 'createTime', label: '检查时间', field: 'createTime', format: 'datetime' },
+    ...(canViewDiagnostics.value
+      ? ['passedCount', 'warningCount', 'blockingCount'].map((field, index) => ({
+          key: field,
+          label: ['通过项目', '提醒项目', '阻断项目'][index],
+          field,
+          formatter: (value: unknown) => formatProtectedCount(value as Api.Fms.SensitiveNumber)
+        }))
+      : []),
+    ...(canViewField(run.value?.fieldAccess, 'closeAudit')
+      ? [
+          ...(run.value?.completedAt
+            ? [
+                {
+                  key: 'completedAt',
+                  label: '结账时间',
+                  field: 'completedAt',
+                  format: 'datetime' as const
+                }
+              ]
+            : []),
+          ...(run.value?.cancelledAt
+            ? [
+                {
+                  key: 'cancelledAt',
+                  label: '取消时间',
+                  field: 'cancelledAt',
+                  format: 'datetime' as const
+                }
+              ]
+            : []),
+          ...(run.value?.cancelReason
+            ? [{ key: 'cancelReason', label: '取消原因', field: 'cancelReason', span: 2 }]
+            : [])
+        ]
+      : [])
+  ])
   async function handleOpen(row: Api.Fms.PeriodCloseRunRecord) {
     openDetail(row.id)
     await drawerRef.value?.handleOpen(undefined, {
-      title: `关账检查详情 · ${row.runNo}`,
+      title: '关账检查详情',
+      subtitle: row.runNo,
       size: 'xl',
       loading: true,
       loadingText: '正在加载关账检查…',
@@ -176,47 +206,7 @@
 <style scoped lang="scss">
   .close-detail {
     display: grid;
-    gap: 18px;
-  }
-
-  .close-detail__summary {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 16px;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: var(--el-border-radius-base);
-  }
-
-  .close-detail__summary > div {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .close-detail small,
-  .close-detail span {
-    color: var(--el-text-color-secondary);
-  }
-
-  .close-detail__counts {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-
-  .close-detail__counts article {
-    display: grid;
-    gap: 6px;
-    padding: 14px;
-    background: var(--el-fill-color-lighter);
-    border-radius: var(--el-border-radius-base);
-  }
-
-  .close-detail__counts strong {
-    font-size: 22px;
+    gap: var(--art-space-4);
   }
 
   .close-detail__checks {
@@ -246,17 +236,6 @@
       margin: var(--art-space-3) 0;
       color: var(--el-text-color-regular);
       overflow-wrap: anywhere;
-    }
-  }
-
-  @media (width <= 640px) {
-    .close-detail__counts {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--art-space-2);
-    }
-
-    .close-detail__counts article {
-      padding: var(--art-space-3);
     }
   }
 </style>

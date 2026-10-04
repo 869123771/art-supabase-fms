@@ -37,6 +37,7 @@
             :data="detail.items ?? []"
             :columns="itemColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             table-layout="fixed"
             empty-height="180px"

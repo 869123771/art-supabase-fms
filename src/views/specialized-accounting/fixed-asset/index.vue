@@ -1,5 +1,5 @@
 <template>
-  <FinanceAccountingWorkspaceShell class="fixed-asset-page">
+  <FinanceAccountingWorkspaceShell class="fixed-asset-page" hide-master-delete-notice>
     <MasterDeleteProcessingNotice v-if="deleteContext.active" />
     <BusinessWorkspaceHeader
       density="compact"
@@ -27,7 +27,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 82, showExpand: false }"
+      :search-bar-props="{ span: 8, labelWidth: 82, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',

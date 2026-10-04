@@ -2,12 +2,20 @@
   <div
     class="business-workspace-page art-full-height fms-accounting-page accounting-workspace-shell"
   >
+    <MasterDeleteProcessingNotice
+      v-if="!hideMasterDeleteNotice"
+      :location-ready="false"
+      action-hint="请在当前页面核对关联记录，处理完成后返回原页面继续删除。"
+    />
     <slot />
   </div>
 </template>
 
 <script setup lang="ts">
+  import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
+
   defineOptions({ name: 'FinanceAccountingWorkspaceShell' })
+  defineProps<{ hideMasterDeleteNotice?: boolean }>()
 </script>
 
 <style scoped lang="scss">

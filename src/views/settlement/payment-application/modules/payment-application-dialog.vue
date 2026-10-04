@@ -96,6 +96,7 @@
         :border="false"
         :columns="allocationColumns"
         :pagination="false"
+        height="auto"
         :show-table-header="false"
         table-layout="fixed"
         max-height="300px"

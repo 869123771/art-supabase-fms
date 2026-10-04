@@ -147,6 +147,7 @@
     data: createInitialForm(),
     lines: [createLine(1, 'debit'), createLine(2, 'credit')],
     items: computed<FormItem[]>(() => [
+      { label: '模板信息', key: 'identitySection', type: 'divider', span: 24 },
       {
         label: '账套',
         key: 'accountSetId',
@@ -171,6 +172,11 @@
         span: 12,
         props: { maxlength: 80, placeholder: '请输入模板名称' }
       },
+      ...(canShowEntries.value || canShowNarrative.value
+        ? ([
+            { label: '默认制单', key: 'voucherDefaultsSection', type: 'divider', span: 24 }
+          ] as FormItem[])
+        : []),
       ...(canShowEntries.value
         ? ([
             {
@@ -201,6 +207,7 @@
             }
           ] as FormItem[])
         : []),
+      { label: '管理设置', key: 'managementSection', type: 'divider', span: 24 },
       {
         label: '启用状态',
         key: 'isEnabled',

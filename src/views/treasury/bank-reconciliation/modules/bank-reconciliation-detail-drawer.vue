@@ -20,7 +20,7 @@
             </ElTag>
             <span>已匹配 {{ detail.matchedCount }}/{{ detail.lineCount }} 行</span>
           </div>
-          <div v-if="['draft', 'reconciling'].includes(detail.status)">
+          <div v-if="canAdjustMatches">
             <ElButton
               v-auth="'FinanceBankReconciliation:AutoMatch'"
               :loading="autoMatching"
@@ -71,6 +71,7 @@
             :data="lines"
             :columns="lineColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             table-layout="fixed"
             empty-height="220px"
@@ -98,6 +99,7 @@
             :data="matches"
             :columns="matchColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             table-layout="fixed"
             empty-height="150px"
@@ -170,6 +172,9 @@
   const canUsePlainAmounts = computed(() =>
     ['read', 'edit'].includes(getFieldAccess(detail.value?.fieldAccess, 'statementAmounts'))
   )
+  const canAdjustMatches = computed(() =>
+    Boolean(detail.value && ['draft', 'reconciling'].includes(detail.value.status))
+  )
   const balanceDifference = computed<{ type: 'info' | 'success' | 'danger'; text: string }>(() => {
     const value = detail.value?.statementBalanceDifference
     if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
@@ -194,7 +199,7 @@
           { key: 'closingBalance', label: '期末余额', field: 'closingBalance', format: 'money' },
           {
             key: 'calculatedClosingBalance',
-            label: '流水推算余额',
+            label: '推算余额',
             field: 'calculatedClosingBalance',
             format: 'money'
           }
@@ -279,7 +284,7 @@
       formatter: (row) => (
         <div class="flex items-center">
           <ArtButtonTable type="view" label="查看匹配" onClick={() => void loadMatches(row)} />
-          {['unmatched', 'partial_matched'].includes(row.status) ? (
+          {canAdjustMatches.value && ['unmatched', 'partial_matched'].includes(row.status) ? (
             <>
               {canUsePlainAmounts.value ? (
                 <ArtButtonTable
@@ -336,7 +341,7 @@
         ]
       : []),
     { prop: 'matchedBy', label: '操作人', minWidth: 140, showOverflowTooltip: true },
-    ...(hasAuth('FinanceBankReconciliation:Unmatch') && detail.value?.status !== 'reconciled'
+    ...(hasAuth('FinanceBankReconciliation:Unmatch') && canAdjustMatches.value
       ? [
           {
             prop: 'operation',

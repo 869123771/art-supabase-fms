@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
       调拨仅支持同账套、同币种账户；执行时转出账户扣减调拨金额与手续费，转入账户增加调拨金额。
     </template>
@@ -114,6 +114,7 @@
 
   const formItems = computed<FormItem[]>(() => {
     const items: FormItem[] = [
+      { label: '调拨信息', key: 'identitySection', type: 'divider', span: 24 },
       {
         label: '所属账套',
         key: '__accountSetId',
@@ -142,7 +143,7 @@
             label: '转出账户',
             key: 'sourceAccountId',
             type: 'select',
-            span: 12,
+            span: 24,
             props: {
               options: sourceOptions.value,
               filterable: true,
@@ -154,6 +155,7 @@
             label: '转入账户',
             key: 'targetAccountId',
             type: 'select',
+            span: 24,
             props: {
               options: targetOptions.value,
               filterable: true,
@@ -210,6 +212,7 @@
     }
 
     if (canView('transferAmounts')) {
+      items.push({ label: '金额与费用', key: 'amountSection', type: 'divider', span: 24 })
       if (canEdit('transferAmounts')) {
         items.push(
           {
@@ -261,6 +264,7 @@
       }
     }
 
+    items.push({ label: '调拨说明', key: 'purposeSection', type: 'divider', span: 24 })
     if (canView('bankReference')) {
       items.push(
         canEdit('bankReference')

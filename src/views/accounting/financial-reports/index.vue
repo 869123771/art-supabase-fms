@@ -56,7 +56,7 @@
       :header-actions="headerActions"
       header-actions-placement="workspace"
       :immediate="false"
-      :search-bar-props="{ span: 6, labelWidth: 82, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 82, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'itemId',
         tableLayout: 'fixed',
@@ -610,6 +610,8 @@
 
 <style scoped lang="scss">
   .financial-reports-page {
+    overflow: auto;
+
     &__tabs {
       flex: 0 0 auto;
 
@@ -660,13 +662,12 @@
       }
     }
 
-    &__table {
+    :deep(.art-table-query.financial-reports-page__table) {
       flex: 1 1 auto;
-      min-height: 0;
+      min-height: 480px;
 
-      :deep(.art-table-card) {
-        flex: 0 1 auto;
-        max-height: 100%;
+      .art-table-card {
+        flex: 1 1 auto;
       }
     }
 

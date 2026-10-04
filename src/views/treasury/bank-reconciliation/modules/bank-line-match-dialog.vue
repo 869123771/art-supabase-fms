@@ -5,7 +5,11 @@
     :confirm-disabled="candidatesLoading || candidateLoadFailed || !ledgerOptions.length"
   >
     <template #subtitle>
-      可按剩余金额进行部分匹配；同一银行流水与资金流水均可分摊到多条匹配记录。
+      {{
+        line
+          ? `${line.transactionDate} · ${formatCurrencyValue(line.amount)} · ${line.counterpartyName || '未知对方'}`
+          : '同账户、同方向的资金流水可按剩余金额分摊匹配。'
+      }}
     </template>
     <ElAlert v-if="candidateLoadFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>匹配候选加载失败，请重试。</template>
@@ -13,16 +17,28 @@
         重新加载候选
       </ElButton>
     </ElAlert>
-    <ArtForm
-      ref="formRef"
-      v-model="form.data"
-      :items="formItems"
-      :rules="form.rules"
-      :span="24"
-      label-width="108px"
-      :show-reset="false"
-      :show-submit="false"
-    />
+    <ArtAsyncState :loading="candidatesLoading" loading-text="正在加载匹配候选…">
+      <ArtEmptyState
+        v-if="!candidatesLoading && !candidateLoadFailed && !ledgerOptions.length"
+        title="暂无可匹配资金流水"
+        description="请先核对同账户、同方向的资金流水是否已登记，且仍有未匹配金额。"
+        size="compact"
+        :visual-size="64"
+      >
+        <ElButton type="primary" plain @click="loadCandidates">刷新候选</ElButton>
+      </ArtEmptyState>
+      <ArtForm
+        v-if="ledgerOptions.length || candidateLoadFailed"
+        ref="formRef"
+        v-model="form.data"
+        :items="formItems"
+        :rules="form.rules"
+        :span="24"
+        label-width="108px"
+        :show-reset="false"
+        :show-submit="false"
+      />
+    </ArtAsyncState>
   </ArtDialog>
 </template>
 
@@ -34,6 +50,7 @@
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { fetchBankMatchCandidates, matchBankStatementLine } from '@fms/api'
   import { formatCurrencyValue } from '@/utils/ui'
 

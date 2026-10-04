@@ -152,14 +152,23 @@
   const drawerRef = ref<ArtDrawerExpose<Voucher>>()
   const { detail, activeId, loading, loadError, loadDetail, openDetail, retryLoad } =
     useDetailRecord<Voucher>(async (id) => {
-      await userStore.ensureDictLoaded('fmsPostingWaybillCostType')
+      await Promise.all([
+        userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
+        userStore.ensureDictLoaded('fmsBillEventType')
+      ])
       return fetchVoucherDetail(id, { showErrorMessage: false })
     }, '凭证详情加载失败，请重试或返回列表重新选择。')
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
 
   const displaySummary = computed(() =>
-    formatVoucherSummary(detail.value?.summary, getDictMap.value.fmsPostingWaybillCostType)
+    formatVoucherSummary(
+      detail.value?.summary,
+      getDictMap.value.fmsPostingWaybillCostType,
+      detail.value
+        ? { sourceType: detail.value.sourceType, billEvents: getDictMap.value.fmsBillEventType }
+        : undefined
+    )
   )
 
   const canViewAmounts = computed(() => canViewField(detail.value?.fieldAccess, 'voucherAmounts'))

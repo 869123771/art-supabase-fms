@@ -41,18 +41,7 @@
           :min-height="148"
           preserve-content-structure
         >
-          <div class="cash-detail__vouchers">
-            <ElImage
-              v-for="(url, index) in detail.data.voucherUrls"
-              :key="url"
-              :src="url"
-              :preview-src-list="detail.data.voucherUrls"
-              :initial-index="index"
-              preview-teleported
-              fit="cover"
-              class="cash-detail__voucher"
-            />
-          </div>
+          <ArtUploadImage :model-value="detail.data.voucherUrls" multiple readonly :size="112" />
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -70,6 +59,7 @@
             :data="detail.data.allocations ?? []"
             :columns="allocationColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             table-layout="fixed"
             empty-height="180px"
@@ -94,6 +84,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
+  import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import type { ColumnOption } from '@/types'
   import {
     fetchCashTransactionDetail,
@@ -347,18 +338,6 @@
   .cash-detail {
     &__section {
       margin-top: var(--art-space-6);
-    }
-
-    &__vouchers {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--art-space-3);
-    }
-
-    &__voucher {
-      width: 112px;
-      height: 112px;
-      border-radius: var(--el-border-radius-base);
     }
   }
 </style>

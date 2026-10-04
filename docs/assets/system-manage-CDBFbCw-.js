@@ -1,0 +1,1 @@
+import{H as e,w as t}from"./sys-Bc-jB2Ff.js";import"./tenant-scope-DX2mGOVi.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

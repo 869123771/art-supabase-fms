@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
       账套确定法人核算边界、会计准则和启用期间；产生期初余额或凭证后，关键口径将受系统保护。
     </template>

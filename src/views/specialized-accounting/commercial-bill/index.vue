@@ -27,7 +27,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 82, showExpand: false }"
+      :search-bar-props="{ span: 8, labelWidth: 82, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -360,7 +360,7 @@
       {
         prop: 'operation',
         label: '操作',
-        width: 156,
+        width: 160,
         fixed: 'right',
         formatter: (row) => (
           <BusinessTableRowActions>

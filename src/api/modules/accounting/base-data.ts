@@ -138,6 +138,13 @@ export async function fetchAuxiliaryTypeList(accountSetId: string) {
   )
 }
 
+export async function fetchAuxiliaryTypeDetail(id: string) {
+  return await responseHandle<AuxiliaryType>(
+    () => supabase.from('fms_auxiliary_type').select('*').eq('id', id).maybeSingle(),
+    { showErrorMessage: false }
+  )
+}
+
 export async function saveAuxiliaryType(payload: Api.Fms.SaveAuxiliaryTypePayload) {
   return await saveRecord('fms_auxiliary_type', payload, {
     create: '辅助核算类型已创建',

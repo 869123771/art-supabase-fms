@@ -24,6 +24,7 @@ export {
   deleteAuxiliaryType,
   deleteOpeningBalance,
   fetchAuxiliaryItemList,
+  fetchAuxiliaryTypeDetail,
   fetchAuxiliaryTypeList,
   fetchCurrencyList,
   fetchExchangeRateList,

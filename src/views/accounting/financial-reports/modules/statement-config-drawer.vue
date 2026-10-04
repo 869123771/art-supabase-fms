@@ -1,24 +1,9 @@
 <template>
   <ArtDrawer ref="drawerRef" size="xl" :show-footer="false">
     <div class="statement-config-drawer">
-      <section class="statement-config-drawer__summary">
-        <div>
-          <span>报表类型</span>
-          <strong>{{ statementTypeLabel }}</strong>
-        </div>
-        <div>
-          <span>项目总数</span>
-          <strong>{{ items.length }}</strong>
-        </div>
-        <div>
-          <span>直接取数行</span>
-          <strong>{{ mappingItemCount }}</strong>
-        </div>
-        <div>
-          <span>公式 / 标题行</span>
-          <strong>{{ formulaItemCount }} / {{ labelItemCount }}</strong>
-        </div>
-      </section>
+      <ArtSectionCard title="报表配置概览" preserve-content-structure>
+        <ArtDescriptions :data="{}" :items="summaryItems" :columns="2" label-width="104px" />
+      </ArtSectionCard>
 
       <ArtSectionCard
         title="账套报表项目"
@@ -117,6 +102,7 @@
           :border="false"
           :data="items"
           :pagination="false"
+          height="auto"
           :show-table-header="false"
           row-key="id"
           table-layout="fixed"
@@ -206,6 +192,8 @@
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import StatementItemDialog from './statement-item-dialog.vue'
   import StatementRuleDialog from './statement-rule-dialog.vue'
   import {
@@ -256,6 +244,23 @@
   const labelItemCount = computed(
     () => items.value.filter((item) => item.calculationMethod === 'label').length
   )
+  const summaryItems = computed<ArtDescriptionItem[]>(() => {
+    const unavailable = loading.value || Boolean(loadError.value)
+    return [
+      { key: 'statementType', label: '报表类型', value: statementTypeLabel.value },
+      { key: 'itemCount', label: '项目总数', value: unavailable ? '--' : items.value.length },
+      {
+        key: 'mappingCount',
+        label: '直接取数行',
+        value: unavailable ? '--' : mappingItemCount.value
+      },
+      {
+        key: 'formulaCount',
+        label: '公式 / 标题',
+        value: unavailable ? '--' : `${formulaItemCount.value} / ${labelItemCount.value}`
+      }
+    ]
+  })
   const effectiveFieldAccess = computed(() =>
     mergeFieldAccessMaps(listFieldAccess.value, ...items.value.map((item) => item.fieldAccess))
   )
@@ -377,35 +382,6 @@
     display: grid;
     gap: var(--art-space-4);
 
-    &__summary {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: var(--art-space-3);
-
-      > div {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-width: 0;
-        padding: var(--art-space-3) var(--art-space-4);
-        background: var(--el-fill-color-light);
-        border: 1px solid var(--el-border-color-lighter);
-        border-radius: var(--el-border-radius-base);
-      }
-
-      span {
-        font-size: 12px;
-        color: var(--art-text-gray-600);
-      }
-
-      strong {
-        font-size: 18px;
-        line-height: 1.35;
-        color: var(--art-text-gray-900);
-        overflow-wrap: anywhere;
-      }
-    }
-
     &__actions {
       display: flex;
       flex-wrap: wrap;
@@ -436,26 +412,8 @@
     }
   }
 
-  @media (width <= 900px) {
-    .statement-config-drawer__summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
   @media (width <= 640px) {
     .statement-config-drawer {
-      &__summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-
-        > div {
-          padding: var(--art-space-3);
-        }
-
-        strong {
-          font-size: 16px;
-        }
-      }
-
       &__mobile-list {
         display: grid;
         gap: var(--art-space-2);

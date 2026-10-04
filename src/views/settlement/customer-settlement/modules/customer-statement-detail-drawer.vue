@@ -37,6 +37,7 @@
             :data="detail.items ?? []"
             :columns="itemColumns"
             :pagination="false"
+            height="auto"
             :show-table-header="false"
             max-height="420px"
           />
@@ -60,7 +61,7 @@
 
 <script setup lang="tsx">
   import { useMediaQuery } from '@vueuse/core'
-  import { ElButton } from 'element-plus'
+  import { ElButton, ElTag } from 'element-plus'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
@@ -104,7 +105,10 @@
       key: 'status',
       label: '状态',
       field: 'status',
-      formatter: (value) => getSettlementStatusPresentation(String(value ?? '')).label
+      render: (value) => {
+        const status = getSettlementStatusPresentation(String(value ?? ''))
+        return <ElTag type={status.type}>{status.label}</ElTag>
+      }
     },
     { key: 'customerName', label: '对账客户', field: 'customerName' },
     {

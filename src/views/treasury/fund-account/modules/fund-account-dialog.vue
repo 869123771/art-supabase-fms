@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
       账号仅在保存时用于生成掩码和不可逆指纹，系统不存储完整明文账号。
     </template>
@@ -156,6 +156,7 @@
   const isBank = computed(() => form.data.accountType === 'bank')
 
   const formItems = computed<FormItem[]>(() => [
+    { label: '账户信息', key: 'identitySection', type: 'divider', span: 24 },
     {
       label: '所属账套',
       key: 'accountSetId',
@@ -207,6 +208,13 @@
       props: { options: getDictMap.value.fmsFundAccountType ?? [] }
     },
     {
+      label: '开户信息',
+      key: 'bankSection',
+      type: 'divider',
+      span: 24,
+      hidden: !canViewSensitiveField('accountDetails')
+    },
+    {
       label: '资金账号',
       key: 'accountNo',
       type: 'input',
@@ -240,6 +248,13 @@
         maxlength: 120,
         placeholder: '选填'
       }
+    },
+    {
+      label: '余额管理',
+      key: 'balanceSection',
+      type: 'divider',
+      span: 24,
+      hidden: !canViewSensitiveField('accountBalances')
     },
     {
       label: '期初余额',
@@ -278,6 +293,7 @@
           }
         : { disabled: true }
     },
+    { label: '账户设置', key: 'managementSection', type: 'divider', span: 24 },
     {
       label: '账户状态',
       key: 'status',

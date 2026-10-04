@@ -25,7 +25,7 @@
       :columns-factory="columnsFactory"
       :header-actions="table.headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 88, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 88, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
