@@ -1,3 +1,4 @@
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
@@ -109,10 +110,7 @@ export async function fetchPostingEventList(params: Api.Fms.PostingEventSearchPa
   }
 }
 
-export async function fetchPostingEventDetail(
-  id: string,
-  options: { showErrorMessage?: boolean } = {}
-) {
+export async function fetchPostingEventDetail(id: string, options: ApiFeedbackOptions = {}) {
   const result = await responseHandle<PostingEvent>(
     () => supabase.rpc('fms_get_posting_event_secure', { p_event_id: id }),
     { breakReturn: true, showErrorMessage: options.showErrorMessage ?? true }

@@ -1,9 +1,12 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>类别定义折旧方法、默认使用寿命和残值率，新增资产时自动带入。</template>
+    <template v-if="!form.id" #subtitle
+      >类别定义折旧方法、默认使用寿命和残值率，新增资产时自动带入。</template
+    >
     <ArtForm
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="isNarrow ? 24 : 12"
@@ -16,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
@@ -68,6 +72,7 @@
     defaultUsefulLifeMonths: [{ required: true, message: '请输入使用寿命', trigger: 'change' }]
   }
   const items = computed<FormItem[]>(() => [
+    { label: '类别档案', key: 'identitySection', type: 'divider', span: 24 },
     {
       label: '所属账套',
       key: 'accountSetId',
@@ -87,6 +92,7 @@
       type: 'input',
       props: { maxlength: 80, placeholder: '例如：机器设备' }
     },
+    { label: '折旧规则', key: 'depreciationSection', type: 'divider', span: 24 },
     {
       label: '折旧方法',
       key: 'depreciationMethod',
@@ -97,12 +103,14 @@
       label: '使用寿命',
       key: 'defaultUsefulLifeMonths',
       type: 'number',
+      description: '单位：月，例如 60 个月为 5 年。',
       props: { min: 1, max: 1200, controlsPosition: 'right', class: '!w-full' }
     },
     {
       label: '残值率',
       key: 'defaultResidualRate',
       type: 'number',
+      description: '以小数录入，例如 0.05 表示 5%。',
       props: {
         min: 0,
         max: 0.9999,
@@ -112,6 +120,7 @@
         class: '!w-full'
       }
     },
+    { label: '管理设置', key: 'managementSection', type: 'divider', span: 24 },
     {
       label: '排序',
       key: 'sort',

@@ -1,16 +1,17 @@
 <template>
   <ArtDialog ref="dialogRef" size="md"
-    ><template #subtitle
-      >同一会计期间、同一税种仅保留一份台账；税率和调整金额不在前端硬编码。</template
+    ><template v-if="!form.id" #subtitle
+      >按账套、会计期间和税种建立台账，再维护计税明细与调整金额。</template
     >
     <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>会计期间加载失败，请重新加载后再保存。</template>
-      <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+      <ElButton plain type="primary" @click="loadPeriods">重新加载期间</ElButton>
     </ElAlert>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="12"
@@ -21,6 +22,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { toRef } from 'vue'
   import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
@@ -74,6 +76,7 @@
   )
   const items = computed<FormItem[]>(() => {
     const result: FormItem[] = [
+      { label: '核算范围', key: 'scopeSection', type: 'divider', span: 24 },
       {
         label: '所属账套',
         key: 'accountSetId',
@@ -115,43 +118,44 @@
     ]
     if (canViewAmounts.value) {
       result.push(
+        { label: '税额调整', key: 'amountSection', type: 'divider', span: 24 },
         ...(canEditAmounts.value
           ? [
               {
                 label: '上期留抵',
                 key: 'transferableInputAmount',
                 type: 'number' as const,
-                props: { min: 0, precision: 2, class: '!w-full' }
+                props: { min: 0, precision: 2, controlsPosition: 'right', class: '!w-full' }
               },
               {
                 label: '调整金额',
                 key: 'adjustmentAmount',
                 type: 'number' as const,
-                props: { precision: 2, class: '!w-full' }
+                props: { precision: 2, controlsPosition: 'right', class: '!w-full' }
               }
             ]
           : [
               {
                 label: '上期留抵',
                 key: '__transferableInputAmountDisplay',
-                type: 'input' as const,
+                type: 'text' as const,
                 props: {
-                  modelValue: formatProtectedAmount(currentRecord.value?.transferableInputAmount),
-                  disabled: true
+                  formatter: () =>
+                    formatProtectedAmount(currentRecord.value?.transferableInputAmount)
                 }
               },
               {
                 label: '调整金额',
                 key: '__adjustmentAmountDisplay',
-                type: 'input' as const,
+                type: 'text' as const,
                 props: {
-                  modelValue: formatProtectedAmount(currentRecord.value?.adjustmentAmount),
-                  disabled: true
+                  formatter: () => formatProtectedAmount(currentRecord.value?.adjustmentAmount)
                 }
               }
             ])
       )
     }
+    result.push({ label: '期间说明', key: 'remarkSection', type: 'divider', span: 24 })
     result.push({
       label: '备注',
       key: 'remark',

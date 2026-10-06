@@ -67,19 +67,26 @@
   })
 
   const formItems = computed<FormItem[]>(() => [
+    { label: '汇率口径', key: 'rateScopeSection', type: 'divider', span: 24 },
     {
       label: '外币',
       key: 'currencyId',
-      type: 'select',
+      type: form.data.id ? 'text' : 'select',
       span: 12,
-      props: { disabled: Boolean(form.data.id), filterable: true, options: currencyOptions.value }
+      props: form.data.id
+        ? {
+            formatter: () =>
+              currencyOptions.value.find((item) => item.value === form.data.currencyId)?.label ??
+              '当前外币'
+          }
+        : { filterable: true, options: currencyOptions.value }
     },
     {
       label: '汇率日期',
       key: 'rateDate',
       type: 'date',
       span: 12,
-      props: { type: 'date', valueFormat: 'YYYY-MM-DD', class: '!w-full' }
+      props: { type: 'date', valueFormat: 'YYYY-MM-DD', class: 'w-full!' }
     },
     {
       label: '汇率类型',
@@ -93,14 +100,16 @@
       key: 'directRate',
       type: 'number',
       span: 12,
+      description: '输入 1 单位所选外币对应的本位币金额；例如折算为 7.20 时，录入 7.20。',
       props: {
-        min: 0.00000001,
+        min: 0,
         precision: 8,
         step: 0.01,
         controlsPosition: 'right',
-        class: '!w-full'
+        class: 'w-full!'
       }
     },
+    { label: '来源说明', key: 'rateSourceSection', type: 'divider', span: 24 },
     {
       label: '汇率来源',
       key: 'source',
@@ -146,7 +155,7 @@
     row?: Api.Fms.ExchangeRateRecord
   ): Promise<void> {
     currencyOptions.value = currencies
-      .filter((item) => !item.isBase && item.isEnabled)
+      .filter((item) => !item.isBase && (item.isEnabled || item.id === row?.currencyId))
       .map((item) => ({ label: `${item.currencyName}（${item.currencyCode}）`, value: item.id }))
     Object.assign(form.data, createInitialForm(), {
       id: row?.id,

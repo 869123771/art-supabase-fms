@@ -180,7 +180,11 @@
         <span>
           <ArtSvgIcon icon="ri:lock-2-line" aria-hidden="true" />
           {{
-            state.result ? '请核对选中流水，确认后将整批写入' : '选择文件后才能进入核对与入账步骤'
+            !isPlatformSuper
+              ? '当前仅分析匹配建议，不会写入财务流水'
+              : state.result
+                ? '请核对选中流水，确认后将整批写入'
+                : '选择文件后才能进入核对与入账步骤'
           }}
         </span>
         <div>
@@ -306,29 +310,36 @@
         return <ElCheckbox v-model={selected.value} disabled={!isSelectable(row)} />
       }
     },
-    { prop: 'sourceRow', label: '源行', width: 66, align: 'center' },
     {
       prop: 'status',
-      label: '状态',
-      width: 92,
+      label: '源行 / 状态',
+      width: 104,
       formatter: (row) => (
-        <ElTag type={getStatusMeta(row.status).type} size="small" effect="light">
-          {getStatusMeta(row.status).label}
-        </ElTag>
+        <div class="grid gap-1">
+          <span class="text-xs text-g-600">第 {row.sourceRow} 行</span>
+          <ElTag class="w-fit" type={getStatusMeta(row.status).type} size="small" effect="light">
+            {getStatusMeta(row.status).label}
+          </ElTag>
+        </div>
       )
     },
     {
       prop: 'direction',
-      label: '方向',
-      width: 78,
-      formatter: (row) =>
-        row.direction === 'receipt' ? '收款' : row.direction === 'payment' ? '付款' : '-'
+      label: '交易日期 / 方向',
+      width: 135,
+      formatter: (row) => (
+        <div class="grid gap-1">
+          <span>{row.transactionDate || '—'}</span>
+          <span class="text-xs text-g-600">
+            {row.direction === 'receipt' ? '收款' : row.direction === 'payment' ? '付款' : '—'}
+          </span>
+        </div>
+      )
     },
-    { prop: 'transactionDate', label: '交易日期', width: 112 },
     {
       prop: 'amount',
       label: '金额',
-      width: 128,
+      width: 110,
       align: 'right',
       formatter: (row) => money(row.amount)
     },
@@ -343,16 +354,15 @@
     { prop: 'bankReference', label: '银行流水号', minWidth: 150, showOverflowTooltip: true },
     {
       prop: 'statement',
-      label: '推荐对账单',
-      minWidth: 170,
-      formatter: (row) => row.statementMatches[0]?.statementNo || '暂不核销'
-    },
-    {
-      prop: 'issues',
-      label: '校验说明',
+      label: '匹配建议 / 校验说明',
       minWidth: 220,
       showOverflowTooltip: true,
-      formatter: (row) => row.issues.join('；') || '信息完整，可批量入账'
+      formatter: (row) => (
+        <div class="grid gap-1">
+          <span>{row.statementMatches[0]?.statementNo || '暂不核销'}</span>
+          <span class="text-xs text-g-600">{row.issues.join('；') || '信息完整，可批量入账'}</span>
+        </div>
+      )
     }
   ]
 
@@ -520,7 +530,7 @@
       display: flex;
       gap: 6px;
       align-items: center;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--el-color-primary);
       letter-spacing: 0.1em;
@@ -576,7 +586,7 @@
 
         small {
           margin-top: 2px;
-          font-size: 10px;
+          font-size: 12px;
         }
 
         &.is-active {
@@ -594,26 +604,26 @@
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
       gap: 18px;
-      min-height: 320px;
+      min-height: 240px;
     }
 
     &__upload,
     &__guide {
       min-width: 0;
-      padding: 24px;
+      padding: 20px;
     }
 
     &__upload {
       display: grid;
       align-content: center;
       justify-items: center;
-      min-height: 320px;
+      min-height: 240px;
       text-align: center;
       background: linear-gradient(145deg, var(--el-bg-color), var(--el-color-primary-light-9));
       border: 1px dashed var(--el-color-primary-light-5);
 
       > div:first-of-type > span {
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 700;
         color: var(--el-color-primary);
         letter-spacing: 0.12em;
@@ -642,7 +652,6 @@
       color: var(--el-color-primary);
       background: var(--el-bg-color);
       border-radius: var(--el-border-radius-base);
-      box-shadow: 0 12px 28px rgb(64 116 255 / 14%);
     }
 
     &__formats {
@@ -654,7 +663,7 @@
 
       span {
         padding: 4px 8px;
-        font-size: 10px;
+        font-size: 12px;
         color: var(--el-text-color-secondary);
         background: var(--el-fill-color);
         border-radius: 999px;
@@ -692,7 +701,7 @@
 
         p {
           margin-top: 3px;
-          font-size: 11px;
+          font-size: 12px;
           color: var(--el-text-color-secondary);
         }
       }
@@ -707,10 +716,7 @@
 
       li {
         gap: 10px;
-        padding: 11px 12px;
-        background: var(--el-fill-color-extra-light);
-        border: 1px solid var(--el-border-color-extra-light);
-        border-radius: var(--el-border-radius-small);
+        padding: 4px 0;
 
         > .art-svg-icon {
           flex: none;
@@ -728,7 +734,7 @@
         }
 
         small {
-          font-size: 10px;
+          font-size: 12px;
           color: var(--el-text-color-secondary);
         }
       }
@@ -737,7 +743,7 @@
     &__safe-note {
       gap: 8px;
       padding: 10px 12px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--el-color-success-dark-2);
       background: var(--el-color-success-light-9);
       border-radius: var(--el-border-radius-small);
@@ -803,7 +809,7 @@
 
         span,
         small {
-          font-size: 11px;
+          font-size: 12px;
           color: var(--el-text-color-secondary);
         }
 
@@ -857,7 +863,7 @@
         display: inline-flex;
         gap: 6px;
         align-items: center;
-        font-size: 11px;
+        font-size: 12px;
         color: var(--el-text-color-secondary);
       }
 

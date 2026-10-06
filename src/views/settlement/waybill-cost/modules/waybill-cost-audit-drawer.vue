@@ -51,7 +51,9 @@
             <article class="is-risk">
               <header>
                 <span><ArtSvgIcon icon="ri:pulse-line" />风险评分</span>
-                <strong>{{ state.data.assessment.riskScore }}</strong>
+                <strong :style="{ color: riskProgressColor }">{{
+                  state.data.assessment.riskScore
+                }}</strong>
               </header>
               <ElProgress
                 :percentage="state.data.assessment.riskScore"
@@ -554,7 +556,7 @@
       gap: 6px;
       align-items: center;
       margin-bottom: 4px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--el-text-color-secondary);
       letter-spacing: 0.08em;
@@ -623,13 +625,9 @@
         small {
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 11px;
-          color: var(--el-text-color-placeholder);
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
           white-space: nowrap;
-        }
-
-        &.is-risk header strong {
-          color: var(--el-color-danger);
         }
       }
     }
@@ -843,8 +841,8 @@
       }
 
       small {
-        font-size: 10px;
-        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
         letter-spacing: 0.08em;
       }
 
@@ -913,7 +911,7 @@
         }
 
         small {
-          font-size: 10px;
+          font-size: 12px;
           font-weight: 600;
           color: var(--el-color-primary);
           letter-spacing: 0.06em;
@@ -952,8 +950,8 @@
       flex-wrap: wrap;
       gap: 8px 18px;
       padding: 12px 2px 2px;
-      font-size: 11px;
-      color: var(--el-text-color-placeholder);
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
       border-top: 1px dashed var(--el-border-color-lighter);
 
       span {

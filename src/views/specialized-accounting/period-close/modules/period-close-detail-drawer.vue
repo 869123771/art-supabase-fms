@@ -1,5 +1,19 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header>
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:shield-check-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">关账检查详情</strong>
+          <span class="block break-words text-xs text-g-600">{{ activeRunNo }}</span>
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -49,8 +63,11 @@
               prop="summary"
               label="检查结论"
               min-width="280"
-              show-overflow-tooltip
-            />
+            >
+              <template #default="{ row }">
+                <span class="whitespace-normal break-words">{{ row.summary || '—' }}</span>
+              </template>
+            </ElTableColumn>
             <ElTableColumn v-if="canViewDiagnostics" label="控制级别" width="110">
               <template #default="{ row }">
                 <span v-if="row.isBlocking === '***'">***</span>
@@ -101,6 +118,7 @@
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -110,6 +128,7 @@
   import { canViewField } from '@/utils/field-permission'
   defineOptions({ name: 'FinancePeriodCloseDetailDrawer' })
   const drawerRef = ref<ArtDrawerExpose>()
+  const activeRunNo = ref('')
   const userStore = useUserStore()
   const isNarrow = useMediaQuery('(max-width: 640px)')
   const { detail, loading, loadError, loadDetail, openDetail, retryLoad } = useDetailRecord<{
@@ -180,10 +199,10 @@
       : [])
   ])
   async function handleOpen(row: Api.Fms.PeriodCloseRunRecord) {
+    activeRunNo.value = row.runNo
     openDetail(row.id)
     await drawerRef.value?.handleOpen(undefined, {
       title: '关账检查详情',
-      subtitle: row.runNo,
       size: 'xl',
       loading: true,
       loadingText: '正在加载关账检查…',

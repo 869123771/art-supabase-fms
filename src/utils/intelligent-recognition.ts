@@ -1,3 +1,6 @@
+import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
+import { getRecognitionMetadataText } from '@/utils/intelligent-recognition'
+
 type Artifact = Api.IntelligentRecognition.RecognitionArtifact
 type CashPaymentMethod = Api.Fms.CashPaymentMethod
 type InvoiceType = Api.Fms.InvoiceType
@@ -15,12 +18,12 @@ function isInvoiceType(value: string): value is InvoiceType {
 
 function nullableText(record: Record<string, unknown>, key: string): string | null {
   const value = record[key]
-  return typeof value === 'string' && value.trim() ? value : null
+  return typeof value === 'string' ? normalizeNullableText(value) : null
 }
 
 function nullableNumber(record: Record<string, unknown>, key: string): number | null {
   const value = record[key]
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
+  return typeof value === 'number' ? normalizeNullableNumber(value) : null
 }
 
 function normalizeInvoiceDraft(payload: Record<string, unknown>): Api.Fms.InvoiceOcrDraft {
@@ -74,13 +77,7 @@ function normalizeWaybillExpenseDraft(
 }
 
 function metadataNumber(artifact: Artifact, key: string, fallback: number): number {
-  const value = Number(artifact.metadata?.[key])
-  return Number.isFinite(value) ? value : fallback
-}
-
-function metadataText(artifact: Artifact, key: string): string {
-  const value = artifact.metadata?.[key]
-  return typeof value === 'string' ? value : ''
+  return normalizeNullableNumber(artifact.metadata?.[key]) ?? fallback
 }
 
 function metadataTextList(artifact: Artifact, key: string): string[] {
@@ -97,8 +94,8 @@ export function toInvoiceOcrAnalyzeResponse(artifact: Artifact): Api.Fms.Invoice
     runId: artifact.aiRunId,
     generatedAt: artifact.createTime,
     rawText: artifact.rawOcrText,
-    summary: metadataText(artifact, 'summary') || '已从识别中心恢复待复核发票',
-    confidence: Number(artifact.confidence ?? 0),
+    summary: getRecognitionMetadataText(artifact, 'summary') || '已从识别中心恢复待复核发票',
+    confidence: normalizeNullableNumber(artifact.confidence) ?? 0,
     fieldConfidence: artifact.fieldConfidence ?? {},
     missingFields: metadataTextList(artifact, 'missingFields'),
     warnings: artifact.warnings ?? [],
@@ -115,8 +112,8 @@ export function toCashVoucherOcrAnalyzeResponse(
     runId: artifact.aiRunId,
     generatedAt: artifact.createTime,
     rawText: artifact.rawOcrText,
-    summary: metadataText(artifact, 'summary') || '已从识别中心恢复待复核收款凭证',
-    confidence: Number(artifact.confidence ?? 0),
+    summary: getRecognitionMetadataText(artifact, 'summary') || '已从识别中心恢复待复核收款凭证',
+    confidence: normalizeNullableNumber(artifact.confidence) ?? 0,
     fieldConfidence: artifact.fieldConfidence ?? {},
     missingFields: metadataTextList(artifact, 'missingFields'),
     warnings: artifact.warnings ?? [],
@@ -136,8 +133,9 @@ export function toWaybillExpenseOcrAnalyzeResponse(
     runId: artifact.aiRunId,
     generatedAt: artifact.createTime,
     rawText: artifact.rawOcrText,
-    summary: metadataText(artifact, 'summary') || '已从识别中心恢复待复核运单费用票据',
-    confidence: Number(artifact.confidence ?? 0),
+    summary:
+      getRecognitionMetadataText(artifact, 'summary') || '已从识别中心恢复待复核运单费用票据',
+    confidence: normalizeNullableNumber(artifact.confidence) ?? 0,
     fieldConfidence: artifact.fieldConfidence ?? {},
     missingFields: metadataTextList(artifact, 'missingFields'),
     warnings: artifact.warnings ?? [],

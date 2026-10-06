@@ -67,7 +67,7 @@
     updateInvoiceStatus
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
     canViewField,
@@ -83,6 +83,7 @@
   } from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtButtonMore, {
     type ButtonMoreItem
@@ -339,69 +340,98 @@
 
   const columnsFactory = (): ColumnOption<Invoice>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-    { type: 'globalIndex', label: '序号', width: 72 },
-    { prop: 'invoiceRecordNo', label: '登记单号', width: 190 },
-    { prop: 'invoiceNo', label: '发票号码', width: 190, formatter: (row) => row.invoiceNo || '-' },
     {
-      prop: 'direction',
-      label: '方向',
-      width: 105,
-      dict: { code: 'tmsInvoiceDirection', display: 'tag' }
-    },
-    {
-      prop: 'invoiceType',
-      label: '发票类型',
-      width: 150,
-      dict: { code: 'tmsInvoiceType', display: 'text' }
+      prop: 'invoiceRecordNo',
+      label: '发票',
+      minWidth: 205,
+      formatter: (row) => (
+        <div
+          class="min-w-0 py-1"
+          title={`${row.invoiceRecordNo} · ${row.invoiceNo || '暂无票号'} · 登记 ${formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')}`}
+        >
+          <strong class="block truncate text-sm font-semibold text-[var(--el-text-color-primary)]">
+            {row.invoiceNo || row.invoiceRecordNo}
+          </strong>
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            {row.invoiceRecordNo}
+          </small>
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            登记 {formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')}
+          </small>
+        </div>
+      )
     },
     {
       prop: 'counterpartyNameSnapshot',
       label: '往来单位',
-      minWidth: 210,
-      showOverflowTooltip: true
+      minWidth: 160,
+      formatter: (row) => (
+        <div
+          class="min-w-0 py-1"
+          title={`${row.counterpartyNameSnapshot || '--'} · 开票 ${row.issueDate}`}
+        >
+          <strong class="block truncate text-sm font-medium text-[var(--el-text-color-primary)]">
+            {row.counterpartyNameSnapshot || '--'}
+          </strong>
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            开票 {row.issueDate}
+          </small>
+        </div>
+      )
     },
-    { prop: 'issueDate', label: '开票日期', width: 110 },
+    {
+      prop: 'direction',
+      label: '方向 / 类型',
+      width: 150,
+      formatter: (row) => (
+        <div class="min-w-0 py-1">
+          <ArtDictDisplay dictCode="tmsInvoiceDirection" value={row.direction} display="tag" />
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            <ArtDictDisplay dictCode="tmsInvoiceType" value={row.invoiceType} display="text" />
+          </small>
+        </div>
+      )
+    },
     ...(canViewListField('invoiceAmounts')
       ? [
           {
             prop: 'totalAmount',
             label: '价税合计',
-            width: 135,
+            width: 125,
             align: 'right' as const,
             formatter: (row: Invoice) => formatMoney(row.totalAmount)
           },
           {
-            prop: 'linkedAmount',
-            label: '已关联对账',
-            width: 135,
-            align: 'right' as const,
-            formatter: (row: Invoice) => formatMoney(row.linkedAmount)
-          },
-          {
             prop: 'unlinkedAmount',
-            label: '未关联金额',
-            width: 135,
+            label: '对账关联',
+            width: 150,
             align: 'right' as const,
-            formatter: (row: Invoice) => formatMoney(row.unlinkedAmount)
+            formatter: (row: Invoice) => (
+              <div
+                class="py-1 text-right leading-5"
+                title={`已关联 ${formatMoney(row.linkedAmount)} · 未关联 ${formatMoney(row.unlinkedAmount)}`}
+              >
+                <small class="block text-xs text-[var(--el-text-color-secondary)]">
+                  已关联 {formatMoney(row.linkedAmount)}
+                </small>
+                <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
+                  未关联 {formatMoney(row.unlinkedAmount)}
+                </strong>
+              </div>
+            )
           }
         ]
       : []),
     {
       prop: 'status',
       label: '状态',
-      width: 110,
+      width: 100,
       dict: { code: 'tmsInvoiceStatus', display: 'tag' }
-    },
-    {
-      prop: 'createTime',
-      label: '登记时间',
-      width: 165,
-      formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
     },
     {
       prop: 'operation',
       label: '操作',
-      width: 180,
+      width: 160,
       fixed: 'right',
       formatter: (row) => (
         <BusinessTableRowActions>
@@ -461,7 +491,7 @@
   ])
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchInvoiceList({ ...params, from, to })
     const previousVisibility = getSensitiveColumnVisibility()
     fieldAccess.value = result.fieldAccess

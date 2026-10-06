@@ -1,5 +1,24 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header>
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:bill-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">税务期间详情</strong>
+          <div class="flex flex-wrap items-center gap-1 text-xs text-g-600">
+            <ArtDictDisplay dict-code="fmsTaxType" :value="period?.taxType" display="text" />
+            <span v-if="period?.period"
+              >· {{ period.period.fiscalYear }} 年第 {{ period.period.periodNo }} 期</span
+            >
+          </div>
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -145,7 +164,7 @@
             </article>
           </div>
         </ArtSectionCard>
-        <TaxLedgerDialog ref="dialogRef" @success="reload" />
+        <TaxLedgerDialog ref="dialogRef" @success="handleLinesChanged" />
         <MasterDataDeleteGuard ref="deleteGuardRef" />
       </div>
     </ArtAsyncState>
@@ -164,6 +183,7 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
@@ -183,7 +203,7 @@
     'fms_tax_ledger_line',
     '税务明细'
   )
-  const drawerRef = ref<ArtDrawerExpose>()
+  const drawerRef = ref<ArtDrawerExpose<Api.Fms.TaxPeriodRecord>>()
   const dialogRef = ref<{
     handleOpen: (
       period: Api.Fms.TaxPeriodRecord,
@@ -205,7 +225,7 @@
     ])
     return fetchTaxPeriodDetail(id)
   }, '税务期间加载失败，请重试。')
-  const descriptionItems: ArtDescriptionItem<Api.Fms.TaxPeriodRecord>[] = [
+  const descriptionItems = computed<ArtDescriptionItem<Api.Fms.TaxPeriodRecord>[]>(() => [
     { key: 'taxType', field: 'taxType', label: '税种', dictCode: 'fmsTaxType' },
     {
       key: 'status',
@@ -221,8 +241,21 @@
         record.period ? `${record.period.fiscalYear} 年第 ${record.period.periodNo} 期` : '--',
       span: 2
     },
+    ...(canViewField(period.value?.fieldAccess, 'taxAmounts')
+      ? [
+          { key: 'outputTaxAmount', field: 'outputTaxAmount', label: '销项税额' },
+          { key: 'inputTaxAmount', field: 'inputTaxAmount', label: '进项税额' },
+          { key: 'transferableInputAmount', field: 'transferableInputAmount', label: '上期留抵' },
+          { key: 'adjustmentAmount', field: 'adjustmentAmount', label: '调整金额' },
+          { key: 'payableAmount', field: 'payableAmount', label: '应纳税额', span: 2 }
+        ].map((item) => ({
+          ...item,
+          formatter: (value: unknown) =>
+            formatProtectedAmount(value as Api.Fms.SensitiveNumber | undefined | null)
+        }))
+      : []),
     { key: 'remark', field: 'remark', label: '备注', span: 2 }
-  ]
+  ])
   const lines = ref<Api.Fms.TaxLedgerLineRecord[]>([])
   const linesLoading = ref(false)
   const linesError = ref('')
@@ -250,7 +283,6 @@
         return
       }
       lines.value = result.data ?? []
-      emit('success')
     } catch {
       if (requestId === linesRequestId) linesError.value = '税务明细加载失败，请重试。'
     } finally {
@@ -273,7 +305,7 @@
     try {
       const result = await deleteTaxLedgerLine(row.id)
       if (result.error) throw result.error
-      await reload()
+      await handleLinesChanged()
     } catch {
       await inspectDeleteReferences([{ id: row.id, label: row.sourceNo || '税务明细' }])
     }
@@ -286,13 +318,17 @@
     await loadDetail(id)
     if (period.value?.id === id) await reload()
   }
+  async function handleLinesChanged(): Promise<void> {
+    emit('success')
+    await reloadDetail()
+  }
   async function handleOpen(row: Api.Fms.TaxPeriodRecord): Promise<void> {
     ++linesRequestId
     linesLoading.value = false
     linesError.value = ''
     openDetail(row.id)
     lines.value = []
-    await drawerRef.value?.handleOpen(undefined, {
+    await drawerRef.value?.handleOpen(row, {
       title: '税务期间详情',
       size: 'xl',
       loading: true,

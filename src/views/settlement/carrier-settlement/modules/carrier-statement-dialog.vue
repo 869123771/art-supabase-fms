@@ -1,9 +1,10 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="md">
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="formItems"
       :rules="formRules"
       :span="12"
@@ -70,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -92,7 +94,7 @@
     fetchCarrierOptions,
     fetchCarrierStatementEligibleCosts
   } from '@fms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
@@ -235,7 +237,7 @@
       label: '对账账期',
       key: 'periodRange',
       type: 'date',
-      span: 12,
+      span: 24,
       props: {
         type: 'daterange',
         valueFormat: 'YYYY-MM-DD',
@@ -268,7 +270,7 @@
   }
   async function fetchCostSelectorData(params: DataSelectFetchParams) {
     if (!canSelectCost.value) return { data: [], total: 0 }
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const {
       data,
       fieldAccess: access,

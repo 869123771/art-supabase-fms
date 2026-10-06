@@ -24,7 +24,7 @@
       </header>
     </template>
 
-    <div class="invoice-ocr-panel__body">
+    <div class="invoice-ocr-panel__body" :class="{ 'is-ready': !result }">
       <div class="invoice-ocr-panel__upload">
         <ArtUploadImage
           v-model="imageUrls"
@@ -310,7 +310,7 @@
       p {
         margin: 0;
         font-size: 12px;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-600);
       }
     }
 
@@ -329,7 +329,43 @@
       align-items: start;
       padding-top: 12px;
       margin-top: 12px;
-      border-top: 1px solid var(--art-border-dashed-color);
+      border-top: 1px solid var(--el-border-color-lighter);
+
+      &.is-ready {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+        .invoice-ocr-panel__upload {
+          flex-direction: row;
+          gap: 12px;
+          align-items: center;
+          padding: 0;
+          background: transparent;
+          border: 0;
+        }
+
+        .invoice-ocr-panel__upload-copy {
+          flex: 1;
+        }
+
+        .invoice-ocr-panel__guide {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .invoice-ocr-panel__guide-item {
+          align-items: center;
+          min-height: 0;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          box-shadow: none;
+
+          > div {
+            flex-flow: row wrap;
+            gap: 4px 8px;
+          }
+        }
+      }
     }
 
     &__upload {
@@ -340,7 +376,7 @@
       width: 100%;
       min-width: 0;
       padding: 10px;
-      background: var(--art-main-bg-color);
+      background: var(--art-gray-100);
       border: 1px solid var(--art-card-border);
       border-radius: var(--custom-radius, 8px);
     }
@@ -373,7 +409,7 @@
       span {
         font-size: 12px;
         line-height: 1.55;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-700);
         overflow-wrap: anywhere;
       }
     }
@@ -415,9 +451,9 @@
       }
 
       span {
-        font-size: 11px;
+        font-size: 12px;
         line-height: 1.5;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-700);
       }
     }
 
@@ -465,7 +501,7 @@
       min-width: 0;
       min-height: 70px;
       padding: 9px 10px;
-      background: var(--art-main-bg-color);
+      background: var(--art-gray-100);
       border: 1px solid var(--art-card-border);
       border-radius: var(--custom-radius, 8px);
 
@@ -543,6 +579,10 @@
     .invoice-ocr-panel {
       &__body {
         grid-template-columns: 1fr;
+
+        &.is-ready {
+          grid-template-columns: 1fr;
+        }
       }
 
       &__upload {

@@ -23,12 +23,13 @@
     />
 
     <ArtTableQuery
+      class="fund-journal-page__table"
       ref="tableRef"
       v-model="table.search"
       :search-items="searchItems"
       :api-fn="fetchTableData"
       :columns-factory="columnsFactory"
-      :search-bar-props="{ span: 8, labelWidth: 86 }"
+      :search-bar-props="{ span: 8, labelWidth: 86, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -49,7 +50,7 @@
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
@@ -98,7 +99,6 @@
     {
       label: '所属账套',
       key: 'accountSetId',
-      span: 10,
       type: 'select',
       props: {
         options: accountSetOptions.value,
@@ -335,7 +335,7 @@
     const requestId = ++ledgerRequestId
     overviewLoading.value = true
     overviewReady.value = false
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     try {
       const [result, overview] = await Promise.all([
         fetchFundLedgerList({ ...params, from, to }, { showErrorMessage: false }),
@@ -421,6 +421,14 @@
 </script>
 
 <style scoped lang="scss">
+  .fund-journal-page {
+    overflow: auto;
+
+    :deep(.art-table-query.fund-journal-page__table) {
+      min-height: 440px;
+    }
+  }
+
   :deep(.fund-ledger-identity) {
     display: grid;
     gap: 3px;

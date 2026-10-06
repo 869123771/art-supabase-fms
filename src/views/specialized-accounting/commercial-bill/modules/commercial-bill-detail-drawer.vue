@@ -1,5 +1,21 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header="{ data }">
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:bank-card-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">票据详情</strong>
+          <small class="block truncate text-xs text-g-600"
+            >{{ data.billNo }} · 票据信息与流转记录</small
+          >
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -14,21 +30,6 @@
       </template>
       <template v-if="bill">
         <div class="commercial-bill-detail">
-          <section class="commercial-bill-detail__summary art-card-xs">
-            <span class="commercial-bill-detail__summary-icon" aria-hidden="true">
-              <ArtSvgIcon icon="ri:bank-card-line" />
-            </span>
-            <div class="commercial-bill-detail__summary-copy">
-              <div class="commercial-bill-detail__title-row">
-                <h2 translate="no">{{ bill.billNo }}</h2>
-                <ElTag :type="dictTagType('fmsBillStatus', bill.status)" effect="light">
-                  {{ dictLabel('fmsBillStatus', bill.status) }}
-                </ElTag>
-              </div>
-              <p>票据编号 · {{ referenceSummary }}</p>
-            </div>
-          </section>
-
           <ArtSectionCard title="票据信息" preserve-content-structure>
             <ArtDescriptions :data="bill" :items="detailItems" :columns="2" label-width="104px" />
           </ArtSectionCard>
@@ -70,7 +71,7 @@
 
 <script setup lang="ts">
   import { storeToRefs } from 'pinia'
-  import { ElButton, type TagProps } from 'element-plus'
+  import { ElButton } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
@@ -128,22 +129,22 @@
 
   const canView = (field: Api.Fms.CommercialBillFieldKey): boolean =>
     canViewField(bill.value?.fieldAccess, field)
-  const referenceSummary = computed(() =>
-    canView('billReferences') ? bill.value?.externalBillNo || '未登记票面号码' : '票面号码已保护'
-  )
 
   function dictLabel(code: keyof typeof getDictMap.value, value: string): string {
     return getDictMap.value[code]?.find((item) => item.value === value)?.label ?? value
   }
 
-  function dictTagType(code: keyof typeof getDictMap.value, value: string): TagProps['type'] {
-    return (getDictMap.value[code]?.find((item) => item.value === value)?.tagType ||
-      'info') as TagProps['type']
-  }
-
   const detailItems = computed<ArtDescriptionItem<Bill>[]>(() => {
     if (!bill.value) return []
     const items: ArtDescriptionItem<Bill>[] = [
+      { key: 'billNo', label: '票据编号', field: 'billNo', copyable: true },
+      {
+        key: 'status',
+        label: '票据状态',
+        field: 'status',
+        dictCode: 'fmsBillStatus',
+        dictDisplay: 'tag'
+      },
       { key: 'direction', label: '票据方向', field: 'direction', dictCode: 'fmsBillDirection' },
       { key: 'billType', label: '票据类型', field: 'billType', dictCode: 'fmsBillType' },
       { key: 'issueDate', label: '出票日期', field: 'issueDate', format: 'date' },
@@ -152,12 +153,13 @@
         key: 'transferable',
         label: '允许背书',
         field: 'transferable',
+        span: 2,
         formatter: (_value, row) => (row.transferable ? '允许' : '禁止')
       }
     ]
     if (canView('billParties')) {
       items.splice(
-        2,
+        4,
         0,
         { key: 'drawerName', label: '出票人', field: 'drawerName' },
         { key: 'payeeName', label: '收款人', field: 'payeeName' },
@@ -182,7 +184,10 @@
       )
     }
     if (canView('billReferences')) {
-      items.push({ key: 'sourceNo', label: '来源单号', field: 'sourceNo', copyable: true })
+      items.push(
+        { key: 'externalBillNo', label: '票面号码', field: 'externalBillNo', copyable: true },
+        { key: 'sourceNo', label: '来源单号', field: 'sourceNo', copyable: true }
+      )
     }
     items.push({ key: 'remark', label: '备注', field: 'remark', span: 2 })
     return items
@@ -211,54 +216,6 @@
     display: grid;
     gap: var(--art-space-4);
     min-width: 0;
-
-    &__summary {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      min-width: 0;
-      padding: 18px;
-    }
-
-    &__summary-icon {
-      display: grid;
-      flex: 0 0 44px;
-      place-items: center;
-      width: 44px;
-      height: 44px;
-      font-size: 22px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      border-radius: var(--el-border-radius-base);
-    }
-
-    &__summary-copy {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
-
-      h2,
-      p {
-        margin: 0;
-        overflow-wrap: anywhere;
-      }
-
-      h2 {
-        font-size: 18px;
-        line-height: 26px;
-      }
-
-      p {
-        color: var(--el-text-color-secondary);
-      }
-    }
-
-    &__title-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
 
     &__events {
       min-width: 0;

@@ -25,7 +25,7 @@
       :columns-factory="columnsFactory"
       :header-actions="table.headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 88, isExpand: true, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 82, showExpand: true }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -60,7 +60,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
   import {
     deleteVoucherTemplate,
@@ -133,6 +133,7 @@
         label: '账套',
         key: 'accountSetId',
         type: 'select',
+        span: 8,
         props: {
           options: table.accountSetOptions,
           filterable: true,
@@ -149,6 +150,7 @@
               label: '凭证类型',
               key: 'voucherType',
               type: 'select' as const,
+              span: 4,
               props: {
                 options: (getDictMap.value.fmsVoucherType ?? []).filter(
                   (item) => item.value !== 'reversal'
@@ -229,7 +231,13 @@
     },
     ...(canViewListField('maintenanceAudit')
       ? ([
-          { prop: 'updateBy', label: '最后维护人', minWidth: 150, showOverflowTooltip: true }
+          {
+            prop: 'updateBy',
+            label: '最后维护人',
+            minWidth: 150,
+            showOverflowTooltip: true,
+            formatter: (row) => row.updateBy || row.createBy || '—'
+          }
         ] as ColumnOption<Template>[])
       : []),
     {
@@ -259,17 +267,15 @@
   ]
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchVoucherTemplateList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []
     return result
   }
 
-  async function loadEntryContext(): Promise<DialogContext | undefined> {
-    const accountSet = table.accountSetOptions.find(
-      (item) => item.value === table.searchQuery.accountSetId
-    )
+  async function loadEntryContext(accountSetId: string): Promise<DialogContext | undefined> {
+    const accountSet = table.accountSetOptions.find((item) => item.value === accountSetId)
     if (!accountSet) return undefined
     if (entryContext.value?.accountSet.value === accountSet.value) return entryContext.value
     const [subjectResult, currencyResult, auxiliaryResult] = await Promise.all([
@@ -298,14 +304,14 @@
     )
       return
     const accountSet = table.accountSetOptions.find(
-      (item) => item.value === table.searchQuery.accountSetId
+      (item) => item.value === (row?.accountSetId || table.searchQuery.accountSetId)
     )
     if (!accountSet) return
     const context =
       entryContext.value?.accountSet.value === accountSet.value
         ? entryContext.value
         : { accountSet, subjects: [], currencies: [], auxiliaryItems: [] }
-    await dialogRef.value?.handleOpen(context, row, loadEntryContext)
+    await dialogRef.value?.handleOpen(context, row, () => loadEntryContext(accountSet.value))
   }
 
   async function handleDelete(row: Template): Promise<void> {

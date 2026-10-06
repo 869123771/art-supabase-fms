@@ -1,5 +1,19 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header>
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:group-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">薪资批次详情</strong>
+          <span class="block break-words text-xs text-g-600">{{ activeRunNo }}</span>
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -11,7 +25,13 @@
     >
       <div v-if="run" class="payroll-detail">
         <ArtSectionCard title="批次信息" preserve-content-structure>
-          <ArtDescriptions :data="run" :items="descriptionItems" :columns="2" label-width="104px" />
+          <ArtDescriptions
+            :data="run"
+            :items="descriptionItems"
+            :columns="2"
+            :border="true"
+            label-width="104px"
+          />
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -22,7 +42,11 @@
           @retry="reload"
           :empty="!lines.length"
           empty-title="暂无员工薪资明细"
-          empty-description="可同步已批准的 HR 薪酬，或手动新增员工明细。"
+          :empty-description="
+            editable
+              ? '可同步已批准的 HR 薪酬，或手动新增员工明细。'
+              : '此批次没有可展示的员工薪资明细。'
+          "
           :empty-visual-size="72"
           :min-height="188"
           preserve-content-structure
@@ -57,18 +81,14 @@
             :data="lines"
             row-key="id"
           >
-            <ElTableColumn
-              v-if="canViewIdentity"
-              prop="employeeNoSnapshot"
-              label="工号"
-              min-width="140"
-            />
-            <ElTableColumn
-              v-if="canViewIdentity"
-              prop="employeeNameSnapshot"
-              label="姓名"
-              min-width="120"
-            />
+            <ElTableColumn v-if="canViewIdentity" label="员工" min-width="200">
+              <template #default="{ row }">
+                <BusinessTableIdentityCell
+                  :primary="row.employeeNameSnapshot"
+                  :secondary="row.employeeNoSnapshot"
+                />
+              </template>
+            </ElTableColumn>
             <ElTableColumn v-if="canViewAmounts" label="应发" min-width="110" align="right">
               <template #default="{ row }">{{ formatProtectedAmount(row.grossAmount) }}</template>
             </ElTableColumn>
@@ -144,7 +164,7 @@
             </article>
           </div>
         </ArtSectionCard>
-        <PayrollLineDialog ref="lineDialogRef" @success="reload" />
+        <PayrollLineDialog ref="lineDialogRef" @success="handleLinesChanged" />
         <MasterDataDeleteGuard ref="deleteGuardRef" />
       </div>
     </ArtAsyncState>
@@ -154,6 +174,7 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
@@ -189,6 +210,7 @@
     '薪资明细'
   )
   const drawerRef = ref<ArtDrawerExpose>()
+  const activeRunNo = ref('')
   const lineDialogRef = ref<{
     handleOpen: (run: Api.Fms.PayrollRunRecord, line?: Api.Fms.PayrollLineRecord) => Promise<void>
   }>()
@@ -203,7 +225,7 @@
     await userStore.ensureDictLoaded('fmsPayrollRunStatus')
     return fetchPayrollRunDetail(id)
   }, '薪资批次加载失败，请重试。')
-  const descriptionItems: ArtDescriptionItem<Api.Fms.PayrollRunRecord>[] = [
+  const descriptionItems = computed<ArtDescriptionItem<Api.Fms.PayrollRunRecord>[]>(() => [
     { key: 'runNo', field: 'runNo', label: '批次号', copyable: true },
     {
       key: 'status',
@@ -225,8 +247,36 @@
       value: (record: Api.Fms.PayrollRunRecord) =>
         record.period ? `${record.period.fiscalYear} 年第 ${record.period.periodNo} 期` : '--'
     },
+    ...(canViewField(run.value?.fieldAccess, 'salaryAmounts')
+      ? ([
+          {
+            key: 'grossAmount',
+            field: 'grossAmount',
+            label: '应发金额',
+            formatter: (_value, record) => formatProtectedAmount(record.grossAmount)
+          },
+          {
+            key: 'deductionAmount',
+            field: 'deductionAmount',
+            label: '扣款金额',
+            formatter: (_value, record) => formatProtectedAmount(record.deductionAmount)
+          },
+          {
+            key: 'employerCostAmount',
+            field: 'employerCostAmount',
+            label: '企业成本',
+            formatter: (_value, record) => formatProtectedAmount(record.employerCostAmount)
+          },
+          {
+            key: 'netAmount',
+            field: 'netAmount',
+            label: '实发金额',
+            formatter: (_value, record) => formatProtectedAmount(record.netAmount)
+          }
+        ] satisfies ArtDescriptionItem<Api.Fms.PayrollRunRecord>[])
+      : []),
     { key: 'remark', field: 'remark', label: '备注', span: 2 }
-  ]
+  ])
   const lines = ref<Api.Fms.PayrollLineRecord[]>([])
   const linesLoading = ref(false)
   const linesError = ref('')
@@ -262,7 +312,6 @@
       }
       lines.value = result.data ?? []
       lineFieldAccess.value = result.fieldAccess
-      emit('success')
     } catch {
       if (requestId === linesRequestId) linesError.value = '薪资明细加载失败，请重试。'
     } finally {
@@ -294,7 +343,7 @@
     try {
       const result = await deletePayrollLine(row.id)
       if (result.error) throw result.error
-      await reload()
+      await handleLinesChanged()
     } catch {
       await inspectDeleteReferences([{ id: row.id, label: row.employeeNameSnapshot || '员工薪资' }])
     }
@@ -320,7 +369,8 @@
           `已导入 ${result.importedCount} 名员工，保留 ${result.skippedCount} 条已有明细`
         )
       }
-      await reload()
+      await reloadDetail()
+      if (result?.importedCount) emit('success')
     } catch (error) {
       if (error !== 'cancel' && error !== 'close') {
         notifyFriendlyError(error, 'HR 薪酬同步失败，请检查批次状态后重试')
@@ -338,7 +388,12 @@
     await loadDetail(id)
     if (run.value?.id === id) await reload()
   }
+  async function handleLinesChanged(): Promise<void> {
+    emit('success')
+    await reloadDetail()
+  }
   async function handleOpen(row: Api.Fms.PayrollRunRecord): Promise<void> {
+    activeRunNo.value = row.runNo
     ++linesRequestId
     linesLoading.value = false
     linesError.value = ''

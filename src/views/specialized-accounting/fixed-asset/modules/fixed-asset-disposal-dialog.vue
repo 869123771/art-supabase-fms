@@ -17,16 +17,17 @@
         <strong>缺少可用资金账户</strong>
         <small>先登记真实银行、现金或第三方支付账户，再回来确认处置收入。</small>
       </span>
-      <ElButton type="primary" link @click="goToFundAccount">前往资金账户</ElButton>
+      <ElButton type="primary" plain @click="goToFundAccount">前往资金账户</ElButton>
     </div>
     <ArtForm
       ref="formRef"
-      v-model="form.data"
+      :model-value="form.data"
       :items="form.items"
       :rules="form.rules"
       label-width="104px"
       :show-reset="false"
       :show-submit="false"
+      @update:model-value="replaceReactiveModel(form, $event)"
     />
   </ArtDialog>
 </template>
@@ -34,6 +35,7 @@
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { replaceReactiveModel } from '@/utils/form/model'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import type { FormItemRule, FormRules } from 'element-plus'

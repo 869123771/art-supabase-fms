@@ -1,18 +1,19 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
-    <template #subtitle
+  <ArtDialog ref="dialogRef" size="md">
+    <template v-if="!isEditing" #subtitle
       >资产先以草稿登记；确认转固后进入折旧与处置生命周期，核心价值字段不可直接修改。</template
     >
     <ElAlert v-if="categoriesFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>资产类别加载失败，请重新加载后再保存。</template>
-      <ElButton text type="primary" @click="loadCategories(form.accountSetId)"
+      <ElButton plain type="primary" @click="loadCategories(form.accountSetId)"
         >重新加载类别</ElButton
       >
     </ElAlert>
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="12"
@@ -25,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
@@ -102,6 +104,7 @@
   }
   const items = computed<FormItem[]>(() => {
     const result: FormItem[] = [
+      { label: '资产档案', key: 'identitySection', type: 'divider', span: 24 },
       {
         label: '所属账套',
         key: 'accountSetId',
@@ -113,6 +116,7 @@
         label: '资产类别',
         key: 'categoryId',
         type: 'select',
+        span: 24,
         props: {
           options: categoryOptions.value,
           filterable: true,
@@ -126,7 +130,7 @@
         type: 'input',
         props: { maxlength: 60, placeholder: '留空自动生成' }
       },
-      { label: '资产名称', key: 'assetName', type: 'input', props: { maxlength: 120 } }
+      { label: '资产名称', key: 'assetName', type: 'input', span: 24, props: { maxlength: 120 } }
     ]
 
     if (canView('assetReferences')) {
@@ -147,14 +151,15 @@
             : {
                 label,
                 key: `__${key}Display`,
-                type: 'input' as const,
-                props: { modelValue: currentRecord.value?.[key] || '--', disabled: true }
+                type: 'text' as const,
+                props: { formatter: () => currentRecord.value?.[key] || '--' }
               }
         )
       )
     }
 
     result.push(
+      { label: '购置与折旧', key: 'depreciationSection', type: 'divider', span: 24 },
       {
         label: '购置日期',
         key: 'acquisitionDate',
@@ -201,19 +206,17 @@
               {
                 label: '资产原值',
                 key: '__originalValueDisplay',
-                type: 'input' as const,
+                type: 'text' as const,
                 props: {
-                  modelValue: formatProtectedAmount(currentRecord.value?.originalValue),
-                  disabled: true
+                  formatter: () => formatProtectedAmount(currentRecord.value?.originalValue)
                 }
               },
               {
                 label: '预计残值',
                 key: '__residualValueDisplay',
-                type: 'input' as const,
+                type: 'text' as const,
                 props: {
-                  modelValue: formatProtectedAmount(currentRecord.value?.residualValue),
-                  disabled: true
+                  formatter: () => formatProtectedAmount(currentRecord.value?.residualValue)
                 }
               }
             ])
@@ -229,6 +232,7 @@
 
     if (canView('assetCustody')) {
       result.push(
+        { label: '保管信息', key: 'custodySection', type: 'divider', span: 24 },
         canEdit('assetCustody')
           ? {
               label: '存放地点',
@@ -239,19 +243,22 @@
           : {
               label: '存放地点',
               key: '__locationDisplay',
-              type: 'input',
-              props: { modelValue: currentRecord.value?.location || '--', disabled: true }
+              type: 'text',
+              props: { formatter: () => currentRecord.value?.location || '--' }
             }
       )
     }
 
-    result.push({
-      label: '备注',
-      key: 'remark',
-      type: 'input',
-      span: 24,
-      props: { type: 'textarea', rows: 3, maxlength: 500 }
-    })
+    result.push(
+      { label: '补充说明', key: 'remarkSection', type: 'divider', span: 24 },
+      {
+        label: '备注',
+        key: 'remark',
+        type: 'input',
+        span: 24,
+        props: { type: 'textarea', rows: 3, maxlength: 500 }
+      }
+    )
     return result
   })
   async function loadCategories(accountSetId: string): Promise<void> {

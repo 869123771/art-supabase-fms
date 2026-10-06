@@ -67,7 +67,7 @@
     submitCarrierPaymentApplication
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { financeRouteNames } from '@/router/business-paths'
   import {
@@ -254,9 +254,44 @@
 
   const columnsFactory = (): ColumnOption<Application>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-    { type: 'globalIndex', label: '序号', width: 72 },
-    { prop: 'applicationNo', label: '付款申请单号', width: 190 },
-    { prop: 'carrierName', label: '付款承运商', minWidth: 190, showOverflowTooltip: true },
+    {
+      prop: 'applicationNo',
+      label: '付款申请',
+      minWidth: 210,
+      formatter: (row) => (
+        <div
+          class="min-w-0 py-1"
+          title={`${row.applicationNo} · ${formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')}${row.paidTransactionNo ? ` · 付款 ${row.paidTransactionNo}` : ''}`}
+        >
+          <strong class="block truncate text-sm font-semibold text-[var(--el-text-color-primary)]">
+            {row.applicationNo}
+          </strong>
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            创建 {formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')}
+          </small>
+          {row.paidTransactionNo ? (
+            <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+              付款 {row.paidTransactionNo}
+            </small>
+          ) : null}
+        </div>
+      )
+    },
+    {
+      prop: 'carrierName',
+      label: '付款承运商',
+      minWidth: 180,
+      formatter: (row) => (
+        <div class="min-w-0 py-1" title={`${row.carrierName} · ${row.statementCount} 份对账单`}>
+          <strong class="block truncate text-sm font-medium text-[var(--el-text-color-primary)]">
+            {row.carrierName}
+          </strong>
+          <small class="block truncate text-xs text-[var(--el-text-color-secondary)]">
+            {row.statementCount} 份对账单
+          </small>
+        </div>
+      )
+    },
     ...(canViewListField('applicationAmounts')
       ? [
           {
@@ -274,13 +309,6 @@
       width: 120
     },
     {
-      prop: 'statementCount',
-      label: '对账单',
-      width: 90,
-      align: 'center',
-      formatter: (row) => `${row.statementCount} 份`
-    },
-    {
       prop: 'paymentMethod',
       label: '付款方式',
       width: 115,
@@ -291,18 +319,6 @@
       label: '申请状态',
       width: 130,
       dict: { code: 'tmsCarrierPaymentApplicationStatus', display: 'tag' }
-    },
-    {
-      prop: 'paidTransactionNo',
-      label: '付款流水号',
-      minWidth: 175,
-      showOverflowTooltip: true
-    },
-    {
-      prop: 'createTime',
-      label: '创建时间',
-      width: 165,
-      formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
     },
     {
       prop: 'operation',
@@ -417,7 +433,7 @@
   ])
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCarrierPaymentApplicationList({ ...params, from, to })
     const previousVisibility = getSensitiveColumnVisibility()
     fieldAccess.value = result.fieldAccess

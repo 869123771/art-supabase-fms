@@ -50,7 +50,10 @@
           v-if="canViewField(detail.fieldAccess, 'basisEvidence')"
           class="payment-application-detail__section"
           title="付款依据"
-          :empty="!detail.basisUrls?.length"
+          :empty="
+            getFieldAccess(detail.fieldAccess, 'basisEvidence') === 'masked' ||
+            !detail.basisUrls?.length
+          "
           :empty-title="
             getFieldAccess(detail.fieldAccess, 'basisEvidence') === 'masked'
               ? '付款依据已脱敏'
@@ -65,17 +68,12 @@
           :min-height="148"
           preserve-content-structure
         >
-          <div class="payment-application-detail__evidence">
-            <ElImage
-              v-for="url in detail.basisUrls"
-              :key="url"
-              :src="url"
-              :preview-src-list="detail.basisUrls"
-              fit="cover"
-              class="payment-application-detail__evidence-image"
-              preview-teleported
-            />
-          </div>
+          <ArtUploadImage
+            :model-value="detail.basisUrls ?? []"
+            title="付款依据"
+            :size="112"
+            readonly
+          />
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -102,6 +100,7 @@
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchCarrierPaymentApplicationDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
@@ -224,19 +223,6 @@
 
     &__section {
       margin-top: var(--art-space-6);
-    }
-
-    &__evidence {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--art-space-3);
-    }
-
-    &__evidence-image {
-      width: 96px;
-      height: 96px;
-      border: 1px solid var(--el-border-color-light);
-      border-radius: var(--el-border-radius-base);
     }
   }
 </style>

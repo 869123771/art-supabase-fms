@@ -27,7 +27,7 @@
         :title="errorMessage"
       >
         <template #default
-          ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
+          ><ElButton type="primary" plain @click="loadOverview">重新加载</ElButton></template
         >
       </ElAlert>
 
@@ -42,34 +42,34 @@
 
       <ArtSectionCard
         class="financial-exception-page__workspace"
+        title="异常处置队列"
+        :subtitle="`操作权限由目标页面校验，更新时间 ${generatedAt}`"
+        :empty="!!overview && !filteredIssues.length"
+        empty-title="当前分类没有待处理异常"
+        empty-description="可切换异常分类，或稍后刷新查看新增事项。"
+        :empty-visual-size="72"
         preserve-content-structure
         :loading="loading && !overview"
         :error="!overview ? errorMessage : ''"
         :min-height="280"
         @retry="loadOverview"
       >
-        <template #header>
-          <header>
-            <div>
-              <ArtSectionTitle :show-line="false">异常处置队列</ArtSectionTitle>
-              <p>相同业务的操作权限仍由目标页面独立校验，更新时间 {{ generatedAt }}</p>
-            </div>
-            <ElRadioGroup
-              v-if="overview"
-              v-model="activeCategory"
-              size="small"
-              aria-label="财务异常类别"
+        <template #actions>
+          <ElRadioGroup
+            v-if="overview"
+            v-model="activeCategory"
+            size="small"
+            aria-label="财务异常类别"
+          >
+            <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
+            <ElRadioButton
+              v-for="category in categoryOptions"
+              :key="category.value"
+              :value="category.value"
             >
-              <ElRadioButton value="all">全部 {{ overview.totalIssues }}</ElRadioButton>
-              <ElRadioButton
-                v-for="category in categoryOptions"
-                :key="category.value"
-                :value="category.value"
-              >
-                {{ category.label }} {{ categoryCount(category.value) }}
-              </ElRadioButton>
-            </ElRadioGroup>
-          </header>
+              {{ category.label }} {{ categoryCount(category.value) }}
+            </ElRadioButton>
+          </ElRadioGroup>
         </template>
         <template #loading>
           <ElSkeleton animated aria-hidden="true">
@@ -106,14 +106,7 @@
           :title="`异常数量较多，当前展示 ${overview.returnedIssues} / ${overview.totalIssues} 条`"
           description="队列已优先返回严重和较新的异常。"
         />
-        <ArtEmptyState
-          v-if="overview && !filteredIssues.length"
-          title="当前分类没有待处理异常"
-          description="可切换异常分类，或稍后刷新查看新增事项。"
-          size="compact"
-          :visual-size="72"
-        />
-        <ol v-else-if="overview" class="financial-exception-page__issues">
+        <ol v-if="overview" class="financial-exception-page__issues">
           <li v-for="issue in filteredIssues" :key="issue.id" :class="`is-${issue.severity}`">
             <span class="financial-exception-page__signal" aria-hidden="true"></span>
             <div class="financial-exception-page__issue-main">
@@ -170,13 +163,11 @@
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { storeToRefs } from 'pinia'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -368,28 +359,13 @@
 
     &__workspace {
       display: flex;
-      flex: 1 1 auto;
+      flex: 1 0 auto;
       flex-direction: column;
       min-width: 0;
       min-height: 300px;
-      padding: 18px;
 
       :deep(.art-empty-state) {
         flex: 1 1 auto;
-      }
-
-      > header {
-        display: flex;
-        gap: 16px;
-        align-items: flex-end;
-        justify-content: space-between;
-        margin-bottom: 16px;
-
-        p {
-          margin: 5px 0 0;
-          font-size: 12px;
-          color: var(--art-gray-500);
-        }
       }
     }
 
@@ -397,7 +373,7 @@
       display: grid;
       gap: 8px;
       padding: 0;
-      margin: 16px 0 0;
+      margin: 0;
       list-style: none;
 
       li {
@@ -407,8 +383,8 @@
         align-items: center;
         min-width: 0;
         padding: 14px;
-        background: var(--art-main-bg-color);
-        border: 1px solid var(--art-border-color);
+        background: var(--art-gray-100);
+        border: 1px solid var(--el-border-color-lighter);
         border-radius: var(--el-border-radius-base);
 
         &.is-critical {
@@ -431,8 +407,8 @@
       gap: 16px;
       align-items: center;
       padding: 16px 18px;
-      background: var(--art-main-bg-color);
-      border: 1px solid var(--art-border-color);
+      background: var(--art-gray-100);
+      border: 1px solid var(--el-border-color-lighter);
       border-radius: var(--el-border-radius-base);
 
       > div {
@@ -480,9 +456,8 @@
       > strong,
       > p {
         display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        white-space: normal;
       }
 
       > p {
@@ -544,11 +519,6 @@
 
   @media only screen and (width <= 1100px) {
     .financial-exception-page {
-      &__workspace > header {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
       &__workspace :deep(.el-radio-group) {
         display: flex;
         flex-wrap: wrap;

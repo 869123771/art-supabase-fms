@@ -5,7 +5,8 @@
     ><ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="12"
@@ -16,6 +17,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -59,6 +61,7 @@
     taxAmount: [{ required: true, message: '请输入税额', trigger: 'change' }]
   }
   const items = computed<FormItem[]>(() => [
+    { label: '业务来源', key: 'sourceSection', type: 'divider', span: 24 },
     {
       label: '来源类型',
       key: 'sourceType',
@@ -90,6 +93,7 @@
       type: 'segment',
       props: { options: getDictMap.value.fmsTaxLedgerDirection ?? [] }
     },
+    { label: '计税信息', key: 'amountSection', type: 'divider', span: 24 },
     {
       label: '计税金额',
       key: 'taxableAmount',
@@ -100,6 +104,7 @@
       label: '税率',
       key: 'taxRate',
       type: 'number',
+      description: '以小数录入，例如 0.09 表示 9%。',
       props: { min: 0, precision: 6, step: 0.01, controlsPosition: 'right', class: '!w-full' }
     },
     {
@@ -114,6 +119,7 @@
       type: 'segment',
       props: { options: booleanOptions.value }
     },
+    { label: '明细说明', key: 'remarkSection', type: 'divider', span: 24 },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
   ])
   async function submit() {

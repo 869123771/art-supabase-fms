@@ -1,3 +1,4 @@
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import {
   buildSupabaseRpcRange,
@@ -119,7 +120,7 @@ export async function fetchInvoiceableStatementList(params: InvoiceableSearchPar
   }
 }
 
-export async function fetchInvoiceDetail(id: string, options: { showErrorMessage?: boolean } = {}) {
+export async function fetchInvoiceDetail(id: string, options: ApiFeedbackOptions = {}) {
   const showErrorMessage = options.showErrorMessage ?? true
   const [invoiceResponse, linkResponse] = await Promise.all([
     responseHandle<Invoice | null>(() => supabase.rpc('tms_get_invoice_secure', { p_id: id }), {

@@ -1,5 +1,23 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header="{ data }">
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:exchange-dollar-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900"
+            >{{ data.direction === 'payment' ? '付款' : '收款' }}详情</strong
+          >
+          <small class="block truncate text-xs text-g-600"
+            >{{ data.transactionNo }} · 凭证与核销记录</small
+          >
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="detail.loading"
       loading-mode="skeleton"
@@ -76,6 +94,7 @@
   import { createDateTimeFormatter } from '@/utils/ui/format'
 
   import { ElButton, ElTag } from 'element-plus'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'

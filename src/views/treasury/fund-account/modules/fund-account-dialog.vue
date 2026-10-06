@@ -14,7 +14,7 @@
       <span>请重试后再选择币种。</span>
       <ElButton
         type="primary"
-        link
+        plain
         :loading="currencyLoading"
         @click="loadCurrencies(form.data.accountSetId)"
       >
@@ -161,6 +161,7 @@
       label: '所属账套',
       key: 'accountSetId',
       type: 'select',
+      span: 24,
       props: {
         options: accountSetOptions.value,
         filterable: true,
@@ -259,16 +260,16 @@
     {
       label: '期初余额',
       key: 'openingBalance',
-      type: canEditSensitiveField('accountBalances') ? 'number' : 'input',
+      type: canEditSensitiveField('accountBalances') ? 'number' : 'text',
       hidden: !canViewSensitiveField('accountBalances'),
       props: canEditSensitiveField('accountBalances')
         ? { precision: 2, step: 100, controlsPosition: 'right', class: '!w-full' }
-        : { disabled: true }
+        : {}
     },
     {
       label: '余额日期',
       key: 'balanceAsOf',
-      type: canEditSensitiveField('accountBalances') ? 'date' : 'input',
+      type: canEditSensitiveField('accountBalances') ? 'date' : 'text',
       hidden: !canViewSensitiveField('accountBalances'),
       props: canEditSensitiveField('accountBalances')
         ? {
@@ -276,12 +277,12 @@
             placeholder: '期初余额对应日期',
             class: '!w-full'
           }
-        : { disabled: true }
+        : {}
     },
     {
       label: '冻结金额',
       key: 'frozenBalance',
-      type: canEditSensitiveField('accountBalances') ? 'number' : 'input',
+      type: canEditSensitiveField('accountBalances') ? 'number' : 'text',
       hidden: !canViewSensitiveField('accountBalances'),
       props: canEditSensitiveField('accountBalances')
         ? {
@@ -291,7 +292,7 @@
             controlsPosition: 'right',
             class: '!w-full'
           }
-        : { disabled: true }
+        : {}
     },
     { label: '账户设置', key: 'managementSection', type: 'divider', span: 24 },
     {
@@ -303,19 +304,19 @@
     {
       label: '默认账户',
       key: 'isDefault',
-      type: 'radioGroup',
+      type: 'segment',
       props: { options: booleanOptions.value }
     },
     {
       label: '银企直联',
       key: 'onlineBankingEnabled',
-      type: 'radioGroup',
+      type: 'segment',
       props: { options: booleanOptions.value, disabled: !isBank.value }
     },
     {
       label: '银行对账',
       key: 'reconciliationEnabled',
-      type: 'radioGroup',
+      type: 'segment',
       props: { options: booleanOptions.value, disabled: form.data.accountType === 'cash' }
     },
     {

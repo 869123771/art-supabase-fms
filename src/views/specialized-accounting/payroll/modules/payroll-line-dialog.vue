@@ -4,7 +4,8 @@
     ><ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="12"
@@ -14,12 +15,12 @@
       :show-submit="false"
     >
       <template #employeeId>
-        <ElInput
+        <span
           v-if="currentLine"
-          :model-value="employeeSnapshotLabel"
           :title="employeeSnapshotLabel"
-          disabled
-        />
+          class="break-words text-sm leading-6"
+          >{{ employeeSnapshotLabel }}</span
+        >
         <ArtEmployeeSelect
           v-else
           v-model="form.employeeId"
@@ -34,6 +35,7 @@
   </ArtDialog>
 </template>
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import type { FormRules } from 'element-plus'
@@ -47,10 +49,14 @@
   } from '@/api/integration/employees'
   import { fetchPayrollEmployeeOptions, savePayrollLine } from '@fms/api'
   import { canEditField } from '@/utils/field-permission'
+  import { formatCurrencyValue } from '@/utils/ui'
   defineOptions({ name: 'FinancePayrollLineDialog' })
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose>()
-  const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
+  const formRef = ref<{
+    validate: () => Promise<boolean>
+    clearValidate: (fields?: string | string[]) => void
+  }>()
   const runId = ref('')
   const runTenantId = ref('')
   const form = reactive({
@@ -63,50 +69,68 @@
   })
   const rules: FormRules = {
     employeeId: [{ required: true, message: '请选择员工', trigger: 'change' }],
-    grossAmount: [{ required: true, message: '请输入应发金额', trigger: 'change' }]
+    grossAmount: [{ required: true, message: '请输入应发金额', trigger: 'change' }],
+    deductionAmount: [
+      {
+        validator: (_rule, value, callback) => {
+          if (Number(value) > form.grossAmount) {
+            callback(new Error('扣款金额不能超过应发金额'))
+          } else {
+            callback()
+          }
+        },
+        trigger: ['blur', 'change']
+      }
+    ]
   }
   const items = computed<FormItem[]>(() => [
+    { label: '员工快照', key: 'employeeSection', type: 'divider', span: 24 },
     {
       label: '员工',
       key: 'employeeId',
       type: 'input',
       span: 24
     },
+    { label: '薪资构成', key: 'amountSection', type: 'divider', span: 24 },
     {
       label: '应发金额',
       key: 'grossAmount',
       type: 'number',
-      props: { min: 0, precision: 2, class: '!w-full' }
+      props: { min: 0, precision: 2, controlsPosition: 'right', class: 'w-full!' }
     },
     {
       label: '扣款金额',
       key: 'deductionAmount',
       type: 'number',
-      props: { min: 0, precision: 2, class: '!w-full' }
+      props: { min: 0, precision: 2, controlsPosition: 'right', class: 'w-full!' }
     },
     {
       label: '企业成本',
       key: 'employerCostAmount',
       type: 'number',
-      props: { min: 0, precision: 2, class: '!w-full' }
+      props: { min: 0, precision: 2, controlsPosition: 'right', class: 'w-full!' }
     },
     {
       label: '实发金额',
       key: 'netAmount',
-      type: 'number',
+      type: 'text',
       props: {
-        disabled: true,
-        precision: 2,
-        controls: false,
-        class: '!w-full'
-      }
+        formatter: () => formatCurrencyValue(form.netAmount)
+      },
+      description: '按应发金额减去扣款金额自动计算。'
     },
+    { label: '明细说明', key: 'remarkSection', type: 'divider', span: 24 },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
   ])
+  watch(
+    () => form.employeeId,
+    () => formRef.value?.clearValidate('employeeId')
+  )
   watch(
     () => [form.grossAmount, form.deductionAmount] as const,
     ([grossAmount, deductionAmount]) => {
       form.netAmount = Math.max(grossAmount - deductionAmount, 0)
+      if (deductionAmount <= grossAmount) formRef.value?.clearValidate('deductionAmount')
     },
     { immediate: true }
   )
@@ -119,10 +143,6 @@
   async function submit(): Promise<boolean> {
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
-      if (form.deductionAmount > form.grossAmount) {
-        ElMessage.warning('扣款金额不能超过应发金额')
-        return false
-      }
       const result = await savePayrollLine(runId.value, {
         employeeId: form.employeeId,
         earningItems: { gross: form.grossAmount },

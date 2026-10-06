@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <template #subtitle>
       导入前请核对对账期间和期初、期末余额；对方账号只保存掩码，不保留明文。
     </template>
@@ -38,7 +38,7 @@
           max-height="360"
         >
           <ElTableColumn type="index" label="#" width="48" align="center" />
-          <ElTableColumn label="交易日期" width="150">
+          <ElTableColumn label="交易日期" width="145">
             <template #default="{ row }">
               <ElDatePicker
                 v-model="row.transactionDate"
@@ -49,7 +49,7 @@
               />
             </template>
           </ElTableColumn>
-          <ElTableColumn label="方向" width="140">
+          <ElTableColumn label="方向" width="130">
             <template #default="{ row }">
               <ElSegmented
                 v-model="row.direction"
@@ -58,7 +58,7 @@
               />
             </template>
           </ElTableColumn>
-          <ElTableColumn label="金额" width="150">
+          <ElTableColumn label="金额" width="115">
             <template #default="{ row }">
               <ElInputNumber
                 v-model="row.amount"
@@ -69,30 +69,26 @@
               />
             </template>
           </ElTableColumn>
-          <ElTableColumn label="对方名称" min-width="160">
+          <ElTableColumn label="对方户名 / 账号" min-width="170">
             <template #default="{ row }">
-              <ElInput v-model="row.counterpartyName" maxlength="120" placeholder="对方户名" />
+              <div class="grid gap-2">
+                <ElInput v-model="row.counterpartyName" maxlength="120" placeholder="对方户名" />
+                <ElInput
+                  v-model="row.counterpartyAccount"
+                  maxlength="64"
+                  show-password
+                  autocomplete="new-password"
+                  placeholder="保存后仅显示尾号"
+                />
+              </div>
             </template>
           </ElTableColumn>
-          <ElTableColumn label="对方账号" min-width="170">
+          <ElTableColumn label="银行参考号 / 摘要" min-width="170">
             <template #default="{ row }">
-              <ElInput
-                v-model="row.counterpartyAccount"
-                maxlength="64"
-                show-password
-                autocomplete="new-password"
-                placeholder="保存后仅显示尾号"
-              />
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="银行参考号" min-width="155">
-            <template #default="{ row }">
-              <ElInput v-model="row.bankReference" maxlength="120" placeholder="用于自动匹配" />
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="摘要" min-width="180">
-            <template #default="{ row }">
-              <ElInput v-model="row.bankMemo" maxlength="300" placeholder="银行交易摘要" />
+              <div class="grid gap-2">
+                <ElInput v-model="row.bankReference" maxlength="120" placeholder="用于自动匹配" />
+                <ElInput v-model="row.bankMemo" maxlength="300" placeholder="银行交易摘要" />
+              </div>
             </template>
           </ElTableColumn>
           <ElTableColumn label="操作" width="64" fixed="right" align="center">
@@ -110,12 +106,22 @@
           </ElTableColumn>
         </ArtTable>
       </section>
+      <ElAlert
+        v-if="submitError"
+        class="mt-4"
+        type="error"
+        :closable="false"
+        show-icon
+        title="银行流水尚未导入"
+        :description="submitError"
+      />
     </div>
   </ArtDialog>
 </template>
 
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
@@ -149,6 +155,7 @@
   const accountSetId = ref('')
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const accountOptions = ref<Api.Fms.FundAccountOption[]>([])
+  const submitError = ref('')
 
   const createLine = (): Api.Fms.ImportBankStatementLinePayload => ({
     transactionDate: dayjs().format('YYYY-MM-DD'),
@@ -185,6 +192,7 @@
   })
 
   const formItems = computed<FormItem[]>(() => [
+    { label: '对账范围', key: 'scopeSection', type: 'divider', span: 24 },
     {
       label: '所属账套',
       key: '__accountSetId',
@@ -220,6 +228,7 @@
       type: 'date',
       props: { valueFormat: 'YYYY-MM-DD', class: '!w-full' }
     },
+    { label: '余额核对', key: 'balanceSection', type: 'divider', span: 24 },
     {
       label: '期初余额',
       key: 'openingBalance',
@@ -232,6 +241,7 @@
       type: 'number',
       props: { precision: 2, step: 100, controlsPosition: 'right', class: '!w-full' }
     },
+    { label: '导入说明', key: 'sourceSection', type: 'divider', span: 24 },
     {
       label: '来源文件名',
       key: 'importedFileName',
@@ -302,6 +312,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    submitError.value = ''
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
       if (!validateLines()) return false
@@ -321,12 +332,17 @@
       emit('success')
       return true
     } catch (error) {
+      submitError.value = getFriendlySupabaseErrorMessage(
+        error,
+        '请核对对账账户、期间与余额后重试；已填写的流水仍保留在当前表单。'
+      )
       notifyFriendlyError(error, '银行流水导入失败，请稍后重试')
       return false
     }
   }
 
   async function handleOpen(): Promise<void> {
+    submitError.value = ''
     accountSetOptions.value = []
     accountSetId.value = ''
     accountOptions.value = []

@@ -257,7 +257,7 @@
       p {
         margin: 0;
         font-size: 12px;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-600);
       }
     }
 
@@ -273,9 +273,7 @@
       display: grid;
       grid-template-columns: minmax(250px, 0.8fr) minmax(0, 2fr);
       gap: 12px;
-      padding-top: 12px;
       margin-top: 12px;
-      border-top: 1px solid var(--art-border-dashed-color);
     }
 
     &__content {
@@ -302,7 +300,7 @@
       span {
         font-size: 12px;
         line-height: 1.5;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-600);
       }
     }
 
@@ -312,15 +310,13 @@
       gap: 8px;
 
       > div {
-        @include ai.capability-item;
-
         gap: 8px;
         min-width: 0;
-        padding: 10px;
-        border-radius: var(--el-border-radius-base);
 
         > svg {
-          @include ai.capability-icon;
+          flex-shrink: 0;
+          font-size: 18px;
+          color: var(--theme-color);
         }
 
         span {
@@ -336,18 +332,10 @@
         }
 
         small {
-          font-size: 11px;
+          font-size: 12px;
           line-height: 1.45;
-          color: var(--art-text-gray-500);
+          color: var(--art-text-gray-600);
         }
-      }
-
-      > :nth-child(2) {
-        --ai-capability-color: #d97706;
-      }
-
-      > :nth-child(3) {
-        --ai-capability-color: #059669;
       }
     }
 
@@ -377,13 +365,13 @@
         gap: 3px;
         min-width: 0;
         padding: 8px 10px;
-        background: var(--art-gray-50);
+        background: var(--art-gray-100);
         border-radius: var(--el-border-radius-small);
       }
 
       small {
-        font-size: 11px;
-        color: var(--art-text-gray-500);
+        font-size: 12px;
+        color: var(--art-text-gray-600);
       }
 
       strong {
@@ -426,8 +414,8 @@
         small {
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 11px;
-          color: var(--art-text-gray-500);
+          font-size: 12px;
+          color: var(--art-text-gray-600);
           white-space: nowrap;
         }
       }
@@ -442,9 +430,20 @@
         grid-template-columns: 1fr;
       }
 
-      &__guide,
       &__fields {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (width <= 540px) {
+      &__header,
+      &__result-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      &__guide {
+        grid-template-columns: 1fr;
       }
     }
   }

@@ -1,6 +1,6 @@
 <template>
   <ArtDialog ref="dialogRef" size="lg">
-    <template #subtitle>
+    <template v-if="!isEditing" #subtitle>
       先登记票面与往来信息，保存为草稿；确认收票或出票后进入受控生命周期，不再允许直接修改。
     </template>
     <ArtForm
@@ -111,6 +111,7 @@
 
   const formItems = computed<FormItem[]>(() => {
     const items: FormItem[] = [
+      { label: '票据登记', key: 'identitySection', type: 'divider', span: 24 },
       {
         label: '所属账套',
         key: 'accountSetId',
@@ -162,6 +163,7 @@
     }
 
     if (canView('billParties')) {
+      items.push({ label: '票面主体', key: 'partySection', type: 'divider', span: 24 })
       const partyItems: Array<[string, keyof Bill, string]> = [
         ['出票人', 'drawerName', '出票主体全称'],
         ['收款人', 'payeeName', '票面收款主体全称'],
@@ -188,6 +190,7 @@
     }
 
     items.push(
+      { label: '期限与金额', key: 'amountSection', type: 'divider', span: 24 },
       {
         label: '出票日期',
         key: 'issueDate',
@@ -210,7 +213,7 @@
               key: 'faceAmount',
               type: 'number',
               props: {
-                min: 0.01,
+                min: 0,
                 precision: 2,
                 step: 1000,
                 controlsPosition: 'right',
@@ -246,6 +249,7 @@
 
     if (canView('billReferences')) {
       items.push(
+        { label: '业务依据', key: 'referenceSection', type: 'divider', span: 24 },
         canEdit('billReferences')
           ? {
               label: '来源单号',

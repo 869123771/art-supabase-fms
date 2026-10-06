@@ -66,7 +66,7 @@
     type FundExecutionPayload
   } from '../../modules/fund-execution-dialog.vue'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
@@ -359,7 +359,7 @@
     return []
   }
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchPayrollRunList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []

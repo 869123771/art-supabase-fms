@@ -61,7 +61,7 @@
     type FinancePrerequisiteOverlay
   } from '../../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
@@ -301,7 +301,7 @@
         : []),
       {
         prop: 'matchedCount',
-        label: '匹配进度',
+        label: '处理进度',
         width: 90,
         align: 'center',
         formatter: (row) => `${row.matchedCount + row.ignoredCount}/${row.lineCount}`
@@ -342,7 +342,7 @@
   }
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchBankReconciliationList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []

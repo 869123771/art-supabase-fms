@@ -68,7 +68,7 @@
           :data="detail.data"
           :items="reimbursementItems"
           :columns="descriptionColumns"
-          label-width="104px"
+          label-width="128px"
         />
       </ArtSectionCard>
 
@@ -81,7 +81,7 @@
           :data="detail.data"
           :items="approvalPaymentItems"
           :columns="descriptionColumns"
-          label-width="104px"
+          label-width="128px"
         />
       </ArtSectionCard>
 
@@ -96,6 +96,7 @@
         <ArtTable
           :data="detail.data.items ?? []"
           :columns="expenseColumns"
+          :border="false"
           :pagination="false"
           :show-table-header="false"
           table-layout="fixed"
@@ -111,54 +112,46 @@
         <div class="expense-reimbursement-detail__evidence-grid">
           <div v-if="canViewEvidence">
             <h3>报销依据</h3>
-            <div
+            <ArtUploadImage
               v-if="canReadEvidence && basisFiles.length"
-              class="expense-reimbursement-detail__attachments"
-            >
-              <div
-                v-for="file in basisFiles"
-                :key="file.url"
-                class="expense-reimbursement-detail__attachment"
-              >
-                <span><ArtSvgIcon icon="ri:attachment-2" aria-hidden="true" /></span>
-                <ArtAttachmentLink :file="file" />
-              </div>
-            </div>
-            <ArtEmptyState
+              :model-value="detail.data.basisUrls ?? []"
+              title="报销依据"
+              :size="112"
+              readonly
+            />
+            <ArtAsyncState
               v-else
-              :title="canReadEvidence ? '未上传报销依据' : '报销依据已按字段权限脱敏'"
-              :description="
+              empty
+              :empty-text="canReadEvidence ? '未上传报销依据' : '报销依据已按字段权限脱敏'"
+              :empty-description="
                 canReadEvidence ? '上传报销依据后可在此查看。' : '当前权限无法查看报销依据。'
               "
               size="compact"
-              :visual-size="64"
+              :empty-image-size="64"
             />
           </div>
           <div v-if="canViewPaymentExecution">
             <h3>付款凭证</h3>
-            <div
+            <ArtUploadImage
               v-if="canReadPaymentExecution && paymentFiles.length"
-              class="expense-reimbursement-detail__attachments"
-            >
-              <div
-                v-for="file in paymentFiles"
-                :key="file.url"
-                class="expense-reimbursement-detail__attachment"
-              >
-                <span><ArtSvgIcon icon="ri:bank-card-line" aria-hidden="true" /></span>
-                <ArtAttachmentLink :file="file" />
-              </div>
-            </div>
-            <ArtEmptyState
+              :model-value="detail.data.paymentVoucherUrls ?? []"
+              title="付款凭证"
+              :size="112"
+              readonly
+            />
+            <ArtAsyncState
               v-else
-              :title="canReadPaymentExecution ? '尚未形成付款凭证' : '付款凭证已按字段权限脱敏'"
-              :description="
+              empty
+              :empty-text="
+                canReadPaymentExecution ? '尚未形成付款凭证' : '付款凭证已按字段权限脱敏'
+              "
+              :empty-description="
                 canReadPaymentExecution
                   ? '付款完成并登记凭证后可在此查看。'
                   : '当前权限无法查看付款凭证。'
               "
               size="compact"
-              :visual-size="64"
+              :empty-image-size="64"
             />
           </div>
         </div>
@@ -182,13 +175,13 @@
 
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { RouterLink } from 'vue-router'
   import { useMediaQuery } from '@vueuse/core'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import type { FilePreviewTarget } from '@/hooks/core/useFilePreview'
   import type { ColumnOption } from '@/types'
-  import ArtAttachmentLink from '@/components/core/media/art-file-viewer/attachment-link.vue'
+  import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtPageHeader from '@/components/core/layouts/art-page-header/index.vue'
@@ -225,7 +218,7 @@
   const route = useRoute()
   const router = useRouter()
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const isNarrow = useMediaQuery('(max-width: 1100px)')
+  const isNarrow = useMediaQuery('(max-width: 1440px)')
   const detail = reactive<DetailState>({
     data: undefined,
     error: null,
@@ -490,11 +483,9 @@
   .expense-reimbursement-detail {
     min-height: 100%;
     padding: 12px 16px 18px;
-    background: var(--art-main-bg-color);
+    background: var(--default-bg-color);
 
-    &__header-meta,
-    &__attachments,
-    &__attachment {
+    &__header-meta {
       display: flex;
       align-items: center;
     }
@@ -596,7 +587,6 @@
 
     &__section {
       min-width: 0;
-      padding: var(--art-space-5);
     }
 
     &__evidence-grid {
@@ -612,32 +602,6 @@
         margin: 0 0 var(--art-space-3);
         font-size: var(--art-font-size-body);
         color: var(--el-text-color-regular);
-      }
-    }
-
-    &__attachments {
-      flex-wrap: wrap;
-      gap: var(--art-space-3);
-    }
-
-    &__attachment {
-      gap: var(--art-space-2);
-      min-width: 180px;
-      max-width: 100%;
-      padding: 10px 12px;
-      background: var(--el-fill-color-extra-light);
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: var(--el-border-radius-base);
-
-      > span {
-        display: grid;
-        flex: none;
-        place-items: center;
-        width: 30px;
-        height: 30px;
-        color: var(--theme-color);
-        background: color-mix(in srgb, var(--theme-color) 9%, transparent);
-        border-radius: var(--el-border-radius-small);
       }
     }
 

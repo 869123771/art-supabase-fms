@@ -39,7 +39,8 @@
 
         <ArtTableQuery
           ref="balanceTableRef"
-          v-model="balanceSearch"
+          :model-value="balanceSearch"
+          @update:model-value="replaceReactiveModel(balanceSearch, $event)"
           :search-items="balanceSearchItems"
           :api-fn="fetchBalanceTableData"
           :columns-factory="balanceColumnsFactory"
@@ -70,7 +71,8 @@
 
         <ArtTableQuery
           ref="generalTableRef"
-          v-model="generalSearch"
+          :model-value="generalSearch"
+          @update:model-value="replaceReactiveModel(generalSearch, $event)"
           :search-items="generalSearchItems"
           :api-fn="fetchGeneralTableData"
           :columns-factory="generalColumnsFactory"
@@ -108,7 +110,8 @@
 
         <ArtTableQuery
           ref="subsidiaryTableRef"
-          v-model="subsidiarySearch"
+          :model-value="subsidiarySearch"
+          @update:model-value="replaceReactiveModel(subsidiarySearch, $event)"
           :search-items="subsidiarySearchItems"
           :api-fn="fetchSubsidiaryTableData"
           :columns-factory="subsidiaryColumnsFactory"
@@ -132,6 +135,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import VoucherDetailDrawer from '@fms/views/accounting/voucher-center/modules/voucher-detail-drawer.vue'
   import '../../modules/accounting-workspace-tabs.scss'
@@ -159,7 +163,7 @@
     getFieldAccess,
     isMaskedValue
   } from '@/utils/field-permission'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import {
@@ -323,6 +327,7 @@
         label: '账套',
         key: 'accountSetId',
         type: 'select',
+        span: 12,
         props: {
           options: accountSetOptions.value,
           filterable: true,
@@ -335,6 +340,7 @@
         label: '会计年度',
         key: 'fiscalYear',
         type: 'select',
+        span: 6,
         props: {
           options: yearOptions(tab),
           placeholder: '请选择年度',
@@ -349,6 +355,7 @@
         label: '会计科目',
         key: 'subjectId',
         type: 'select',
+        span: 12,
         props: {
           options: subjectOptions(tab),
           filterable: true,
@@ -414,6 +421,7 @@
             label: '辅助类型',
             key: 'auxiliaryTypeId',
             type: 'select' as const,
+            span: 12,
             props: {
               options: auxiliaryTypeOptions.value,
               filterable: true,
@@ -430,6 +438,7 @@
             label: '辅助项目',
             key: 'auxiliaryItemId',
             type: 'select' as const,
+            span: 12,
             props: {
               options: auxiliaryItemOptions.value,
               filterable: true,
@@ -1099,7 +1108,7 @@
   }
 
   function pagedResult<T>(rows: T[], params: TablePageParams) {
-    const { from, to } = pageInfoHandler(params)
+    const { from, to } = buildSupabasePageRange(params)
     return { data: rows.slice(from, to + 1), total: rows.length }
   }
 

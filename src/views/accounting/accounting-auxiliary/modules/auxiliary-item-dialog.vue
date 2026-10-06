@@ -1,6 +1,6 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>
+    <template v-if="!form.data.id" #subtitle>
       手工项目仅适用于自定义或项目维度；业务同步维度请回到对应主数据维护。
     </template>
     <ArtForm

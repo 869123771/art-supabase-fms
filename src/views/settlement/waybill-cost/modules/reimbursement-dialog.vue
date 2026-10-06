@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <section class="reimbursement-dialog__summary art-card-xs" aria-label="本次报销摘要">
       <article>
         <span class="is-primary"><ArtSvgIcon icon="ri:money-cny-circle-line" /></span>
@@ -63,27 +63,29 @@
       </template>
     </ArtForm>
 
-    <section class="reimbursement-dialog__items">
-      <div class="reimbursement-dialog__items-head">
-        <div>
-          <ArtSectionTitle :show-line="false">费用上报明细</ArtSectionTitle>
-          <p>原费用单的运输、票据、上报和审核信息将一并关联到报销单。</p>
-        </div>
+    <ArtSectionCard
+      class="reimbursement-dialog__items"
+      title="费用上报明细"
+      subtitle="原费用单的运输、票据、上报和审核信息将一并关联到报销单。"
+      preserve-content-structure
+    >
+      <template #actions>
         <div class="reimbursement-dialog__items-total">
           <span>合计</span>
           <strong>{{ money(totalAmount) }}</strong>
         </div>
-      </div>
+      </template>
       <ArtTable
         :data="state.expenses"
         :columns="columns"
         :pagination="false"
+        :border="false"
         height="auto"
         :show-table-header="false"
         table-layout="auto"
         max-height="320px"
       />
-    </section>
+    </ArtSectionCard>
   </ArtDialog>
 </template>
 
@@ -102,7 +104,7 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { createExpenseReimbursement } from '@fms/api'
@@ -261,8 +263,22 @@
     return waybillNo ? `关联运单 ${waybillNo}` : '关联同一运单'
   })
   const columns: ColumnOption<Expense>[] = [
-    { prop: 'costNo', label: '费用单号', width: 190 },
-    { prop: 'waybillNoSnapshot', label: '运单号', width: 180 },
+    {
+      prop: 'costNo',
+      label: '费用单 / 运单',
+      minWidth: 230,
+      formatter: (row) => (
+        <div
+          class="flex min-w-0 flex-col gap-1"
+          title={`${row.costNo} · ${row.waybillNoSnapshot || '--'}`}
+        >
+          <strong class="truncate text-sm text-[var(--art-gray-800)]">{row.costNo}</strong>
+          <span class="truncate text-xs text-[var(--art-gray-600)]">
+            {row.waybillNoSnapshot || '--'}
+          </span>
+        </div>
+      )
+    },
     {
       prop: 'expenseItem.itemName',
       label: '费用项目',
@@ -464,24 +480,6 @@
       margin-top: var(--art-space-5);
     }
 
-    &__items-head {
-      display: flex;
-      gap: var(--art-space-4);
-      align-items: flex-end;
-      justify-content: space-between;
-      margin-bottom: var(--art-space-3);
-
-      > div:first-child {
-        min-width: 0;
-
-        p {
-          margin: 4px 0 0;
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-        }
-      }
-    }
-
     &__items-total {
       display: flex;
       flex: 0 0 auto;
@@ -508,20 +506,6 @@
           border-right: 0;
           border-bottom: 1px solid var(--el-border-color-lighter);
         }
-      }
-
-      &__items-head {
-        align-items: flex-start;
-
-        > div:first-child p {
-          white-space: normal;
-        }
-      }
-    }
-
-    @media (width <= 520px) {
-      &__items-head {
-        flex-direction: column;
       }
     }
   }

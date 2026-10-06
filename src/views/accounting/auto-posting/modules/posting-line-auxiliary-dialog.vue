@@ -34,6 +34,7 @@
             filterable
             clearable
             placeholder="选择核算维度"
+            :aria-label="`第 ${index + 1} 项核算维度`"
             :aria-labelledby="`binding-dimension-${binding.key}`"
           >
             <ElOption
@@ -52,6 +53,7 @@
             v-model="binding.payloadKey"
             clearable
             placeholder="选择业务实体"
+            :aria-label="`第 ${index + 1} 项业务实体来源`"
             :aria-labelledby="`binding-source-${binding.key}`"
           >
             <ElOption
@@ -153,7 +155,7 @@
     saveHandler = onSave
     await dialogRef.value?.handleOpen(undefined, {
       title: '核算维度自动绑定',
-      subtitle: '将会计科目的核算维度映射到业务事件中的实体字段。',
+      confirmText: '应用绑定',
       contentMaxHeight: '56vh',
       dialogProps: { closeOnClickModal: false },
       onConfirm: handleSubmit

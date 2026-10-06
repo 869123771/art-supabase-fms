@@ -834,8 +834,8 @@
       padding: 6px;
       color: var(--art-text-gray-800);
       text-align: left;
-      background: var(--art-main-bg-color);
-      border: 1px solid var(--art-border-dashed-color);
+      background: var(--art-gray-100);
+      border: 1px solid var(--el-border-color-lighter);
       border-radius: var(--el-border-radius-base);
       transition:
         color 0.18s ease,
@@ -848,7 +848,7 @@
       &.is-active {
         color: var(--theme-color);
         outline: none;
-        background: color-mix(in srgb, var(--theme-color) 11%, var(--art-main-bg-color));
+        background: color-mix(in srgb, var(--theme-color) 11%, var(--art-gray-100));
       }
 
       &.is-active {
@@ -906,9 +906,8 @@
 
       strong,
       small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        white-space: normal;
       }
 
       small {

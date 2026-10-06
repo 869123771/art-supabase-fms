@@ -40,13 +40,14 @@
   import type { ComputedRef } from 'vue'
   import { useMediaQuery } from '@vueuse/core'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type { ArtTableQueryExpose } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchWaybillExpenseOcrRunList } from '@fms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
 
@@ -62,7 +63,7 @@
   }
 
   const userStore = useUserStore()
-  const isNarrowScreen = useMediaQuery('(max-width: 640px)')
+  const isNarrowScreen = useMediaQuery('(max-width: 860px)')
 
   const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Record<string, never>>>()
@@ -74,7 +75,7 @@
         label: '运行状态',
         key: 'status',
         type: 'select',
-        span: 8,
+        span: isNarrowScreen.value ? 24 : 8,
         props: { options: getDictMap.value.aiRunStatus ?? [], clearable: true }
       },
       {
@@ -108,34 +109,42 @@
       width: 110,
       dict: { code: 'aiRunStatus', display: 'tag' }
     },
-    { prop: 'model', label: '识别模型', minWidth: 190, showOverflowTooltip: true },
+    {
+      prop: 'model',
+      label: '模型 / 发起人',
+      minWidth: 200,
+      formatter: (row) => <BusinessTableIdentityCell primary={row.model} secondary={row.createBy} />
+    },
     {
       prop: 'startedAt',
-      label: '开始时间',
+      label: '时间 / 耗时',
       width: 170,
-      formatter: (row) => formatWithDayjs(row.startedAt, 'YYYY-MM-DD HH:mm:ss')
+      formatter: (row) => (
+        <BusinessTableIdentityCell
+          primary={formatWithDayjs(row.startedAt, 'YYYY-MM-DD HH:mm:ss')}
+          secondary={
+            row.latencyMs === null || row.latencyMs === undefined
+              ? '耗时未记录'
+              : `耗时 ${row.latencyMs} ms`
+          }
+        />
+      )
     },
-    {
-      prop: 'latencyMs',
-      label: '耗时',
-      width: 100,
-      align: 'right',
-      formatter: (row) =>
-        row.latencyMs === null || row.latencyMs === undefined ? '--' : `${row.latencyMs} ms`
-    },
-    { prop: 'errorCode', label: '失败事项', width: 150, formatter: (row) => row.errorCode || '--' },
     {
       prop: 'errorMessage',
-      label: '失败详情',
-      minWidth: 260,
-      showOverflowTooltip: true,
-      formatter: (row) => row.errorMessage || (row.status === 'succeeded' ? '识别成功' : '--')
-    },
-    { prop: 'createBy', label: '发起人', width: 170, showOverflowTooltip: true }
+      label: '处理说明',
+      minWidth: 230,
+      formatter: (row) => (
+        <BusinessTableIdentityCell
+          primary={row.errorCode || (row.status === 'succeeded' ? '识别完成' : '—')}
+          secondary={row.errorMessage || (row.status === 'succeeded' ? '未记录错误' : '—')}
+        />
+      )
+    }
   ]
 
   function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     return fetchWaybillExpenseOcrRunList({ ...params, from, to })
   }
 

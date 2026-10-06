@@ -18,7 +18,8 @@
 
     <ArtTableQuery
       ref="tableQueryRef"
-      v-model="searchQuery"
+      :model-value="searchQuery"
+      @update:model-value="replaceReactiveModel(searchQuery, $event)"
       :search-items="searchItems"
       :api-fn="fetchTableData"
       :columns-factory="columnsFactory"
@@ -38,6 +39,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { ElTag } from 'element-plus'
   import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -48,7 +50,7 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
   import WaybillProfitAnalysisDrawer from './modules/waybill-profit-analysis-drawer.vue'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
   import { exportWaybillProfitList, fetchWaybillProfitList } from '@fms/api'
@@ -326,7 +328,7 @@
   ])
 
   const fetchTableData = async (params: TableParams) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchWaybillProfitList({ ...params, from, to })
     profitFieldAccess.value = mergeFieldAccessMaps(
       result.fieldAccess,

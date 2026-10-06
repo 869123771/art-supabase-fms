@@ -527,9 +527,7 @@
       position: relative;
       padding: 20px;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 86% 10%, rgb(59 130 246 / 12%), transparent 28%),
-        var(--art-main-bg-color);
+      background: var(--default-box-color);
 
       &::before {
         position: absolute;
@@ -591,10 +589,10 @@
 
     &__hero-icon {
       display: grid;
-      flex: 0 0 52px;
+      flex: 0 0 40px;
       place-items: center;
-      width: 52px;
-      height: 52px;
+      width: 40px;
+      height: 40px;
       color: var(--el-color-primary);
       background: var(--el-color-primary-light-9);
       border-radius: var(--custom-radius);
@@ -609,7 +607,7 @@
       display: inline-flex;
       gap: 6px;
       align-items: center;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--el-color-primary);
       letter-spacing: 0.13em;
@@ -643,7 +641,7 @@
       article {
         min-width: 0;
         padding: 13px 14px;
-        background: color-mix(in srgb, var(--art-main-bg-color) 95%, var(--el-color-primary));
+        background: color-mix(in srgb, var(--art-gray-100) 95%, var(--el-color-primary));
         border-radius: var(--el-border-radius-base);
 
         header {
@@ -668,7 +666,7 @@
           margin-top: 7px;
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 11px;
+          font-size: 12px;
           white-space: nowrap;
         }
       }
@@ -754,7 +752,7 @@
         small {
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 11px;
+          font-size: 12px;
           white-space: nowrap;
         }
 
@@ -821,7 +819,7 @@
           margin: 4px 0 0;
           overflow: hidden;
           text-overflow: ellipsis;
-          font-size: 11px;
+          font-size: 12px;
           color: var(--art-text-gray-500);
           white-space: nowrap;
         }
@@ -833,7 +831,7 @@
         justify-content: space-between;
         padding-top: 10px;
         margin-top: 10px;
-        font-size: 11px;
+        font-size: 12px;
         color: var(--art-text-gray-400);
         border-top: 1px dashed var(--el-border-color-lighter);
       }
@@ -891,7 +889,7 @@
         gap: 5px;
         align-items: center;
         padding: 4px 8px;
-        font-size: 11px;
+        font-size: 12px;
         color: var(--art-text-gray-600);
         background: var(--el-fill-color-lighter);
         border-radius: 999px;
@@ -1005,7 +1003,7 @@
 
         p {
           margin: 4px 0 0;
-          font-size: 11px;
+          font-size: 12px;
         }
       }
     }
@@ -1077,7 +1075,7 @@
       gap: 14px;
       padding: 14px 2px 2px;
       margin-top: 20px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--art-text-gray-400);
       border-top: 1px dashed var(--el-border-color-lighter);
 

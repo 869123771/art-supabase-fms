@@ -1,15 +1,17 @@
 <template>
-  <ArtDialog ref="dialogRef" size="md"
+  <ArtDialog ref="dialogRef" size="sm"
     ><template #subtitle
       >执行后期间进入“关账中”，系统生成九项检查结果；阻断项修复后可重新检查。</template
     >
     <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>会计期间加载失败，请重试后再开始检查。</template>
-      <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+      <ElButton plain type="primary" @click="loadPeriods">重新加载期间</ElButton>
     </ElAlert>
     <ArtForm
+      root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="24"
@@ -19,6 +21,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { toRef } from 'vue'
   import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'

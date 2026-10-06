@@ -1,5 +1,31 @@
 <template>
-  <ArtDialog ref="dialogRef" :size="dialog.mode === 'allocate' ? 'lg' : 'xl'">
+  <ArtDialog ref="dialogRef" size="lg">
+    <ArtDescriptions
+      v-if="dialog.mode === 'allocate' && dialog.transaction"
+      class="mb-4"
+      :data="dialog.transaction"
+      :columns="2"
+      :border="true"
+      label-width="104px"
+      :items="[
+        { key: 'transactionNo', field: 'transactionNo', label: '收款单号', copyable: true },
+        { key: 'counterpartyName', field: 'counterpartyName', label: '收款客户' },
+        { key: 'transactionDate', field: 'transactionDate', label: '收款日期', format: 'date' },
+        {
+          key: 'paymentMethod',
+          field: 'paymentMethod',
+          label: '收款方式',
+          dictCode: 'tmsCashPaymentMethod'
+        },
+        { key: 'amount', field: 'amount', label: '收款金额', format: 'money' },
+        {
+          key: 'unallocatedAmount',
+          field: 'unallocatedAmount',
+          label: '可核销金额',
+          format: 'money'
+        }
+      ]"
+    />
     <CashVoucherOcrPanel
       v-if="dialog.mode === 'create'"
       ref="ocrPanelRef"
@@ -97,7 +123,7 @@
 
           <ElAlert
             class="receipt-allocation__summary"
-            :type="allocationSummary.remaining >= 0 ? 'success' : 'error'"
+            :type="allocationSummary.remaining >= 0 ? 'info' : 'error'"
             :closable="false"
             show-icon
             :title="allocationSummaryText"
@@ -117,6 +143,7 @@
   import { round, toNumber } from 'lodash-es'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
@@ -141,7 +168,7 @@
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import CashVoucherOcrPanel from './cash-voucher-ocr-panel.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { canEditField } from '@/utils/field-permission'
@@ -225,10 +252,10 @@
   })
 
   const moneyProps = {
-    min: 0.01,
+    min: 0,
     precision: 2,
     controlsPosition: 'right' as const,
-    class: '!w-full'
+    class: 'w-full!'
   }
 
   const form: UnwrapNestedRefs<FormGroup> = reactive<FormGroup>({
@@ -290,7 +317,7 @@
           props: {
             valueFormat: 'YYYY-MM-DD',
             placeholder: '请选择收款日期',
-            class: '!w-full',
+            class: 'w-full!',
             disabled: dialog.mode === 'allocate'
           }
         },
@@ -349,6 +376,8 @@
           }
         )
       }
+
+      if (dialog.mode === 'allocate') baseItems.length = 0
 
       baseItems.push(
         { label: '核销信息', key: 'allocationSection', type: 'divider', span: 24 },
@@ -499,7 +528,7 @@
   }
 
   async function fetchCustomerSelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCustomerSelectorList({
       keyword: params.keyword,
       from,
@@ -510,7 +539,7 @@
 
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.data.customerId) return { data: [], total: 0 }
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCustomerStatementAllocatableList({
       customerId: form.data.customerId,
       keyword: params.keyword,
@@ -719,7 +748,7 @@
     }
 
     await dialogRef.value?.handleOpen(undefined, {
-      size: transaction ? 'lg' : 'xl',
+      size: 'lg',
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记客户收款',
       subtitle: transaction
         ? `本笔收款尚有 ${formatMoney(transaction.unallocatedAmount)} 未核销`

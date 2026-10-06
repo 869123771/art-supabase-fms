@@ -48,23 +48,14 @@
       />
       <ArtSectionCard
         class="receivable-aging-page__workspace"
+        title="账龄结构"
+        :subtitle="`未结客户对账单共 ${overview?.statementCount ?? '--'} 笔，更新时间 ${generatedAt}`"
         preserve-content-structure
         :loading="loading && !overview"
         :error="!overview ? errorMessage : ''"
         :min-height="180"
         @retry="loadOverview"
       >
-        <template #header>
-          <header>
-            <div>
-              <ArtSectionTitle :show-line="false">账龄结构</ArtSectionTitle>
-              <p
-                >未结客户对账单共 {{ overview?.statementCount ?? '--' }} 笔，更新时间
-                {{ generatedAt }}</p
-              >
-            </div>
-          </header>
-        </template>
         <template #loading>
           <ElSkeleton animated aria-hidden="true">
             <template #template>
@@ -94,10 +85,14 @@
       <ArtSectionCard
         v-if="overview || loading"
         class="receivable-aging-page__customers"
-        :class="{ 'is-empty': overview && !overview.customers.length }"
         preserve-content-structure
         title="重点客户应收"
         :loading="loading && !overview"
+        :empty="!!overview && !overview.customers.length"
+        empty-title="当前没有未结客户应收"
+        empty-description="新增未结应收后可在此查看客户账龄排行。"
+        :empty-visual-size="72"
+        body-class="flex-1"
         :min-height="230"
       >
         <template #loading>
@@ -113,14 +108,7 @@
             </template>
           </ElSkeleton>
         </template>
-        <ArtEmptyState
-          v-if="overview && !overview.customers.length"
-          title="当前没有未结客户应收"
-          description="新增未结应收后可在此查看客户账龄排行。"
-          size="compact"
-          :visual-size="72"
-        />
-        <ol v-else-if="overview">
+        <ol v-if="overview">
           <li
             v-for="(customer, index) in overview.customers.slice(0, 10)"
             :key="customer.customerId"
@@ -162,11 +150,9 @@
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
@@ -257,7 +243,6 @@
     &__workspace,
     &__customers {
       min-width: 0;
-      padding: 18px;
     }
 
     &__customers {
@@ -265,39 +250,27 @@
       flex: 1 1 auto;
       flex-direction: column;
       min-height: 230px;
-
-      &.is-empty :deep(.art-empty-state) {
-        flex: 1 1 auto;
-        justify-content: center;
-      }
-    }
-
-    header p {
-      margin: 5px 0 0;
-      font-size: 12px;
-      color: var(--art-gray-500);
     }
 
     &__buckets {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 16px;
+      gap: 12px;
     }
 
     &__buckets article {
       min-width: 0;
-      padding: 15px;
-      background: var(--art-main-bg-color);
-      border: 1px solid var(--art-border-color);
-      border-radius: calc(var(--el-border-radius-base) + 4px);
+      padding: 16px;
+      background: var(--art-gray-100);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: var(--el-border-radius-base);
     }
 
     &__buckets article > div {
       display: flex;
       gap: 8px;
       justify-content: space-between;
-      color: var(--art-gray-500);
+      color: var(--el-text-color-regular);
     }
 
     &__buckets--loading article {
@@ -306,7 +279,7 @@
 
       > span {
         font-size: 13px;
-        color: var(--art-gray-500);
+        color: var(--el-text-color-regular);
       }
 
       :deep(.el-skeleton__item) {
@@ -330,7 +303,7 @@
         gap: 12px;
         align-items: center;
         padding: 12px 14px;
-        border-bottom: 1px solid var(--art-border-color);
+        border-bottom: 1px solid var(--el-border-color-lighter);
       }
 
       > div > span {
@@ -352,7 +325,8 @@
       display: block;
       margin: 12px 0;
       font-size: 18px;
-      color: var(--art-text-gray-900);
+      font-variant-numeric: tabular-nums;
+      color: var(--art-gray-900);
     }
 
     &__bar {
@@ -384,7 +358,7 @@
       gap: 12px;
       align-items: center;
       padding: 12px 14px;
-      border-bottom: 1px solid var(--art-border-color);
+      border-bottom: 1px solid var(--el-border-color-lighter);
     }
 
     &__customers li div strong,
@@ -394,7 +368,7 @@
 
     &__customers li small {
       margin-top: 4px;
-      color: var(--art-gray-500);
+      color: var(--el-text-color-regular);
     }
 
     &__rank {

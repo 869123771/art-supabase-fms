@@ -1,6 +1,6 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>
+    <template v-if="!form.data.id" #subtitle>
       系统维度的编码和主数据来源受保护；手工维度可用于企业自定义核算口径。
     </template>
     <ArtForm

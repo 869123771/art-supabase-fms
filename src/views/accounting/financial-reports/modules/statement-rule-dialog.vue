@@ -1,9 +1,5 @@
 <template>
   <ArtDialog ref="dialogRef" size="lg">
-    <template #subtitle>
-      {{ subtitle }}
-    </template>
-
     <ArtAsyncState :loading="formulasLoading" :error="formulasError" @retry="loadFormulas">
       <div class="statement-rule-dialog">
         <div class="statement-rule-dialog__toolbar">
@@ -43,7 +39,8 @@
         <ArtForm
           v-if="rows.length && isNarrow"
           ref="mobileFormRef"
-          v-model="mobileFormModel"
+          :model-value="mobileFormModel"
+          @update:model-value="replaceReactiveModel(mobileFormModel, $event)"
           custom-layout
           :show-reset="false"
           :show-submit="false"
@@ -73,6 +70,7 @@
                 <ElSelect
                   v-if="editable"
                   v-model="row.sourceId"
+                  :aria-label="`第 ${index + 1} 条${isFormula ? '来源项目' : '会计科目'}`"
                   filterable
                   class="w-full!"
                   :placeholder="isFormula ? '请选择来源项目' : '请选择会计科目'"
@@ -92,7 +90,12 @@
                 :prop="`rows.${index}.mappingDirection`"
                 :rules="editable ? directionRules : []"
               >
-                <ElSelect v-if="editable" v-model="row.mappingDirection" class="w-full!">
+                <ElSelect
+                  v-if="editable"
+                  v-model="row.mappingDirection"
+                  :aria-label="`第 ${index + 1} 条取数方向`"
+                  class="w-full!"
+                >
                   <ElOption
                     v-for="option in directionOptions"
                     :key="String(option.value)"
@@ -115,6 +118,7 @@
                 <ElInputNumber
                   v-if="editable"
                   v-model="row.factor"
+                  :aria-label="`第 ${index + 1} 条系数`"
                   :min="-1000"
                   :max="1000"
                   :precision="4"
@@ -125,7 +129,13 @@
                 <span v-else>{{ row.factor }}</span>
               </ElFormItem>
               <ElFormItem v-if="!isFormula" label="备注">
-                <ElInput v-if="editable" v-model="row.remark" maxlength="200" placeholder="可选" />
+                <ElInput
+                  v-if="editable"
+                  v-model="row.remark"
+                  :aria-label="`第 ${index + 1} 条备注`"
+                  maxlength="200"
+                  placeholder="可选"
+                />
                 <span v-else>{{ row.remark || '--' }}</span>
               </ElFormItem>
             </article>
@@ -150,6 +160,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { useMediaQuery } from '@vueuse/core'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -249,14 +260,9 @@
             value: subject.id
           }))
   )
-  const subtitle = computed(() =>
-    isFormula.value
-      ? '公式行从当前报表的直接取数行组合计算，正数相加、负数相减。'
-      : '科目映射决定报表明细行的会计取数口径，同一科目和方向不可重复。'
-  )
   const ruleHint = computed(() =>
     isFormula.value
-      ? '仅允许引用同一报表内的科目取数行，避免循环公式。'
+      ? '引用当前报表的科目取数行：正数相加、负数相减，来源项目不可重复。'
       : '资产负债表取期初/期末余额，利润表取本期/本年累计发生额。'
   )
 
@@ -300,6 +306,7 @@
         editable.value ? (
           <ElSelect
             v-model={row.sourceId}
+            aria-label={`第 ${rows.value.indexOf(row) + 1} 条${isFormula.value ? '来源项目' : '会计科目'}`}
             filterable
             class="w-full!"
             placeholder={isFormula.value ? '请选择来源项目' : '请选择会计科目'}
@@ -323,7 +330,11 @@
             required: true,
             formatter: (row: RuleRow) =>
               editable.value ? (
-                <ElSelect v-model={row.mappingDirection} class="w-full!">
+                <ElSelect
+                  v-model={row.mappingDirection}
+                  aria-label={`第 ${rows.value.indexOf(row) + 1} 条取数方向`}
+                  class="w-full!"
+                >
                   {directionOptions.value.map((option) => (
                     <ElOption
                       key={String(option.value)}
@@ -357,6 +368,7 @@
         editable.value ? (
           <ElInputNumber
             v-model={row.factor}
+            aria-label={`第 ${rows.value.indexOf(row) + 1} 条系数`}
             min={-1000}
             max={1000}
             precision={4}
@@ -376,7 +388,12 @@
             minWidth: 160,
             formatter: (row: RuleRow) =>
               editable.value ? (
-                <ElInput v-model={row.remark} maxlength={200} placeholder="可选" />
+                <ElInput
+                  v-model={row.remark}
+                  aria-label={`第 ${rows.value.indexOf(row) + 1} 条备注`}
+                  maxlength={200}
+                  placeholder="可选"
+                />
               ) : (
                 <span class="text-g-700" title={row.remark}>
                   {row.remark || '--'}
@@ -567,12 +584,6 @@
     &__table :deep(.art-table__cell-value) {
       display: block;
       width: 100%;
-    }
-
-    :deep(.el-empty) {
-      min-height: 280px;
-      border: 1px dashed var(--el-border-color);
-      border-radius: var(--el-border-radius-base);
     }
   }
 

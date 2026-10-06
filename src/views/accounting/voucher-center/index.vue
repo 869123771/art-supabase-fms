@@ -70,7 +70,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
     canViewField,
@@ -505,7 +505,7 @@
   ])
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchVoucherList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []

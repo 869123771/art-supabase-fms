@@ -1,5 +1,21 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header="{ data }">
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:funds-box-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">资金调拨详情</strong>
+          <small class="block truncate text-xs text-g-600"
+            >{{ data.transferNo }} · 资金流向与操作轨迹</small
+          >
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -138,7 +154,7 @@
   const showTransferFlow = computed(() => canViewAccounts.value || canViewAmounts.value)
   const hasFeeAmount = computed(() => {
     const value = detail.value?.feeAmount
-    if (typeof value === 'string') return Boolean(value.trim())
+    if (value === '***') return true
     return Number(value) > 0
   })
   const descriptionItems = computed<ArtDescriptionItem<Transfer>[]>(() => [
@@ -158,8 +174,12 @@
       : []),
     { key: 'createBy', label: '创建人', field: 'createBy' },
     { key: 'purpose', label: '调拨用途', field: 'purpose', span: 2 },
-    { key: 'reviewRemark', label: '审批意见', field: 'reviewRemark', span: 2 },
-    { key: 'reversalReason', label: '冲销原因', field: 'reversalReason', span: 2 }
+    ...(detail.value?.reviewRemark
+      ? [{ key: 'reviewRemark', label: '审批意见', field: 'reviewRemark', span: 2 }]
+      : []),
+    ...(detail.value?.reversalReason
+      ? [{ key: 'reversalReason', label: '冲销原因', field: 'reversalReason', span: 2 }]
+      : [])
   ])
 
   const actionColumns: ColumnOption<Action>[] = [
@@ -211,7 +231,6 @@
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: '资金调拨详情',
-      subtitle: row.transferNo,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
@@ -241,7 +260,10 @@
         gap: 6px;
         min-width: 0;
 
-        strong,
+        strong {
+          overflow-wrap: anywhere;
+        }
+
         span {
           overflow: hidden;
           text-overflow: ellipsis;

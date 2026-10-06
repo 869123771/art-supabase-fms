@@ -107,7 +107,7 @@
       padding: 12px 16px;
       font-size: 12px;
       color: var(--art-text-gray-500);
-      background: var(--art-main-bg-color);
+      background: var(--art-gray-100);
       border: 1px solid var(--art-card-border);
       border-radius: var(--el-border-radius-base);
     }

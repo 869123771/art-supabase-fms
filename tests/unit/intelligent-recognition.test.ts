@@ -33,7 +33,7 @@ test('cash voucher artifact normalizes untrusted payload fields', () => {
   )
 
   assert.deepEqual(response.voucher, {
-    payerName: ' 付款方 ',
+    payerName: '付款方',
     payeeName: null,
     transactionDate: null,
     amount: null,
@@ -75,4 +75,26 @@ test('waybill expense artifact restores a typed draft and rejects invalid number
   assert.equal(response.expense.quantity, null)
   assert.equal(response.expense.providerName, '能源服务商')
   assert.equal(response.reviewConfidenceThreshold, 0.82)
+})
+
+test('missing review thresholds keep their default and nonfinite confidence stays numeric', () => {
+  for (const threshold of [
+    null,
+    undefined,
+    '',
+    '   ',
+    false,
+    [],
+    Number.NaN,
+    Number.POSITIVE_INFINITY
+  ]) {
+    const artifact = createArtifact('cash_voucher_ocr', { amount: '128.5', payerName: '   ' })
+    artifact.metadata = { reviewConfidenceThreshold: threshold }
+    artifact.confidence = Number.NaN
+    const response = toCashVoucherOcrAnalyzeResponse(artifact)
+    assert.equal(response.reviewConfidenceThreshold, 0.82)
+    assert.equal(response.confidence, 0)
+    assert.equal(response.voucher.amount, null)
+    assert.equal(response.voucher.payerName, null)
+  }
 })

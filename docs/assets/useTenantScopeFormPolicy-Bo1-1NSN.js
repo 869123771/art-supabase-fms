@@ -1,0 +1,1 @@
+import{Mn as e,Zi as t,r as n}from"./sys-DBtpju0X.js";import{r}from"./clipboard-CYayB2O3.js";function i(){let{isAllTenants:i,effectiveTenantId:a}=e(r()),o=n();return{effectiveTenantId:t(()=>a.value??null),defaultWriteTenantId:t(()=>a.value??o.getUserInfo.tenantId??null),shouldExposeTenantField:t(()=>i.value),isTenantScopeItem:e=>e.key===`tenantId`}}export{i as t};

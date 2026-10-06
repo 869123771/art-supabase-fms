@@ -1,5 +1,35 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header>
+      <div v-if="detail" class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:git-branch-line" />
+        </span>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <strong class="text-base text-g-900">{{ eventHeading }}</strong>
+            <ElTag :type="statusType(detail.status)" effect="light">
+              {{ statusLabel(detail.status) }}
+            </ElTag>
+          </div>
+          <p class="my-1 text-xs text-g-600">{{
+            detail.accountSet?.accountSetName || '待匹配账套'
+          }}</p>
+          <ArtDictDisplay
+            v-if="canViewSourceReferences && detail.sourceType === 'commercial_bill'"
+            dict-code="fmsPostingSourceEvent"
+            :value="detail.sourceEvent"
+            display="text"
+          />
+          <span v-else-if="canViewSourceReferences">{{ detail.summary || '暂无事件摘要' }}</span>
+          <span v-else>业务来源信息受字段权限保护</span>
+        </div>
+      </div>
+      <strong v-else class="text-base text-g-900">自动入账事件</strong>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -13,29 +43,6 @@
         <ElButton type="primary" plain @click="retryLoad">重新加载</ElButton>
       </template>
       <div v-if="detail" class="posting-event-detail">
-        <section class="posting-event-detail__hero art-card-xs">
-          <span class="posting-event-detail__hero-icon" aria-hidden="true">
-            <ArtSvgIcon icon="ri:git-branch-line" />
-          </span>
-          <div class="posting-event-detail__hero-copy">
-            <div class="posting-event-detail__title-row">
-              <h2>{{ eventHeading }}</h2>
-              <ElTag :type="statusType(detail.status)" effect="light">
-                {{ statusLabel(detail.status) }}
-              </ElTag>
-            </div>
-            <p>{{ detail.accountSet?.accountSetName || '待匹配账套' }}</p>
-            <ArtDictDisplay
-              v-if="canViewSourceReferences && detail.sourceType === 'commercial_bill'"
-              dict-code="fmsPostingSourceEvent"
-              :value="detail.sourceEvent"
-              display="text"
-            />
-            <span v-else-if="canViewSourceReferences">{{ detail.summary || '暂无事件摘要' }}</span>
-            <span v-else>业务来源信息受字段权限保护</span>
-          </div>
-        </section>
-
         <ArtSectionCard title="处理信息" preserve-content-structure>
           <ArtDescriptions
             :data="detail"
@@ -51,7 +58,13 @@
           title="异常信息"
           preserve-content-structure
         >
-          <ElAlert type="error" :closable="false" show-icon :title="friendlyProcessingError" />
+          <ElAlert
+            type="error"
+            :closable="false"
+            show-icon
+            :title="friendlyProcessingError"
+            description="核对所属账套的会计期间、制证规则与业务单据，修正后返回事件列表重试。"
+          />
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -80,6 +93,31 @@
               <dd>{{ row.value }}</dd>
             </div>
           </dl>
+        </ArtSectionCard>
+
+        <ArtSectionCard
+          v-if="canViewPayload && referenceItems.length"
+          title="关联记录标识"
+          subtitle="用于核对业务关联；来源单号和处理结果见上方。"
+          preserve-content-structure
+        >
+          <template #actions>
+            <ElButton
+              plain
+              :aria-expanded="showReferences"
+              @click="showReferences = !showReferences"
+            >
+              <ArtSvgIcon :icon="showReferences ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+              {{ showReferences ? '收起标识' : '展开标识' }}
+            </ElButton>
+          </template>
+          <ArtDescriptions
+            v-if="showReferences"
+            :data="detail.payload"
+            :items="referenceItems"
+            :columns="1"
+            label-width="140px"
+          />
         </ArtSectionCard>
 
         <section v-if="canOpenVoucher" class="posting-event-detail__voucher art-card-xs">
@@ -127,12 +165,15 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Event>>()
+  const showReferences = ref(false)
   const { detail, loading, loadError, loadDetail, openDetail, retryLoad } = useDetailRecord<Event>(
     async (id) => {
       await Promise.all([
         userStore.ensureDictLoaded('fmsBillType'),
         userStore.ensureDictLoaded('fmsBillDirection'),
-        userStore.ensureDictLoaded('fmsPostingSourceEvent')
+        userStore.ensureDictLoaded('fmsPostingSourceEvent'),
+        userStore.ensureDictLoaded('tmsCashPaymentMethod'),
+        userStore.ensureDictLoaded('fmsPostingWaybillCostType')
       ])
       return fetchPostingEventDetail(id, { showErrorMessage: false })
     },
@@ -155,7 +196,9 @@
     net_amount: '不含税金额',
     tax_amount: '税额',
     customer_id: '客户 ID',
+    customerId: '客户关联标识',
     carrier_id: '承运商 ID',
+    carrierId: '承运商关联标识',
     applicant_user_id: '报销申请人 ID',
     waybill_id: '运单 ID',
     driver_id: '司机 ID',
@@ -165,9 +208,12 @@
     counterparty_name: '往来方名称',
     payee_name: '收款方',
     payment_method: '收付方式',
+    paymentMethod: '收付方式',
+    bankReference: '银行流水号',
     invoice_no: '发票号码',
     tax_rate: '税率',
     cost_type: '费用类型',
+    costType: '费用类型',
     waybill_no: '运单号'
   }
 
@@ -254,23 +300,59 @@
     return items
   })
 
-  const payloadRows = computed<PayloadRow[]>(() =>
-    Object.entries(detail.value?.payload ?? {}).map(([key, value]) => ({
-      key,
-      label: payloadLabelMap[key] ?? key,
-      value:
-        detail.value?.sourceType === 'commercial_bill' && key === 'billType'
-          ? getDictMap.value.fmsBillType?.find((item) => item.value === value)?.label || '未登记'
-          : detail.value?.sourceType === 'commercial_bill' && key === 'direction'
-            ? getDictMap.value.fmsBillDirection?.find((item) => item.value === value)?.label ||
-              '未登记'
-            : value == null
-              ? '—'
-              : typeof value === 'object'
-                ? JSON.stringify(value)
-                : String(value)
-    }))
+  const referenceKeys = [
+    'billId',
+    'billEventId',
+    'fundAccountId',
+    'runId',
+    'periodId',
+    'customer_id',
+    'customerId',
+    'carrier_id',
+    'carrierId',
+    'applicant_user_id',
+    'waybill_id',
+    'driver_id',
+    'expense_item_id'
+  ]
+  const referenceItems = computed<ArtDescriptionItem<Record<string, unknown>>[]>(() =>
+    Object.entries(detail.value?.payload ?? {})
+      .filter(([key, value]) => referenceKeys.includes(key) && value != null)
+      .map(([key]) => ({ key, field: key, label: payloadLabelMap[key], copyable: true }))
   )
+
+  const payloadRows = computed<PayloadRow[]>(() =>
+    Object.entries(detail.value?.payload ?? {})
+      .filter(([key]) => !referenceKeys.includes(key))
+      .map(([key, value]) => ({
+        key,
+        label: payloadLabelMap[key] ?? key,
+        value: formatPayloadValue(key, value)
+      }))
+  )
+
+  function formatPayloadValue(key: string, value: unknown): string {
+    if (value == null) return '—'
+    if (value === '***') return '***'
+    if (
+      ['grossAmount', 'gross_amount', 'net_amount', 'tax_amount'].includes(key) &&
+      (typeof value === 'number' || typeof value === 'string')
+    ) {
+      return formatSensitiveNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+    let dictCode: string | undefined
+    if (key === 'paymentMethod' || key === 'payment_method') dictCode = 'tmsCashPaymentMethod'
+    if (key === 'costType' || key === 'cost_type') dictCode = 'fmsPostingWaybillCostType'
+    if (detail.value?.sourceType === 'commercial_bill') {
+      if (key === 'billType') dictCode = 'fmsBillType'
+      if (key === 'direction') dictCode = 'fmsBillDirection'
+    }
+    if (dictCode) {
+      const label = getDictMap.value[dictCode]?.find((item) => item.value === value)?.label
+      if (label) return label
+    }
+    return typeof value === 'object' ? JSON.stringify(value) : String(value)
+  }
 
   const payloadColumns: ColumnOption<PayloadRow>[] = [
     { prop: 'label', label: '字段', minWidth: 150 },
@@ -309,14 +391,10 @@
   }
 
   async function handleOpen(row: Event): Promise<void> {
+    showReferences.value = false
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
       title: '自动入账事件',
-      subtitle: `${
-        ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'eventSourceReferences'))
-          ? row.sourceNo || '业务事件'
-          : row.eventDate
-      } · 查看规则命中、凭证生成与错误原因。`,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
@@ -331,56 +409,6 @@
     display: grid;
     gap: var(--art-space-4);
     min-width: 0;
-
-    &__hero {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      min-width: 0;
-      padding: 18px;
-    }
-
-    &__hero-icon {
-      display: grid;
-      flex: 0 0 44px;
-      place-items: center;
-      width: 44px;
-      height: 44px;
-      font-size: 22px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      border-radius: var(--el-border-radius-base);
-    }
-
-    &__hero-copy {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
-
-      h2,
-      p {
-        margin: 0;
-        overflow-wrap: anywhere;
-      }
-
-      h2 {
-        font-size: 18px;
-        line-height: 26px;
-      }
-
-      p,
-      > span {
-        color: var(--el-text-color-secondary);
-        overflow-wrap: anywhere;
-      }
-    }
-
-    &__title-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
 
     &__section {
       min-width: 0;

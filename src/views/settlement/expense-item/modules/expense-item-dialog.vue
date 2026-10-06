@@ -3,7 +3,8 @@
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :validate-on-rule-change="false"
@@ -17,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
@@ -139,7 +141,7 @@
     {
       label: '允许报销',
       key: 'reimbursementAllowed',
-      type: 'radioGroup',
+      type: 'segment',
       hidden: !form.isSelectable,
       props: { options: booleanOptions.value }
     },

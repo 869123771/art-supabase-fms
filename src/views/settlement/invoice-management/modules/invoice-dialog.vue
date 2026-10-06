@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <InvoiceOcrPanel
       v-if="canEditInvoiceField('invoiceAttachments')"
       ref="ocrPanelRef"
@@ -168,6 +168,10 @@
     >
       <ArtTable
         ref="linkedStatementTableRef"
+        :border="false"
+        height="auto"
+        max-height="300px"
+        :show-table-header="false"
         :data="selection.statements"
         :columns="linkedStatementColumns"
         :pagination="false"
@@ -246,7 +250,7 @@
     getFieldAccess,
     formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { toInvoiceOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import {
@@ -374,7 +378,7 @@
           maxlength: 50,
           ...invoiceRecordNumber.inputProps(Boolean(form.data.id), '请输入开票登记号', true)
         },
-        description: invoiceRecordNumber.description.value
+        description: form.data.id ? undefined : invoiceRecordNumber.description.value
       },
       {
         label: '发票方向',
@@ -387,12 +391,12 @@
           onChange: handleDirectionChange
         }
       },
-      { label: '往来单位', key: 'counterpartyId', type: 'input', span: 16 },
+      { label: '往来单位', key: 'counterpartyId', type: 'input', span: 12 },
       {
         label: '发票类型',
         key: 'invoiceType',
         type: 'select',
-        span: 8,
+        span: 12,
         props: { options: getDictMap.value.tmsInvoiceType ?? [] }
       },
       {
@@ -400,7 +404,7 @@
         key: 'issueDate',
         type: 'date',
         span: 12,
-        props: { valueFormat: 'YYYY-MM-DD', class: '!w-full' }
+        props: { valueFormat: 'YYYY-MM-DD', class: 'w-full!' }
       },
       ...(canViewInvoiceField('invoiceAmounts')
         ? [
@@ -417,7 +421,7 @@
                 max: 100,
                 precision: 2,
                 controlsPosition: 'right',
-                class: '!w-full',
+                class: 'w-full!',
                 disabled: !canEditInvoiceField('invoiceAmounts'),
                 onChange: recalculateTax
               }
@@ -464,7 +468,7 @@
                 min: 0,
                 precision: 2,
                 controlsPosition: 'right',
-                class: '!w-full',
+                class: 'w-full!',
                 disabled: !canEditInvoiceField('invoiceAmounts'),
                 onChange: recalculateTax
               }
@@ -481,7 +485,7 @@
                 min: 0,
                 precision: 2,
                 controlsPosition: 'right',
-                class: '!w-full',
+                class: 'w-full!',
                 disabled: !canEditInvoiceField('invoiceAmounts'),
                 onChange: recalculateTotal
               }
@@ -489,17 +493,13 @@
             {
               label: '价税合计',
               key: 'totalAmount',
-              type:
-                getFieldAccess(fieldAccess.value, 'invoiceAmounts') === 'masked'
-                  ? ('input' as const)
-                  : ('number' as const),
+              type: 'text' as const,
               span: 8,
               props: {
-                min: 0.01,
-                precision: 2,
-                controlsPosition: 'right',
-                class: '!w-full',
-                disabled: true
+                formatter: () =>
+                  getFieldAccess(fieldAccess.value, 'invoiceAmounts') === 'masked'
+                    ? '金额已脱敏'
+                    : formatMoney(form.data.totalAmount)
               }
             },
             { label: '对账关联', key: 'linkSection', type: 'divider' as const, span: 24 },
@@ -841,7 +841,7 @@
   }
 
   async function fetchPartySelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     if (form.data.direction === 'output') {
       const { data, total, error } = await fetchCustomerSelectorList({
         keyword: params.keyword,
@@ -871,7 +871,7 @@
 
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.data.counterpartyId) return { data: [], total: 0 }
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total, error } = await fetchInvoiceableStatementList({
       direction: form.data.direction,
       counterpartyId: form.data.counterpartyId,

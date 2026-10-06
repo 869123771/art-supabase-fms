@@ -1,6 +1,6 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <template #subtitle>
+    <template v-if="!form.data.id" #subtitle>
       本位币由账套初始化生成且不可变更；外币启用后可维护即期、平均及期末汇率。
     </template>
     <ArtForm
@@ -80,7 +80,7 @@
     {
       label: '币种代码',
       key: 'currencyCode',
-      type: 'input',
+      type: form.data.id ? 'text' : 'input',
       span: 12,
       props: {
         disabled: isBaseCurrency.value || Boolean(form.data.id),

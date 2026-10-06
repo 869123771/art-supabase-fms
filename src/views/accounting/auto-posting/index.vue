@@ -31,13 +31,14 @@
 
         <ArtTableQuery
           ref="ruleTableRef"
+          class="auto-posting-page__table"
           v-model="ruleTable.search"
           :search-items="ruleTable.searchItems"
           :api-fn="fetchRuleTableData"
           :columns-factory="ruleColumnsFactory"
           :header-actions="ruleTable.headerActions"
           header-actions-placement="workspace"
-          :search-bar-props="{ span: 8, labelWidth: 86, showExpand: true }"
+          :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
           :table-props="{
             rowKey: 'id',
             tableLayout: 'fixed',
@@ -61,13 +62,14 @@
 
         <ArtTableQuery
           ref="eventTableRef"
+          class="auto-posting-page__table"
           v-model="eventTable.search"
           :search-items="eventTable.searchItems"
           :api-fn="fetchEventTableData"
           :columns-factory="eventColumnsFactory"
           :header-actions="eventTable.headerActions"
           header-actions-placement="workspace"
-          :search-bar-props="{ span: 8, labelWidth: 86, showExpand: true }"
+          :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
           :table-props="{
             rowKey: 'id',
             tableLayout: 'fixed',
@@ -109,7 +111,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
@@ -234,7 +236,7 @@
   const commonAccountSetSearchItem = (onChange?: () => void): SearchFormItem => ({
     label: '账套',
     key: 'accountSetId',
-    span: 10,
+    span: 12,
     type: 'select',
     props: {
       options: accountSetOptions.value,
@@ -323,6 +325,7 @@
       {
         label: '业务日期',
         key: 'eventDateRange',
+        span: 12,
         type: 'date',
         props: {
           type: 'daterange',
@@ -374,7 +377,7 @@
   })
 
   async function fetchRuleTableData(params: RuleParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchPostingRuleList({ ...params, from, to })
     ruleFieldAccess.value = result.fieldAccess
     ruleRows.value = result.data ?? []
@@ -382,7 +385,7 @@
   }
 
   async function fetchEventTableData(params: EventParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchPostingEventList({ ...params, from, to })
     eventFieldAccess.value = result.fieldAccess
     eventRows.value = result.data ?? []
@@ -729,10 +732,13 @@
       return
     processingEvents.value = true
     try {
-      await confirm('系统将重新处理最多 50 条待处理、待配置或失败事件，是否继续？', {
-        title: '批量处理确认',
-        confirmButtonText: '开始处理'
-      })
+      await confirm(
+        '系统将处理当前账号有权访问的最多 50 条待处理、待配置或失败事件，当前列表的账套、日期和关键词筛选不限定处理范围。是否开始处理？',
+        {
+          title: '批量处理确认',
+          confirmButtonText: '开始处理'
+        }
+      )
       const { data } = await processPendingPostingEvents(50)
       const results = data ?? []
       const generated = results.filter((item) => item.status === 'generated').length
@@ -796,9 +802,14 @@
 
 <style scoped lang="scss">
   .auto-posting-page {
-    :deep(.art-search-bar.art-form--expanded .el-row > .el-col:last-child) {
-      flex: 0 0 100%;
-      max-width: 100%;
+    overflow: auto;
+
+    &__tabs {
+      min-height: 480px;
+    }
+
+    :deep(.art-table-query.auto-posting-page__table) {
+      min-height: 400px;
     }
 
     &__code {
@@ -808,6 +819,10 @@
     }
 
     @media (width <= 640px) {
+      &__tabs {
+        min-height: 760px;
+      }
+
       &__tab-label > span small {
         display: none;
       }

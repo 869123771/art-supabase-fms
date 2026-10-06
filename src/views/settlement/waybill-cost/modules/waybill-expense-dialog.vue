@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <ElAlert v-if="ocrLoadError" type="error" :closable="false" show-icon>
       <template #title>{{ ocrLoadError }}</template>
       <ElButton link type="primary" @click="loadOcrResult">重新加载</ElButton>
@@ -120,7 +120,7 @@
     fetchWaybillExpenseOcrEnabled,
     reviewWaybillExpenseOcrArtifact
   } from '@fms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { canEditField, canViewField } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
@@ -295,9 +295,9 @@
           maxlength: 50,
           ...expenseNumber.inputProps(Boolean(formData.id), '请输入运单费用单号', true)
         },
-        description: expenseNumber.description.value
+        description: formData.id ? undefined : expenseNumber.description.value
       },
-      { label: '运单/车牌', key: 'waybillId', type: 'input', span: 24 },
+      { label: '运单/车牌', key: 'waybillId', type: 'input' },
       { label: '费用信息', key: 'expenseSection', type: 'divider', span: 24 },
       {
         label: '费用项目',
@@ -362,6 +362,13 @@
         }
       },
       {
+        label: '收款与票据',
+        key: 'paymentSection',
+        type: 'divider',
+        span: 24,
+        hidden: !canViewPaymentDetails.value
+      },
+      {
         label: '服务商',
         key: 'providerName',
         type: 'input',
@@ -416,6 +423,7 @@
           disabled: !canEditPaymentDetails.value
         }
       },
+      { label: '地点与说明', key: 'locationSection', type: 'divider', span: 24 },
       {
         label: '',
         key: 'locationPicker',
@@ -505,7 +513,7 @@
   }
 
   async function fetchWaybillSelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchFinanceWaybillOptions({
       keyword: params.keyword,
       from,

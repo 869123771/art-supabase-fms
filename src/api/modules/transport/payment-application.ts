@@ -1,3 +1,4 @@
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
@@ -70,7 +71,7 @@ export async function exportCarrierPaymentApplicationList(
 
 export async function fetchCarrierPaymentApplicationDetail(
   id: string,
-  options: { showErrorMessage?: boolean } = {}
+  options: ApiFeedbackOptions = {}
 ) {
   return await responseHandle<PaymentApplication | null>(
     () => supabase.rpc('tms_get_carrier_payment_application_secure', { p_id: id }),

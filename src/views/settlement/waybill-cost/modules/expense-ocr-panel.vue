@@ -186,7 +186,7 @@
 
       small {
         line-height: 1.5;
-        color: var(--art-text-gray-500);
+        color: var(--art-text-gray-600);
       }
     }
 
@@ -200,9 +200,7 @@
 
     &__body {
       gap: var(--art-space-4);
-      padding-top: var(--art-space-4);
-      margin-top: var(--art-space-4);
-      border-top: 1px solid var(--art-border-dashed-color);
+      margin-top: var(--art-space-3);
     }
 
     &__content {
@@ -219,16 +217,15 @@
       min-width: 0;
 
       > span {
-        @include ai.capability-item;
-
         flex: 1;
         gap: var(--art-space-2);
         min-width: 0;
-        padding: var(--art-space-3);
-        border-radius: var(--el-border-radius-base);
+        padding-block: var(--art-space-2);
 
         > svg {
-          @include ai.capability-icon;
+          flex: none;
+          font-size: 18px;
+          color: var(--theme-color);
         }
 
         > span {
@@ -239,9 +236,8 @@
 
         strong,
         small {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
         }
 
         strong {
@@ -250,23 +246,15 @@
         }
 
         small {
-          font-size: 11px;
-          color: var(--art-text-gray-500);
+          font-size: 12px;
+          color: var(--art-text-gray-600);
         }
-      }
-
-      > :nth-child(2) {
-        --ai-capability-color: #d97706;
-      }
-
-      > :nth-child(3) {
-        --ai-capability-color: #059669;
       }
     }
 
     &__disabled {
       gap: var(--art-space-2);
-      color: var(--art-text-gray-500);
+      color: var(--art-text-gray-600);
 
       span {
         display: flex;
@@ -305,10 +293,20 @@
 
     @media (width <= 860px) {
       &__header,
-      &__body,
-      &__guide {
+      &__body {
         flex-direction: column;
         align-items: stretch;
+      }
+
+      &__guide {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (width <= 540px) {
+      &__guide {
+        grid-template-columns: 1fr;
       }
     }
   }

@@ -1,7 +1,7 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
-      期初余额仅录入末级启用科目；字段按当前记录权限显示，无权明文查看的字段不会载入表单。
+      选择末级启用科目，按科目余额方向录入期初金额，并补充本年累计发生额。
     </template>
     <ArtForm
       root-class="art-form--mobile-stack"
@@ -137,7 +137,8 @@
                 : '期初借方余额',
             key: 'openingAmount',
             type: 'number' as const,
-            span: 12,
+            span: 24,
+            description: '余额方向由所选会计科目确定，金额录入正数。',
             props: {
               min: 0,
               precision: 2,

@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="md">
     <ArtForm
       ref="formRef"
       v-model="form.data"
@@ -75,12 +75,13 @@
       </template>
     </ArtForm>
 
-    <section
+    <ArtSectionCard
       v-if="allocationRows.length && canViewApplicationField('applicationAmounts')"
       class="payment-application-dialog__allocation"
+      title="付款分配"
+      preserve-content-structure
     >
-      <div class="payment-application-dialog__allocation-header">
-        <ArtSectionTitle :show-line="false">付款分配</ArtSectionTitle>
+      <template #actions>
         <ElButton
           v-if="canEditApplicationField('applicationAmounts')"
           plain
@@ -90,7 +91,7 @@
           <template #icon><ArtSvgIcon icon="ri:magic-line" /></template>
           按可申请余额自动分配
         </ElButton>
-      </div>
+      </template>
       <ArtTable
         :data="allocationRows"
         :border="false"
@@ -101,7 +102,7 @@
         table-layout="fixed"
         max-height="300px"
       />
-    </section>
+    </ArtSectionCard>
 
     <ElAlert
       v-if="canViewApplicationField('applicationAmounts')"
@@ -140,7 +141,7 @@
     DataSelectFetchParams,
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
@@ -151,7 +152,7 @@
     saveCarrierPaymentApplication
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import {
     canEditField,
@@ -273,7 +274,7 @@
           maxlength: 50,
           ...applicationNumber.inputProps(Boolean(formData.id), '请输入付款申请号', true)
         },
-        description: applicationNumber.description.value
+        description: formData.id ? undefined : applicationNumber.description.value
       },
       { label: '付款承运商', key: 'carrierId', type: 'input', span: isCompact.value ? 24 : 12 },
       {
@@ -308,7 +309,7 @@
         label: '计划付款方式',
         key: 'paymentMethod',
         type: 'select',
-        span: isCompact.value ? 24 : 12,
+        span: 24,
         props: { options: getDictMap.value.tmsCashPaymentMethod ?? [] }
       },
       {
@@ -454,7 +455,7 @@
 
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.data.carrierId) return { data: [], total: 0 }
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total, error } = await fetchCarrierStatementAllocatableList({
       carrierId: form.data.carrierId,
       keyword: params.keyword,
@@ -640,14 +641,6 @@
   .payment-application-dialog {
     &__allocation {
       margin-top: var(--art-space-4);
-    }
-
-    &__allocation-header {
-      display: flex;
-      gap: var(--art-space-3);
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--art-space-3);
     }
 
     &__summary {

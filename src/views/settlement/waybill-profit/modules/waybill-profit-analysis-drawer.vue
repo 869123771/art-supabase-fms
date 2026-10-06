@@ -12,26 +12,31 @@
 
     <div class="profit-analyst">
       <template v-if="state.data">
-        <section :class="['profit-analyst__hero art-card-xs', `is-${assessment.riskLevel}`]">
-          <header class="profit-analyst__hero-header">
-            <div class="profit-analyst__hero-main">
-              <span class="profit-analyst__hero-icon">
-                <ArtSvgIcon icon="ri:funds-box-line" />
-              </span>
-              <div>
-                <span class="profit-analyst__eyebrow"><i />AI PROFIT HEALTH CHECK</span>
-                <div class="profit-analyst__title-row">
-                  <strong>运单利润经营体检</strong>
-                  <ElTag :type="riskTagType" effect="dark" round>{{ riskLabel }}</ElTag>
-                  <ElTag type="info" effect="plain" round>{{ recommendationLabel }}</ElTag>
+        <ArtSectionCard
+          :class="['profit-analyst__hero', `is-${assessment.riskLevel}`]"
+          :show-scrollbar="false"
+        >
+          <template #header>
+            <header class="profit-analyst__hero-header">
+              <div class="profit-analyst__hero-main">
+                <span class="profit-analyst__hero-icon">
+                  <ArtSvgIcon icon="ri:funds-box-line" />
+                </span>
+                <div>
+                  <span class="profit-analyst__eyebrow"><i />AI PROFIT HEALTH CHECK</span>
+                  <div class="profit-analyst__title-row">
+                    <strong>运单利润经营体检</strong>
+                    <ElTag :type="riskTagType" effect="dark" round>{{ riskLabel }}</ElTag>
+                    <ElTag type="info" effect="plain" round>{{ recommendationLabel }}</ElTag>
+                  </div>
+                  <p>分析当前租户最近 {{ assessment.metrics.totalWaybills }} 票非作废运单</p>
                 </div>
-                <p>分析当前租户最近 {{ assessment.metrics.totalWaybills }} 票非作废运单</p>
               </div>
-            </div>
-            <ElButton type="primary" plain :loading="state.loading" @click="loadAssessment">
-              <ArtSvgIcon icon="ri:refresh-line" />重新诊断
-            </ElButton>
-          </header>
+              <ElButton type="primary" plain :loading="state.loading" @click="loadAssessment">
+                <ArtSvgIcon icon="ri:refresh-line" />重新诊断
+              </ElButton>
+            </header>
+          </template>
 
           <div class="profit-analyst__scores">
             <article>
@@ -75,14 +80,13 @@
               <p>{{ assessment.summary }}</p>
             </div>
           </div>
-        </section>
+        </ArtSectionCard>
 
-        <section class="profit-analyst__section">
-          <ArtSectionTitle>
-            <span class="profit-analyst__section-label">
-              <ArtSvgIcon icon="ri:dashboard-3-line" />利润健康指标
-            </span>
-          </ArtSectionTitle>
+        <ArtSectionCard
+          class="profit-analyst__section"
+          title="利润健康指标"
+          :show-scrollbar="false"
+        >
           <div class="profit-analyst__metrics">
             <article class="art-card-xs">
               <span class="profit-analyst__metric-icon is-receivable">
@@ -145,14 +149,16 @@
               >
             </article>
           </div>
-        </section>
+        </ArtSectionCard>
 
-        <section class="profit-analyst__section">
-          <ArtSectionTitle>
-            <span class="profit-analyst__section-label">
-              <ArtSvgIcon icon="ri:alarm-warning-line" />经营风险信号
-            </span>
-          </ArtSectionTitle>
+        <ArtSectionCard
+          class="profit-analyst__section"
+          title="经营风险信号"
+          :show-scrollbar="false"
+          :empty="!assessment.signals.length"
+          empty-title="当前未识别到明确经营风险"
+          empty-description="仍可按下方建议顺序复核运单利润。"
+        >
           <div v-if="assessment.signals.length" class="profit-analyst__signals">
             <article
               v-for="signal in assessment.signals"
@@ -174,21 +180,16 @@
               </div>
             </article>
           </div>
-          <ArtEmptyState
-            v-else
-            title="当前未识别到明确经营风险"
-            description="仍可按下方建议顺序复核运单利润。"
-            :visual-size="72"
-            size="compact"
-          />
-        </section>
+        </ArtSectionCard>
 
-        <section class="profit-analyst__section">
-          <ArtSectionTitle>
-            <span class="profit-analyst__section-label">
-              <ArtSvgIcon icon="ri:radar-line" />优先核对运单
-            </span>
-          </ArtSectionTitle>
+        <ArtSectionCard
+          class="profit-analyst__section"
+          title="优先核对运单"
+          :show-scrollbar="false"
+          :empty="!assessment.riskWaybills.length"
+          empty-title="暂无需要优先核对的运单"
+          empty-description="后续出现高风险运单时会在此列出。"
+        >
           <div v-if="assessment.riskWaybills.length" class="profit-analyst__waybills">
             <article
               v-for="waybill in assessment.riskWaybills"
@@ -229,22 +230,17 @@
               </div>
             </article>
           </div>
-          <ArtEmptyState
-            v-else
-            title="暂无需要优先核对的运单"
-            description="后续出现高风险运单时会在此列出。"
-            :visual-size="72"
-            size="compact"
-          />
-        </section>
+        </ArtSectionCard>
 
-        <section class="profit-analyst__section">
-          <ArtSectionTitle>
-            <span class="profit-analyst__section-label">
-              <ArtSvgIcon icon="ri:list-check-3" />建议处理顺序
-            </span>
-          </ArtSectionTitle>
-          <ol class="profit-analyst__actions art-card-xs">
+        <ArtSectionCard
+          class="profit-analyst__section"
+          title="建议处理顺序"
+          :show-scrollbar="false"
+          :empty="!assessment.recommendedActions.length"
+          empty-title="暂无处理建议"
+          empty-description="可结合利润指标和风险信号进行人工复核。"
+        >
+          <ol class="profit-analyst__actions">
             <li v-for="(action, index) in assessment.recommendedActions" :key="action">
               <span>{{ index + 1 }}</span>
               <div
@@ -253,20 +249,22 @@
               >
             </li>
           </ol>
-        </section>
+        </ArtSectionCard>
 
-        <section class="profit-analyst__section">
-          <ArtSectionTitle>
-            <span class="profit-analyst__section-label">
-              <ArtSvgIcon icon="ri:information-2-line" />数据边界
-            </span>
-          </ArtSectionTitle>
-          <div class="profit-analyst__limitations art-card-xs">
+        <ArtSectionCard
+          class="profit-analyst__section"
+          title="数据边界"
+          :show-scrollbar="false"
+          :empty="!assessment.limitations.length"
+          empty-title="暂无补充说明"
+          empty-description="请结合当前分析范围复核诊断结果。"
+        >
+          <div class="profit-analyst__limitations">
             <p v-for="item in assessment.limitations" :key="item">
               <ArtSvgIcon icon="ri:checkbox-circle-line" /><span>{{ item }}</span>
             </p>
           </div>
-        </section>
+        </ArtSectionCard>
 
         <ArtAiFeedback :run-id="state.data.runId" context-label="AI 运单利润诊断" />
 
@@ -294,14 +292,13 @@
   } from '@/utils/ui/format'
 
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { analyzeWaybillProfitByAi } from '@fms/api'
   import { getWaybillStatusPresentation } from '../../../modules/waybill-status'
   import { formatWithDayjs } from '@/utils/time'
@@ -470,11 +467,8 @@
 
     &__hero {
       position: relative;
-      padding: 20px;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 84% 12%, rgb(99 102 241 / 12%), transparent 28%),
-        var(--art-main-bg-color);
+      background: var(--art-gray-100);
 
       &::before {
         position: absolute;
@@ -589,7 +583,7 @@
       article {
         min-width: 0;
         padding: 13px 14px;
-        background: color-mix(in srgb, var(--art-main-bg-color) 95%, var(--el-color-primary));
+        background: color-mix(in srgb, var(--art-gray-100) 95%, var(--el-color-primary));
         border-radius: var(--el-border-radius-base);
 
         header {
@@ -651,13 +645,7 @@
     }
 
     &__section {
-      margin-top: 22px;
-    }
-
-    &__section-label {
-      display: inline-flex;
-      gap: 7px;
-      align-items: center;
+      margin-top: 16px;
     }
 
     &__metrics {
@@ -905,7 +893,7 @@
     }
 
     &__actions {
-      padding: 4px 18px;
+      padding: 0;
       margin: 0;
       list-style: none;
 
@@ -944,7 +932,7 @@
     }
 
     &__limitations {
-      padding: 12px 16px;
+      padding: 0;
 
       p {
         display: flex;
@@ -952,7 +940,7 @@
         align-items: flex-start;
         margin: 0;
         line-height: 1.6;
-        color: var(--art-text-gray-500);
+        color: var(--art-gray-700);
 
         & + p {
           margin-top: 8px;
@@ -972,7 +960,7 @@
       padding: 14px 2px 2px;
       margin-top: 20px;
       font-size: 11px;
-      color: var(--art-text-gray-400);
+      color: var(--art-gray-700);
       border-top: 1px dashed var(--el-border-color-lighter);
 
       span {

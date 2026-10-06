@@ -412,7 +412,8 @@
     }
     await dialogRef.value?.handleOpen(row, {
       title: row ? '编辑凭证模板' : '新增凭证模板',
-      subtitle: '模板仅用于生成草稿凭证，不会绕过审核与过账控制。默认金额可在套用后调整。',
+      subtitle: row ? undefined : '设置常用分录，套用后生成草稿凭证；默认金额可在制单时调整。',
+      confirmText: row ? '保存修改' : '创建模板',
       contentMaxHeight: '78vh',
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },

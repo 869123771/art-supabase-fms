@@ -1,3 +1,4 @@
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 
@@ -35,20 +36,14 @@ export async function fetchPeriodCloseRuns(params: Api.Fms.PeriodCloseSearchPara
   }
 }
 
-export async function fetchPeriodCloseRunDetail(
-  id: string,
-  options: { showErrorMessage?: boolean } = {}
-) {
+export async function fetchPeriodCloseRunDetail(id: string, options: ApiFeedbackOptions = {}) {
   return await responseHandle<Api.Fms.PeriodCloseRunRecord>(
     () => supabase.rpc('fms_get_period_close_run_secure', { p_run_id: id }),
     { showErrorMessage: options.showErrorMessage ?? true }
   )
 }
 
-export async function fetchPeriodCloseChecks(
-  runId: string,
-  options: { showErrorMessage?: boolean } = {}
-) {
+export async function fetchPeriodCloseChecks(runId: string, options: ApiFeedbackOptions = {}) {
   const result = await responseHandle<PeriodCloseCheckListPayload>(
     () => supabase.rpc('fms_list_period_close_checks_secure', { p_run_id: runId }),
     { showErrorMessage: options.showErrorMessage ?? true }

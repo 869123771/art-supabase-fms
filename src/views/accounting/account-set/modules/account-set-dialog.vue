@@ -237,7 +237,7 @@
     {
       label: '默认账套',
       key: 'isDefault',
-      type: 'radioGroup',
+      type: 'segment',
       span: 12,
       props: { options: booleanOptions.value }
     },

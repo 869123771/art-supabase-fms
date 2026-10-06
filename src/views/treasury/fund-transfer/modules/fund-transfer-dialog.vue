@@ -1,7 +1,7 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
     <template #subtitle>
-      调拨仅支持同账套、同币种账户；执行时转出账户扣减调拨金额与手续费，转入账户增加调拨金额。
+      同账套、同币种账户间调拨；执行时同步登记转出、转入及手续费流水。
     </template>
     <ArtForm
       root-class="art-form--mobile-stack"
@@ -119,6 +119,7 @@
         label: '所属账套',
         key: '__accountSetId',
         type: 'select',
+        span: 24,
         props: {
           modelValue: accountSetId.value,
           options: accountSetOptions.value,
@@ -166,16 +167,16 @@
           {
             label: '可用余额',
             key: '__availableBalance',
-            type: 'input',
+            type: 'text',
             span: 24,
             props: {
-              modelValue: sourceOption.value
-                ? formatAvailableBalance(
-                    sourceOption.value.availableBalance,
-                    sourceOption.value.currencyCode
-                  )
-                : '--',
-              disabled: true
+              formatter: () =>
+                sourceOption.value
+                  ? formatAvailableBalance(
+                      sourceOption.value.availableBalance,
+                      sourceOption.value.currencyCode
+                    )
+                  : '--'
             }
           }
         )
@@ -184,27 +185,27 @@
           {
             label: '转出账户',
             key: '__sourceAccountDisplay',
-            type: 'input',
+            type: 'text',
             span: 24,
             props: {
-              modelValue: formatAccountDisplay(
-                currentRecord.value?.sourceAccountName,
-                currentRecord.value?.sourceAccountNoMasked
-              ),
-              disabled: true
+              formatter: () =>
+                formatAccountDisplay(
+                  currentRecord.value?.sourceAccountName,
+                  currentRecord.value?.sourceAccountNoMasked
+                )
             }
           },
           {
             label: '转入账户',
             key: '__targetAccountDisplay',
-            type: 'input',
+            type: 'text',
             span: 24,
             props: {
-              modelValue: formatAccountDisplay(
-                currentRecord.value?.targetAccountName,
-                currentRecord.value?.targetAccountNoMasked
-              ),
-              disabled: true
+              formatter: () =>
+                formatAccountDisplay(
+                  currentRecord.value?.targetAccountName,
+                  currentRecord.value?.targetAccountNoMasked
+                )
             }
           }
         )
@@ -245,19 +246,17 @@
           {
             label: '调拨金额',
             key: '__amountDisplay',
-            type: 'input',
+            type: 'text',
             props: {
-              modelValue: formatProtectedAmount(currentRecord.value?.amount),
-              disabled: true
+              formatter: () => formatProtectedAmount(currentRecord.value?.amount)
             }
           },
           {
             label: '银行手续费',
             key: '__feeAmountDisplay',
-            type: 'input',
+            type: 'text',
             props: {
-              modelValue: formatProtectedAmount(currentRecord.value?.feeAmount),
-              disabled: true
+              formatter: () => formatProtectedAmount(currentRecord.value?.feeAmount)
             }
           }
         )
@@ -277,8 +276,8 @@
           : {
               label: '银行参考号',
               key: '__bankReferenceDisplay',
-              type: 'input',
-              props: { modelValue: currentRecord.value?.bankReference || '--', disabled: true }
+              type: 'text',
+              props: { formatter: () => currentRecord.value?.bankReference || '--' }
             }
       )
     }

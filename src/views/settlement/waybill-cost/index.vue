@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import '../../modules/accounting-workspace-tabs.scss'
 
   import { ElMessage } from 'element-plus'
@@ -158,7 +159,7 @@
     submitWaybillCost
   } from '@fms/api'
   import { fetchRecognitionArtifactDetail } from '@/api/intelligent-recognition'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
@@ -404,7 +405,8 @@
       keyword: '',
       expenseItemId: '',
       auditStatus: typeof route.query.auditStatus === 'string' ? route.query.auditStatus : '',
-      settlementStatus: '',
+      settlementStatus:
+        typeof route.query.settlementStatus === 'string' ? route.query.settlementStatus : '',
       occurredOnRange: []
     },
     searchItems: computed<SearchFormItem[]>(() => [
@@ -479,7 +481,13 @@
   })
 
   const reimbursementTable = reactive<ReimbursementTableGroup>({
-    search: { keyword: '', status: '', paymentMethod: '', plannedPaymentDateRange: [] },
+    search: {
+      keyword: '',
+      status:
+        typeof route.query.reimbursementStatus === 'string' ? route.query.reimbursementStatus : '',
+      paymentMethod: '',
+      plannedPaymentDateRange: []
+    },
     searchItems: computed<SearchFormItem[]>(() => {
       const items: SearchFormItem[] = [
         {
@@ -546,91 +554,101 @@
     {
       prop: 'costNo',
       label: '费用单号',
-      width: 195,
+      minWidth: 190,
       fixed: 'left',
-      formatter: (row) =>
-        row.id ? (
-          <a
-            class="waybill-cost__document-link"
-            href={router.resolve(getWaybillCostDetailPath(row.id)).href}
-            title={`查看费用单 ${row.costNo || row.id} 详情`}
-            onClick={(event: MouseEvent) => navigateToExpenseDetail(event, row.id as string)}
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          {row.id ? (
+            <a
+              class="waybill-cost__document-link"
+              href={router.resolve(getWaybillCostDetailPath(row.id)).href}
+              title={`查看费用单 ${row.costNo || row.id} 详情`}
+              onClick={(event: MouseEvent) => navigateToExpenseDetail(event, row.id as string)}
+            >
+              {row.costNo || '--'}
+            </a>
+          ) : (
+            <span>{row.costNo || '--'}</span>
+          )}
+
+          <span class="text-xs text-[var(--art-gray-600)]">
+            {formatWithDayjs(row.occurredOn, 'YYYY-MM-DD')}
+          </span>
+        </div>
+      )
+    },
+    {
+      prop: 'waybillNoSnapshot',
+      label: '运单 / 车辆',
+      minWidth: 165,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          <span class="truncate" title={emptyText(row.waybillNoSnapshot)}>
+            {emptyText(row.waybillNoSnapshot)}
+          </span>
+          <span
+            class="truncate text-xs text-[var(--art-gray-600)]"
+            title={`${emptyText(row.plateNoSnapshot)} · ${emptyText(row.driverNameSnapshot)}`}
           >
-            {row.costNo || '--'}
-          </a>
-        ) : (
-          <span>{row.costNo || '--'}</span>
-        )
-    },
-    { prop: 'waybillNoSnapshot', label: '运单号', width: 180, fixed: 'left' },
-    {
-      prop: 'plateNoSnapshot',
-      label: '车牌号',
-      width: 120,
-      formatter: (row) => emptyText(row.plateNoSnapshot)
-    },
-    {
-      prop: 'driverNameSnapshot',
-      label: '司机',
-      width: 110,
-      formatter: (row) => emptyText(row.driverNameSnapshot)
+            {emptyText(row.plateNoSnapshot)} · {emptyText(row.driverNameSnapshot)}
+          </span>
+        </div>
+      )
     },
     {
       prop: 'expenseItem.itemName',
-      label: '费用项目',
-      width: 150,
-      formatter: (row) => emptyText(row.expenseItem?.itemName)
+      label: '费用 / 服务商',
+      minWidth: 145,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          <strong
+            class="truncate text-sm text-[var(--art-gray-800)]"
+            title={emptyText(row.expenseItem?.itemName)}
+          >
+            {emptyText(row.expenseItem?.itemName)}
+          </strong>
+          {canViewField(expenseFieldAccess.value, 'paymentDetails') ? (
+            <span
+              class="truncate text-xs text-[var(--art-gray-600)]"
+              title={emptyText(row.providerName)}
+            >
+              {emptyText(row.providerName)}
+            </span>
+          ) : null}
+        </div>
+      )
     },
     ...(canViewField(expenseFieldAccess.value, 'costAmounts')
       ? [
           {
             prop: 'amount',
             label: '申报金额',
-            width: 130,
+            width: 115,
             align: 'right' as const,
             formatter: (row: Expense) => money(row.amount)
           }
         ]
       : []),
     {
-      prop: 'occurredOn',
-      label: '发生日期',
-      width: 115,
-      formatter: (row) => formatWithDayjs(row.occurredOn, 'YYYY-MM-DD')
-    },
-    ...(canViewField(expenseFieldAccess.value, 'paymentDetails')
-      ? [
-          {
-            prop: 'providerName',
-            label: '服务商',
-            minWidth: 150,
-            showOverflowTooltip: true,
-            formatter: (row: Expense) => emptyText(row.providerName)
-          }
-        ]
-      : []),
-    {
       prop: 'auditStatus',
-      label: '审核状态',
-      width: 110,
-      dict: { code: 'tmsCostAuditStatus', display: 'tag' }
-    },
-    {
-      prop: 'settlementStatus',
-      label: '核销状态',
-      width: 105,
-      dict: { code: 'tmsWaybillCostSettlementStatus', display: 'tag' }
-    },
-    {
-      prop: 'ocrStatus',
-      label: 'OCR',
-      width: 105,
-      dict: { code: 'tmsExpenseOcrStatus', display: 'tag' }
+      label: '审核 / 核销 / 识别',
+      minWidth: 125,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col items-start gap-1">
+          <ArtDictDisplay dictCode="tmsCostAuditStatus" value={row.auditStatus} display="tag" />
+          <ArtDictDisplay
+            dictCode="tmsWaybillCostSettlementStatus"
+            value={row.settlementStatus}
+            display="text"
+          />
+          <ArtDictDisplay dictCode="tmsExpenseOcrStatus" value={row.ocrStatus} display="text" />
+        </div>
+      )
     },
     {
       prop: 'operation',
       label: '操作',
-      width: 120,
+      width: 100,
       fixed: 'right',
       formatter: (row) => (
         <BusinessTableRowActions>
@@ -653,84 +671,106 @@
   const reimbursementColumnsFactory = (): ColumnOption<Reimbursement>[] => [
     {
       prop: 'reimbursementNo',
-      label: '报销单号',
-      width: 200,
-      fixed: 'left',
-      formatter: (row) =>
-        row.id ? (
-          <a
-            class="waybill-cost__document-link"
-            href={router.resolve(getExpenseReimbursementDetailPath(row.id)).href}
-            title={`查看报销单 ${row.reimbursementNo} 详情`}
-            onClick={(event: MouseEvent) => navigateToReimbursementDetail(event, row.id)}
+      label: '报销单',
+      minWidth: 190,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          {row.id ? (
+            <a
+              class="font-semibold text-[var(--art-gray-800)]"
+              href={router.resolve(getExpenseReimbursementDetailPath(row.id)).href}
+              title={`查看报销单 ${row.reimbursementNo} 详情`}
+              onClick={(event: MouseEvent) => navigateToReimbursementDetail(event, row.id)}
+            >
+              {row.reimbursementNo || '--'}
+            </a>
+          ) : (
+            <strong>{row.reimbursementNo || '--'}</strong>
+          )}
+          <span
+            class="truncate text-xs text-[var(--art-gray-600)]"
+            title={row.applicantNameSnapshot || '--'}
           >
-            {row.reimbursementNo || '--'}
-          </a>
-        ) : (
-          <span>{row.reimbursementNo || '--'}</span>
-        )
+            {row.applicantNameSnapshot || '--'}
+          </span>
+          <span class="text-xs text-[var(--art-gray-600)]">
+            {formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')}
+          </span>
+        </div>
+      )
     },
-    { prop: 'applicantNameSnapshot', label: '申请人', width: 115 },
     ...(canViewField(reimbursementFieldAccess.value, 'payeeDetails')
       ? [
           {
             prop: 'payeeName',
-            label: '收款人',
+            label: '收款人 / 方式',
             minWidth: 150,
-            showOverflowTooltip: true
+            formatter: (row: Reimbursement) => (
+              <div class="flex min-w-0 flex-col gap-1">
+                <strong
+                  class="truncate text-sm text-[var(--art-gray-800)]"
+                  title={row.payeeName || '--'}
+                >
+                  {row.payeeName || '--'}
+                </strong>
+                <ArtDictDisplay
+                  dictCode="tmsCashPaymentMethod"
+                  value={row.paymentMethod}
+                  display="text"
+                />
+              </div>
+            )
           }
         ]
       : []),
-    { prop: 'waybillNos', label: '关联运单', minWidth: 210, showOverflowTooltip: true },
-    { prop: 'itemCount', label: '费用笔数', width: 95, align: 'center' },
+    {
+      prop: 'waybillNos',
+      label: '关联运单',
+      minWidth: 160,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          <span class="truncate" title={row.waybillNos || '--'}>
+            {row.waybillNos || '--'}
+          </span>
+          <span class="text-xs text-[var(--art-gray-600)]">{row.itemCount} 笔费用</span>
+        </div>
+      )
+    },
     ...(canViewField(reimbursementFieldAccess.value, 'reimbursementAmounts')
       ? [
           {
             prop: 'totalAmount',
             label: '报销金额',
-            width: 135,
+            width: 115,
             align: 'right' as const,
             formatter: (row: Reimbursement) => money(row.totalAmount)
-          }
-        ]
-      : []),
-    ...(canViewField(reimbursementFieldAccess.value, 'payeeDetails')
-      ? [
-          {
-            prop: 'paymentMethod',
-            label: '付款方式',
-            width: 115,
-            dict: { code: 'tmsCashPaymentMethod', display: 'tag' as const }
           }
         ]
       : []),
     { prop: 'plannedPaymentDate', label: '计划付款日', width: 120 },
     {
       prop: 'status',
-      label: '审批/支付状态',
-      width: 135,
-      dict: { code: 'tmsReimbursementApprovalStatus', display: 'tag' }
-    },
-    ...(canViewField(reimbursementFieldAccess.value, 'paymentExecution')
-      ? [
-          {
-            prop: 'paymentNo',
-            label: '付款单号',
-            width: 195,
-            formatter: (row: Reimbursement) => emptyText(row.paymentNo)
-          }
-        ]
-      : []),
-    {
-      prop: 'createTime',
-      label: '创建时间',
-      width: 165,
-      formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
+      label: '审批 / 支付',
+      minWidth: 130,
+      formatter: (row) => (
+        <div class="flex min-w-0 flex-col gap-1">
+          <ArtDictDisplay
+            dictCode="tmsReimbursementApprovalStatus"
+            value={row.status}
+            display="tag"
+          />
+          {canViewField(reimbursementFieldAccess.value, 'paymentExecution') && row.paymentNo ? (
+            <span class="truncate text-xs text-[var(--art-gray-600)]" title={row.paymentNo}>
+              {row.paymentNo}
+            </span>
+          ) : null}
+        </div>
+      )
     },
     {
       prop: 'operation',
       label: '操作',
-      width: 160,
+      width: 100,
       fixed: 'right',
       formatter: (row) => (
         <BusinessTableRowActions>
@@ -750,7 +790,7 @@
   ]
 
   async function fetchExpenseTableData(params: ExpenseTableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchWaybillCostList({ ...params, from, to })
     expenseFieldAccess.value = mergeFieldAccessMaps(
       result.fieldAccess,
@@ -760,7 +800,7 @@
   }
 
   async function fetchReimbursementTableData(params: ReimbursementTableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchExpenseReimbursementList({ ...params, from, to })
     reimbursementBaseFieldAccess.value = result.fieldAccess
     reimbursementFieldAccess.value = mergeFieldAccessMaps(
@@ -839,6 +879,38 @@
   }
 
   async function applyMetricFilter(key: WorkspaceMetricKey): Promise<void> {
+    const targetName =
+      key === 'pending-payment'
+        ? financeRouteNames.expenseReimbursement
+        : financeRouteNames.waybillCost
+    if (
+      router.hasRoute(targetName) &&
+      (route.name !== targetName ||
+        route.query.auditStatus !==
+          (key === 'ready-reimbursement'
+            ? 'approved'
+            : key === 'pending-review'
+              ? 'pending_review'
+              : '') ||
+        route.query.settlementStatus !== (key === 'ready-reimbursement' ? 'unsettled' : '') ||
+        route.query.reimbursementStatus !== (key === 'pending-payment' ? 'approved' : ''))
+    ) {
+      await router.replace({
+        name: targetName,
+        query: {
+          ...route.query,
+          auditStatus:
+            key === 'ready-reimbursement'
+              ? 'approved'
+              : key === 'pending-review'
+                ? 'pending_review'
+                : '',
+          settlementStatus: key === 'ready-reimbursement' ? 'unsettled' : '',
+          reimbursementStatus: key === 'pending-payment' ? 'approved' : ''
+        }
+      })
+      return
+    }
     if (key === 'pending-payment') {
       activeTab.value = 'reimbursement'
       Object.assign(reimbursementTable.search, {
@@ -1239,12 +1311,27 @@
   )
 
   watch(
-    () => route.query.auditStatus,
-    (value) => {
-      if (typeof value !== 'string' || expenseTable.search.auditStatus === value) return
+    () => [route.query.auditStatus, route.query.settlementStatus],
+    async ([auditStatus, settlementStatus]) => {
+      if (route.name !== financeRouteNames.waybillCost) return
+      if (typeof auditStatus !== 'string' && typeof settlementStatus !== 'string') return
       activeTab.value = 'expense'
-      expenseTable.search.auditStatus = value
-      void expenseTableRef.value?.getData()
+      expenseTable.search.auditStatus = typeof auditStatus === 'string' ? auditStatus : ''
+      expenseTable.search.settlementStatus =
+        typeof settlementStatus === 'string' ? settlementStatus : ''
+      await nextTick()
+      await expenseTableRef.value?.getData()
+    }
+  )
+
+  watch(
+    () => route.query.reimbursementStatus,
+    async (status) => {
+      if (route.name !== financeRouteNames.expenseReimbursement || typeof status !== 'string')
+        return
+      reimbursementTable.search.status = status
+      await nextTick()
+      await reimbursementTableRef.value?.getData()
     }
   )
 

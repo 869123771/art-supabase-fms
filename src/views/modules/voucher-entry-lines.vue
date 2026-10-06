@@ -241,6 +241,7 @@
         ) : (
           <ElInput
             v-model={row.summary}
+            aria-label={`第 ${row.lineNo} 条分录摘要`}
             maxlength={120}
             placeholder="分录摘要"
             onChange={() => updateLine(row, { summary: row.summary })}
@@ -267,6 +268,7 @@
         return (
           <ElSelect
             v-model={row.subjectId}
+            aria-label={`第 ${row.lineNo} 条分录会计科目`}
             filterable
             placeholder="选择末级科目"
             class="w-full!"
@@ -292,6 +294,7 @@
               ) : (
                 <ElSelect
                   v-model={row.entryDirection}
+                  aria-label={`第 ${row.lineNo} 条分录借贷方向`}
                   class="w-full!"
                   onChange={() => handleDirectionChange(row, row.entryDirection ?? 'debit')}
                 >
@@ -339,6 +342,7 @@
               <ElSelect
                 key={config.auxiliaryTypeId}
                 v-model={row.auxiliaryValues[config.auxiliaryTypeId]}
+                aria-label={`第 ${row.lineNo} 条分录${config.auxiliaryType?.typeName ?? '核算维度'}`}
                 filterable
                 clearable={!config.isRequired}
                 placeholder={`${config.auxiliaryType?.typeName ?? '核算维度'}${config.isRequired ? '*' : ''}`}
@@ -387,6 +391,7 @@
           <div class="voucher-entry-lines__currency">
             <ElSelect
               v-model={row.currencyId}
+              aria-label={`第 ${row.lineNo} 条分录币种`}
               clearable
               placeholder="币种"
               onChange={() =>
@@ -403,6 +408,7 @@
             </ElSelect>
             <ElInputNumber
               v-model={row.originalAmount}
+              aria-label={`第 ${row.lineNo} 条分录原币金额`}
               min={0}
               precision={2}
               controls={false}
@@ -434,6 +440,7 @@
         ) : (
           <ElInputNumber
             v-model={row.exchangeRate}
+            aria-label={`第 ${row.lineNo} 条分录汇率`}
             min={0.0000000001}
             precision={6}
             controls={false}
@@ -455,6 +462,7 @@
         ) : (
           <ElInputNumber
             v-model={row.quantity}
+            aria-label={`第 ${row.lineNo} 条分录数量`}
             min={0}
             precision={4}
             controls={false}
@@ -481,6 +489,7 @@
               return (
                 <ElInputNumber
                   v-model={row[amountField]}
+                  aria-label={`第 ${row.lineNo} 条分录默认金额`}
                   min={0}
                   precision={2}
                   controls={false}
@@ -512,6 +521,7 @@
               ) : (
                 <ElInputNumber
                   v-model={row.debitAmount}
+                  aria-label={`第 ${row.lineNo} 条分录借方金额`}
                   min={0}
                   precision={2}
                   controls={false}
@@ -536,6 +546,7 @@
               ) : (
                 <ElInputNumber
                   v-model={row.creditAmount}
+                  aria-label={`第 ${row.lineNo} 条分录贷方金额`}
                   min={0}
                   precision={2}
                   controls={false}

@@ -25,7 +25,8 @@
 
     <ArtTableQuery
       ref="tableQueryRef"
-      v-model="searchQuery"
+      :model-value="searchQuery"
+      @update:model-value="replaceReactiveModel(searchQuery, $event)"
       :search-items="searchItems"
       :api-fn="fetchTableData"
       :columns-factory="columnsFactory"
@@ -47,6 +48,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { ElTag } from 'element-plus'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtButtonMore, {
@@ -67,7 +69,7 @@
     updateCarrierStatementStatus
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import {
     canViewField,
     mergeFieldAccessMaps,
@@ -406,7 +408,7 @@
   ])
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCarrierStatementList({ ...params, from, to })
     const previousVisibility = getSensitiveColumnVisibility()
     fieldAccess.value = result.fieldAccess

@@ -1,3 +1,4 @@
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
@@ -75,7 +76,7 @@ export async function exportVoucherList(
   }
 }
 
-export async function fetchVoucherDetail(id: string, options: { showErrorMessage?: boolean } = {}) {
+export async function fetchVoucherDetail(id: string, options: ApiFeedbackOptions = {}) {
   return await responseHandle<Voucher>(
     () => supabase.rpc('fms_get_voucher_secure', { p_voucher_id: id }),
     { breakReturn: true, showErrorMessage: options.showErrorMessage ?? true }

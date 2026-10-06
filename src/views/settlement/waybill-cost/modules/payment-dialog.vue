@@ -1,22 +1,12 @@
 <template>
   <ArtDialog ref="dialogRef" size="md">
-    <ElAlert class="payment-dialog__summary" type="success" :closable="false" show-icon>
-      <template #title>
-        <strong>{{ state.reimbursement?.reimbursementNo }}</strong>
-        · {{ state.reimbursement?.payeeName }}
-      </template>
-      <div class="payment-dialog__amounts">
-        <span
-          >申请报销 <strong>{{ money(state.reimbursement?.totalAmount) }}</strong></span
-        >
-        <span
-          >累计已付 <strong>{{ money(state.reimbursement?.paidAmount ?? 0) }}</strong></span
-        >
-        <span
-          >剩余待付 <strong>{{ money(remainingAmount) }}</strong></span
-        >
-      </div>
-    </ElAlert>
+    <ArtEntitySummary
+      class="mb-4"
+      compact
+      icon="ri:bank-card-line"
+      :title="`${state.reimbursement?.reimbursementNo || ''} · ${state.reimbursement?.payeeName || ''}`"
+      :description="`申请报销 ${money(state.reimbursement?.totalAmount)} · 已付 ${money(state.reimbursement?.paidAmount ?? 0)} · 待付 ${money(remainingAmount)}`"
+    />
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -49,6 +39,7 @@
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import { ElMessage, type FormRules } from 'element-plus'
+  import ArtEntitySummary from '@/components/core/surfaces/art-entity-summary/index.vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
@@ -141,6 +132,7 @@
       ]
     },
     items: computed<FormItem[]>(() => [
+      { label: '付款信息', key: 'paymentSection', type: 'divider', span: 24 },
       {
         label: '付款单号',
         key: 'paymentNo',
@@ -180,6 +172,7 @@
         },
         description: '付款成功后自动登记资金流出日记账'
       },
+      { label: '流水与凭证', key: 'evidenceSection', type: 'divider', span: 24 },
       {
         label: '银行流水号',
         key: 'bankReference',
@@ -296,26 +289,3 @@
 
   defineExpose({ handleOpen })
 </script>
-
-<style scoped lang="scss">
-  .payment-dialog {
-    &__summary {
-      margin-bottom: var(--art-space-4);
-    }
-
-    &__amounts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--art-space-2) var(--art-space-5);
-      margin-top: var(--art-space-2);
-      font-size: var(--art-font-size-sm);
-      color: var(--el-text-color-regular);
-
-      strong {
-        margin-left: 4px;
-        font-variant-numeric: tabular-nums;
-        color: var(--el-text-color-primary);
-      }
-    }
-  }
-</style>

@@ -1,13 +1,16 @@
 <template>
   <ArtDialog ref="dialogRef" size="sm"
-    ><template #subtitle>每个会计期间仅保留一个薪资批次；创建后在明细工作台维护员工金额。</template>
+    ><template v-if="!form.id" #subtitle
+      >每个会计期间仅保留一个薪资批次；创建后在明细工作台维护员工金额。</template
+    >
     <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>会计期间加载失败，请重新加载后再保存。</template>
-      <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+      <ElButton plain type="primary" @click="loadPeriods">重新加载期间</ElButton>
     </ElAlert>
     <ArtForm
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="items"
       :rules="rules"
       :span="24"
@@ -17,6 +20,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { toRef } from 'vue'
   import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'

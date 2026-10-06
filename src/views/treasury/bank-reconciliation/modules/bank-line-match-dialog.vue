@@ -4,16 +4,19 @@
     size="md"
     :confirm-disabled="candidatesLoading || candidateLoadFailed || !ledgerOptions.length"
   >
-    <template #subtitle>
-      {{
-        line
-          ? `${line.transactionDate} · ${formatCurrencyValue(line.amount)} · ${line.counterpartyName || '未知对方'}`
-          : '同账户、同方向的资金流水可按剩余金额分摊匹配。'
-      }}
-    </template>
+    <template #subtitle> 同账户、同方向的资金流水可按剩余金额分摊匹配。 </template>
+    <ArtDescriptions
+      v-if="line"
+      :data="line"
+      :items="lineDescriptionItems"
+      :columns="1"
+      :border="true"
+      label-width="108px"
+      class="mb-4"
+    />
     <ElAlert v-if="candidateLoadFailed" type="error" :closable="false" show-icon class="mb-4">
       <template #title>匹配候选加载失败，请重试。</template>
-      <ElButton text type="primary" :loading="candidatesLoading" @click="loadCandidates">
+      <ElButton plain type="primary" :loading="candidatesLoading" @click="loadCandidates">
         重新加载候选
       </ElButton>
     </ElAlert>
@@ -51,6 +54,8 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import { fetchBankMatchCandidates, matchBankStatementLine } from '@fms/api'
   import { formatCurrencyValue } from '@/utils/ui'
 
@@ -66,6 +71,17 @@
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const line = shallowRef<Api.Fms.BankStatementLineRecord>()
+  const lineDescriptionItems: ArtDescriptionItem<Api.Fms.BankStatementLineRecord>[] = [
+    { key: 'transactionDate', field: 'transactionDate', label: '交易日期', format: 'date' },
+    { key: 'counterpartyName', field: 'counterpartyName', label: '对方名称' },
+    { key: 'amount', field: 'amount', label: '流水金额', format: 'money' },
+    {
+      key: 'remainingAmount',
+      field: 'remainingAmount',
+      label: '待匹配金额',
+      format: 'money'
+    }
+  ]
   const ledgerOptions = ref<Array<{ label: string; value: string; amount: number }>>([])
   const candidatesLoading = ref(false)
   const candidateLoadFailed = ref(false)
@@ -92,17 +108,6 @@
   })
 
   const formItems = computed<FormItem[]>(() => [
-    {
-      label: '银行流水',
-      key: '__statementLine',
-      type: 'input',
-      props: {
-        modelValue: line.value
-          ? `${line.value.transactionDate} · ${formatCurrencyValue(line.value.amount)} · ${line.value.counterpartyName || '未知对方'}`
-          : '--',
-        disabled: true
-      }
-    },
     {
       label: '资金流水',
       key: 'ledgerEntryId',

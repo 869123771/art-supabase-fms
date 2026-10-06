@@ -180,12 +180,59 @@
         @retry="scope.accountSetId ? loadFoundation() : loadAccountSets()"
       >
         <ArtTable
+          v-if="!isCompact"
           :data="filteredBalances"
           :columns="columns"
           :pagination="false"
           table-layout="fixed"
           empty-text="暂无期初余额"
         />
+        <div v-else class="grid gap-3">
+          <article
+            v-for="row in filteredBalances"
+            :key="row.id"
+            class="rounded-lg border border-g-200 p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <strong class="block break-words">{{ row.subject?.subjectName ?? '—' }}</strong>
+                <span class="text-sm text-g-600">{{ row.subject?.subjectCode }}</span>
+              </div>
+              <BalanceActions :row="row" />
+            </div>
+            <ElTag
+              class="mt-2"
+              :type="row.subject?.balanceDirection === 'debit' ? 'success' : 'warning'"
+            >
+              {{ row.subject?.balanceDirection === 'debit' ? '借方' : '贷方' }}
+            </ElTag>
+            <dl v-if="canViewRowField(row, 'balanceAmounts')" class="mt-3 grid grid-cols-2 gap-3">
+              <div
+                ><dt class="text-sm text-g-600">期初借方</dt
+                ><dd>{{ formatMoney(row.openingDebit) }}</dd></div
+              >
+              <div
+                ><dt class="text-sm text-g-600">期初贷方</dt
+                ><dd>{{ formatMoney(row.openingCredit) }}</dd></div
+              >
+            </dl>
+            <p
+              v-if="
+                canViewRowField(row, 'auxiliaryDetails') &&
+                Object.keys(row.auxiliaryValues ?? {}).length
+              "
+              class="mt-3 break-words text-sm"
+            >
+              辅助核算：{{ formatAuxiliaryValues(row.auxiliaryValues) }}
+            </p>
+            <p v-if="canViewRowField(row, 'auxiliaryDetails') && row.currency" class="mt-3 text-sm">
+              {{ row.currency.currencyCode
+              }}<template v-if="canViewRowField(row, 'balanceAmounts')">
+                · 原币金额 {{ formatSensitiveNumber(row.originalCurrencyAmount) }}</template
+              >
+            </p>
+          </article>
+        </div>
       </ArtAsyncState>
     </ArtSectionCard>
 
@@ -199,6 +246,7 @@
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
+  import { useMediaQuery } from '@vueuse/core'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
@@ -406,12 +454,37 @@
     {
       key: 'status',
       label: '平衡状态',
-      value: summary.isBalanced ? '已平衡' : '待调整',
+      value: !summary.entryCount ? '待录入' : summary.isBalanced ? '已平衡' : '待调整',
       description: summary.status === 'confirmed' ? '已确认锁定' : '草稿可编辑',
-      icon: summary.isBalanced ? 'ri:scales-3-line' : 'ri:error-warning-line',
-      tone: summary.isBalanced ? 'primary' : 'danger'
+      icon: !summary.entryCount
+        ? 'ri:file-add-line'
+        : summary.isBalanced
+          ? 'ri:scales-3-line'
+          : 'ri:error-warning-line',
+      tone: !summary.entryCount ? 'info' : summary.isBalanced ? 'primary' : 'danger'
     }
   ])
+
+  const isCompact = useMediaQuery('(max-width: 640px)')
+  const BalanceActions = ({ row }: { row: OpeningBalance }) =>
+    summary.status === 'draft' ? (
+      <BusinessTableRowActions>
+        {canEditRow(row) ? (
+          <ArtButtonTable
+            type="edit"
+            permission="FinanceOpeningBalance:Edit"
+            onClick={() => openDialog(row)}
+          />
+        ) : null}
+        <ArtButtonTable
+          type="delete"
+          permission="FinanceOpeningBalance:Delete"
+          onClick={() => removeBalance(row)}
+        />
+      </BusinessTableRowActions>
+    ) : (
+      <span class="opening-balance-page__locked">已锁定</span>
+    )
 
   const columns = computed<ColumnOption<OpeningBalance>[]>(() => [
     {
@@ -500,25 +573,7 @@
             label: '操作',
             width: 104,
             fixed: 'right' as const,
-            formatter: (row: OpeningBalance) =>
-              summary.status === 'draft' ? (
-                <BusinessTableRowActions>
-                  {canEditRow(row) ? (
-                    <ArtButtonTable
-                      type="edit"
-                      permission="FinanceOpeningBalance:Edit"
-                      onClick={() => openDialog(row)}
-                    />
-                  ) : null}
-                  <ArtButtonTable
-                    type="delete"
-                    permission="FinanceOpeningBalance:Delete"
-                    onClick={() => removeBalance(row)}
-                  />
-                </BusinessTableRowActions>
-              ) : (
-                <span class="opening-balance-page__locked">已锁定</span>
-              )
+            formatter: (row: OpeningBalance) => <BalanceActions row={row} />
           } satisfies ColumnOption<OpeningBalance>
         ]
       : [])

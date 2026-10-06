@@ -26,7 +26,10 @@
           v-if="canViewField(detail.fieldAccess, 'invoiceAttachments')"
           class="invoice-detail__section"
           title="发票附件"
-          :empty="!attachmentUrls.length"
+          :empty="
+            getFieldAccess(detail.fieldAccess, 'invoiceAttachments') === 'masked' ||
+            !attachmentUrls.length
+          "
           :empty-title="
             getFieldAccess(detail.fieldAccess, 'invoiceAttachments') === 'masked'
               ? '附件内容已脱敏'
@@ -41,18 +44,7 @@
           :min-height="148"
           preserve-content-structure
         >
-          <div class="invoice-detail__attachments">
-            <ElImage
-              v-for="(url, index) in attachmentUrls"
-              :key="url"
-              :src="url"
-              :preview-src-list="attachmentUrls"
-              :initial-index="index"
-              preview-teleported
-              fit="cover"
-              class="invoice-detail__attachment"
-            />
-          </div>
+          <ArtUploadImage :model-value="attachmentUrls" title="发票附件" :size="112" readonly />
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -99,6 +91,7 @@
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchInvoiceDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
@@ -254,18 +247,6 @@
   .invoice-detail {
     &__section {
       margin-top: var(--art-space-6);
-    }
-
-    &__attachments {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--art-space-3);
-    }
-
-    &__attachment {
-      width: 112px;
-      height: 112px;
-      border-radius: var(--el-border-radius-base);
     }
   }
 </style>

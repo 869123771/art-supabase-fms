@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <div class="posting-rule-dialog">
       <ArtForm
         root-class="art-form--mobile-stack"
@@ -7,9 +7,9 @@
         v-model="form.data"
         :items="form.items"
         :rules="form.rules"
-        :span="8"
+        :span="12"
         :gutter="18"
-        label-width="112px"
+        label-width="96px"
         :show-reset="false"
         :show-submit="false"
         scroll-to-error
@@ -237,11 +237,12 @@
     data: createInitialForm(),
     lines: [createLine(1, 'debit'), createLine(2, 'credit')],
     items: computed<FormItem[]>(() => [
+      { label: '规则信息', key: 'identitySection', type: 'divider', span: 24 },
       {
         label: '账套',
         key: 'accountSetId',
         type: 'select',
-        span: 12,
+        span: 24,
         props: {
           options: [{ label: context.accountSet.label, value: context.accountSet.value }],
           disabled: true
@@ -251,16 +252,17 @@
         label: '规则编码',
         key: 'ruleCode',
         type: 'input',
-        span: 6,
+        span: 12,
         props: { maxlength: 40, placeholder: '如 CUSTOMER_RECEIPT' }
       },
       {
         label: '规则名称',
         key: 'ruleName',
-        span: 6,
+        span: 12,
         type: 'input',
         props: { maxlength: 80, placeholder: '请输入规则名称' }
       },
+      { label: '制证设置', key: 'postingSection', type: 'divider', span: 24 },
       {
         label: '业务事件',
         key: 'sourceEvent',
@@ -313,6 +315,7 @@
             }
           ]
         : []),
+      { label: '生效管理', key: 'validitySection', type: 'divider', span: 24 },
       {
         label: '生效日期',
         key: 'effectiveFrom',
@@ -448,6 +451,7 @@
       formatter: (row) => (
         <ElSelect
           v-model={row.subjectId}
+          aria-label={`第 ${row.lineNo} 行会计科目`}
           filterable
           class="w-full!"
           placeholder="选择末级科目"
@@ -477,6 +481,7 @@
               lineSubject(row)?.cashFlowRequired ? (
                 <ElSelect
                   v-model={row.cashFlowItemId}
+                  aria-label={`第 ${row.lineNo} 行现金流量项目`}
                   filterable
                   class="w-full!"
                   placeholder="现金科目必选"
@@ -498,7 +503,11 @@
       requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条制证分录未选择金额口径`,
       width: 190,
       formatter: (row) => (
-        <ElSelect v-model={row.amountKey} class="w-full!">
+        <ElSelect
+          v-model={row.amountKey}
+          class="w-full!"
+          aria-label={`第 ${row.lineNo} 行金额口径`}
+        >
           {amountKeyOptions.value.map((item) => (
             <ElOption key={item.value} label={item.label} value={item.value} />
           ))}
@@ -520,6 +529,7 @@
       formatter: (row) => (
         <ElInputNumber
           v-model={row.amountMultiplier}
+          aria-label={`第 ${row.lineNo} 行倍率`}
           min={0.000001}
           max={999999}
           precision={6}
@@ -533,13 +543,19 @@
       label: '分录摘要',
       minWidth: 170,
       formatter: (row) => (
-        <ElInput v-model={row.summary} maxlength={120} placeholder="默认使用事件摘要" />
+        <ElInput
+          v-model={row.summary}
+          maxlength={120}
+          placeholder="默认使用事件摘要"
+          aria-label={`第 ${row.lineNo} 行分录摘要`}
+        />
       )
     },
     {
       prop: 'auxiliaryBindings',
       label: '核算维度',
       width: 124,
+      fixed: 'right',
       align: 'center',
       formatter: (row) => (
         <div class="flex items-center justify-center gap-2">
@@ -722,7 +738,8 @@
     }
     await dialogRef.value?.handleOpen(row, {
       title: row ? '编辑自动入账规则' : '新增自动入账规则',
-      subtitle: '规则只生成草稿或待复核凭证，不会自动审核或过账。',
+      subtitle: row ? undefined : '设置业务事件与分录，生成草稿或待审核凭证。',
+      confirmText: row ? '保存修改' : '创建规则',
       contentMaxHeight: '78vh',
       showFullscreenButton: true,
       dialogProps: { closeOnClickModal: false },

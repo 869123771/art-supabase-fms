@@ -48,7 +48,8 @@
 
     <ArtTableQuery
       ref="tableRef"
-      v-model="search"
+      :model-value="search"
+      @update:model-value="replaceReactiveModel(search, $event)"
       class="financial-reports-page__table"
       :search-items="searchItems"
       :api-fn="fetchTableData"
@@ -74,6 +75,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
@@ -103,7 +105,7 @@
     getFieldAccess,
     mergeFieldAccessMaps
   } from '@/utils/field-permission'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
     fetchAccountingPeriodList,
@@ -179,6 +181,7 @@
     {
       label: '账套',
       key: 'accountSetId',
+      span: 12,
       type: 'select',
       props: {
         options: accountSetOptions.value,
@@ -518,7 +521,7 @@
   }
 
   function pagedResult(rows: ReportRow[], params: TablePageParams) {
-    const { from, to } = pageInfoHandler(params)
+    const { from, to } = buildSupabasePageRange(params)
     return { data: rows.slice(from, to + 1), total: rows.length }
   }
 

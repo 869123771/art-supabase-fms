@@ -27,7 +27,7 @@
       :columns-factory="columnsFactory"
       :header-actions="headerActions"
       header-actions-placement="workspace"
-      :search-bar-props="{ span: 8, labelWidth: 82, isExpand: true, showExpand: false }"
+      :search-bar-props="{ span: 6, labelWidth: 82, isExpand: true, showExpand: false }"
       :table-props="{
         rowKey: 'id',
         tableLayout: 'fixed',
@@ -68,7 +68,7 @@
   } from '../../modules/use-finance-account-set-prerequisite'
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../modules/accounting-select-text'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
     canEditField,
@@ -118,6 +118,7 @@
   )
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const deleteContext = useMasterDataDeleteProcessingContext()
+  const route = useRoute()
   const navigationReady = ref(false)
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
@@ -132,7 +133,9 @@
     { handleOpen: (accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
   >()
   const depreciationRef = ref<
-    { handleOpen: (accountSetId?: string) => Promise<void> } & FinancePrerequisiteOverlay
+    {
+      handleOpen: (accountSetId?: string, runNo?: string) => Promise<void>
+    } & FinancePrerequisiteOverlay
   >()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const categoryOptions = ref<Array<{ label: string; value: string }>>([])
@@ -199,7 +202,7 @@
     {
       label: '所属账套',
       key: 'accountSetId',
-      span: 10,
+      span: 12,
       type: 'select',
       props: {
         options: accountSetOptions.value,
@@ -236,6 +239,7 @@
     {
       label: '关键字',
       key: 'keyword',
+      span: 12,
       type: 'input',
       props: {
         clearable: true,
@@ -450,7 +454,7 @@
   }
 
   async function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchFixedAssetList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []
@@ -539,11 +543,14 @@
     table.search.categoryId = undefined
     table.search.status = undefined
     await tableRef.value?.getData()
+    if (route.query.dependencyCode === 'fms_asset_depreciation_run') {
+      await depreciationRef.value?.handleOpen(data.accountSetId, context.recordNo)
+    }
     return true
   }
 
   watch(
-    () => deleteContext.value.recordId,
+    () => [deleteContext.value.recordId, deleteContext.value.recordNo],
     () => {
       if (!navigationReady.value) return
       if (deleteContext.value.active) void locateReferencedAsset()

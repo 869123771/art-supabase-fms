@@ -1,5 +1,5 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl">
+  <ArtDialog ref="dialogRef" size="lg">
     <CashVoucherOcrPanel
       v-if="dialog.mode === 'create'"
       ref="ocrPanelRef"
@@ -11,7 +11,8 @@
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="formItems"
       :rules="formRules"
       :span="12"
@@ -72,7 +73,7 @@
     <div v-if="allocationRows.length" class="payment-allocation">
       <div class="payment-allocation__header"
         ><span>核销明细</span
-        ><ElButton link type="primary" @click="autoAllocate">按未付金额自动分配</ElButton></div
+        ><ElButton plain type="primary" @click="autoAllocate">按未付金额自动分配</ElButton></div
       >
       <ArtTable
         :data="allocationRows"
@@ -95,6 +96,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -124,7 +126,7 @@
   } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import CashVoucherOcrPanel from './cash-voucher-ocr-panel.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { canEditField } from '@/utils/field-permission'
@@ -324,7 +326,7 @@
         maxlength: 50,
         ...transactionNumber.inputProps(dialog.mode === 'allocate', '请输入付款流水号', true)
       },
-      description: transactionNumber.description.value
+      description: dialog.mode === 'create' ? transactionNumber.description.value : undefined
     },
     { label: '付款承运商', key: 'carrierId', type: 'input', span: 12 },
     {
@@ -398,7 +400,7 @@
   }
   async function fetchStatementSelectorData(params: DataSelectFetchParams) {
     if (!form.carrierId) return { data: [], total: 0 }
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCarrierStatementAllocatableList({
       carrierId: form.carrierId,
       keyword: params.keyword,

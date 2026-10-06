@@ -74,8 +74,8 @@
         <ArtDescriptions
           :data="detail.data"
           :items="expenseItems"
-          :columns="4"
-          label-width="104px"
+          :columns="descriptionColumns"
+          label-width="128px"
         />
       </ArtSectionCard>
 
@@ -88,8 +88,8 @@
         <ArtDescriptions
           :data="detail.data"
           :items="transportItems"
-          :columns="4"
-          label-width="104px"
+          :columns="descriptionColumns"
+          label-width="128px"
         >
           <template #item-waybillNo>
             <RouterLink
@@ -112,8 +112,8 @@
         <ArtDescriptions
           :data="detail.data"
           :items="locationItems"
-          :columns="4"
-          label-width="104px"
+          :columns="descriptionColumns"
+          label-width="128px"
         />
       </ArtSectionCard>
 
@@ -125,8 +125,8 @@
         <ArtDescriptions
           :data="detail.data"
           :items="settlementItems"
-          :columns="4"
-          label-width="104px"
+          :columns="descriptionColumns"
+          label-width="128px"
         >
           <template #item-reimbursementNo>
             <RouterLink
@@ -153,15 +153,13 @@
           canReadExpenseEvidence ? '上传票据后可在此查看与下载附件。' : '当前权限无法查看票据附件。'
         "
       >
-        <div
+        <ArtUploadImage
           v-if="canReadExpenseEvidence && attachments.length"
-          class="waybill-cost-detail__attachments"
-        >
-          <div v-for="file in attachments" :key="file.url" class="waybill-cost-detail__attachment">
-            <span><ArtSvgIcon icon="ri:attachment-2" aria-hidden="true" /></span>
-            <ArtAttachmentLink :file="file" />
-          </div>
-        </div>
+          :model-value="detail.data.attachments ?? []"
+          title="费用票据"
+          :size="112"
+          readonly
+        />
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -181,10 +179,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useMediaQuery } from '@vueuse/core'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import type { FilePreviewTarget } from '@/hooks/core/useFilePreview'
-  import ArtAttachmentLink from '@/components/core/media/art-file-viewer/attachment-link.vue'
+  import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtPageHeader from '@/components/core/layouts/art-page-header/index.vue'
@@ -223,6 +222,8 @@
 
   const route = useRoute()
   const router = useRouter()
+  const isNarrow = useMediaQuery('(max-width: 1440px)')
+  const descriptionColumns = computed(() => (isNarrow.value ? 2 : 4))
   const detail = reactive<DetailState>({
     data: undefined,
     error: null,
@@ -338,7 +339,12 @@
       ? [
           { key: 'providerName', label: '服务商', field: 'providerName' as const },
           { key: 'payeeName', label: '收款方', field: 'payeeName' as const },
-          { key: 'paymentChannel', label: '支付渠道', field: 'paymentChannel' as const },
+          {
+            key: 'paymentChannel',
+            label: '支付渠道',
+            field: 'paymentChannel' as const,
+            dictCode: 'tmsCashPaymentMethod'
+          },
           {
             key: 'invoiceNo',
             label: '票据号码',
@@ -527,12 +533,10 @@
   .waybill-cost-detail {
     min-height: 100%;
     padding: 12px 16px 18px;
-    background: var(--art-main-bg-color);
+    background: var(--default-bg-color);
 
     &__header-status,
-    &__header-meta,
-    &__attachments,
-    &__attachment {
+    &__header-meta {
       display: flex;
       align-items: center;
     }
@@ -655,32 +659,6 @@
       &:focus-visible {
         outline: 2px solid var(--theme-color);
         outline-offset: 2px;
-        border-radius: var(--el-border-radius-small);
-      }
-    }
-
-    &__attachments {
-      flex-wrap: wrap;
-      gap: var(--art-space-3);
-    }
-
-    &__attachment {
-      gap: var(--art-space-2);
-      min-width: 180px;
-      max-width: 100%;
-      padding: 10px 12px;
-      background: var(--el-fill-color-extra-light);
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: var(--el-border-radius-base);
-
-      > span {
-        display: grid;
-        flex: none;
-        place-items: center;
-        width: 30px;
-        height: 30px;
-        color: var(--theme-color);
-        background: color-mix(in srgb, var(--theme-color) 9%, transparent);
         border-radius: var(--el-border-radius-small);
       }
     }

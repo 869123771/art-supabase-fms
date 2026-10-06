@@ -1,13 +1,26 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header>
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+        >
+          <ArtSvgIcon icon="ri:line-chart-line" class="text-xl" />
+        </span>
+        <div class="min-w-0">
+          <div class="text-base font-semibold text-g-900">固定资产折旧管理</div>
+          <div class="mt-0.5 text-xs text-g-500">选择期间计算折旧，核对批次后确认入账</div>
+        </div>
+      </div>
+    </template>
     <div class="depreciation-workbench">
       <ElAlert v-if="loadError" type="error" :closable="false" show-icon>
         <template #title>折旧数据加载失败</template>
-        <ElButton link type="primary" @click="loadInitialData">重新加载</ElButton>
+        <ElButton plain type="primary" @click="loadInitialData">重新加载</ElButton>
       </ElAlert>
       <ElAlert v-if="periodLoadFailed" type="error" :closable="false" show-icon>
         <template #title>会计期间加载失败，请重新加载后再计算。</template>
-        <ElButton text type="primary" @click="loadPeriods">重新加载期间</ElButton>
+        <ElButton plain type="primary" @click="loadPeriods">重新加载期间</ElButton>
       </ElAlert>
       <section class="depreciation-workbench__controls">
         <ElSelect
@@ -80,9 +93,23 @@
           :show-table-header="false"
           :data="runs"
           row-key="id"
+          max-height="280"
+          :highlight-current-row="true"
+          :current-row-key="selectedRun?.id"
           @row-click="selectRun"
         >
-          <ElTableColumn prop="runNo" label="批次号" min-width="150" />
+          <ElTableColumn prop="runNo" label="批次号" min-width="170">
+            <template #default="{ row }">
+              <ElButton
+                link
+                type="primary"
+                :aria-pressed="selectedRun?.id === row.id"
+                @click.stop="selectRun(row)"
+              >
+                {{ row.runNo }}
+              </ElButton>
+            </template>
+          </ElTableColumn>
           <ElTableColumn label="期间" min-width="120"
             ><template #default="{ row }">{{
               row.period ? `${row.period.fiscalYear}-${row.period.periodNo}` : '--'
@@ -114,9 +141,20 @@
           ></ElTableColumn>
         </ArtTable>
         <div v-else-if="runs.length" class="depreciation-workbench__mobile-list">
-          <article v-for="run in runs" :key="run.id" class="depreciation-workbench__mobile-item">
+          <article
+            v-for="run in runs"
+            :key="run.id"
+            class="depreciation-workbench__mobile-item"
+            :class="selectedRun?.id === run.id ? 'border-primary! bg-primary/5' : ''"
+          >
             <div class="depreciation-workbench__mobile-heading">
-              <ElButton link type="primary" @click="selectRun(run)">{{ run.runNo }}</ElButton>
+              <ElButton
+                link
+                type="primary"
+                :aria-pressed="selectedRun?.id === run.id"
+                @click="selectRun(run)"
+                >{{ run.runNo }}</ElButton
+              >
               <ArtDictDisplay
                 dict-code="fmsDepreciationRunStatus"
                 :value="run.status"
@@ -172,11 +210,14 @@
           size="small"
           max-height="300"
         >
-          <ElTableColumn label="资产" min-width="190"
-            ><template #default="{ row }"
-              >{{ row.asset?.assetNo }} · {{ row.asset?.assetName }}</template
-            ></ElTableColumn
-          >
+          <ElTableColumn label="资产" min-width="240">
+            <template #default="{ row }">
+              <BusinessTableIdentityCell
+                :primary="row.asset?.assetName"
+                :secondary="row.asset?.assetNo"
+              />
+            </template>
+          </ElTableColumn>
           <ElTableColumn v-if="canViewLineValues" label="期初累计" min-width="120" align="right"
             ><template #default="{ row }">{{
               formatProtectedAmount(row.openingAccumulatedDepreciation)
@@ -223,7 +264,9 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
@@ -250,6 +293,7 @@
   const accountSetId = ref('')
   const loadError = ref(false)
   const requestedAccountSetId = ref<string>()
+  const requestedRunNo = ref<string>()
   const periodId = ref('')
   const {
     periodOptions,
@@ -399,13 +443,15 @@
       accountSetOptions.value = data ?? []
       accountSetId.value = requestedAccountSetId.value || accountSetOptions.value[0]?.value || ''
       await loadPeriods()
+      const requestedRun = runs.value.find((run) => run.runNo === requestedRunNo.value)
+      if (requestedRun) await selectRun(requestedRun)
     } catch {
       loadError.value = true
     } finally {
       prerequisiteOverlay.finishLoading()
     }
   }
-  async function handleOpen(currentAccountSetId?: string): Promise<void> {
+  async function handleOpen(currentAccountSetId?: string, runNo?: string): Promise<void> {
     ++runsRequestId
     ++linesRequestId
     resetPeriods()
@@ -418,6 +464,7 @@
     runsLoading.value = false
     linesLoading.value = false
     requestedAccountSetId.value = currentAccountSetId
+    requestedRunNo.value = runNo
     loadError.value = false
     accountSetOptions.value = []
     runs.value = []
@@ -446,7 +493,7 @@
 
   .depreciation-workbench__controls {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.3fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
     padding: 16px;
     background: var(--el-fill-color-lighter);
@@ -457,6 +504,10 @@
       width: 100%;
       min-width: 0;
       margin: 0;
+    }
+
+    > :first-child {
+      grid-column: 1 / -1;
     }
   }
 

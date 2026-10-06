@@ -27,7 +27,7 @@
         :title="errorMessage"
       >
         <template #default>
-          <ElButton type="primary" link @click="loadForecast">重新加载</ElButton>
+          <ElButton type="primary" plain @click="loadForecast">重新加载</ElButton>
         </template>
       </ElAlert>
 
@@ -42,27 +42,23 @@
 
       <ArtSectionCard
         class="cash-forecast-page__workspace"
+        title="滚动资金预测"
+        :subtitle="`更新时间 ${generatedAt}，按当前未结应收应付在 30 天内线性兑现测算。`"
         preserve-content-structure
         :loading="loading && !forecast"
         :error="!forecast ? errorMessage : ''"
         :min-height="220"
         @retry="loadForecast"
       >
-        <template #header>
-          <header class="cash-forecast-page__section-header">
-            <div>
-              <ArtSectionTitle :show-line="false">滚动资金预测</ArtSectionTitle>
-              <p>更新时间 {{ generatedAt }}，按当前未结应收应付在 30 天内线性兑现测算。</p>
-            </div>
-            <ElTag
-              v-if="forecast"
-              :type="pressureMeta[forecast.pressureLevel].tagType"
-              effect="light"
-              round
-            >
-              {{ pressureMeta[forecast.pressureLevel].label }}
-            </ElTag>
-          </header>
+        <template #actions>
+          <ElTag
+            v-if="forecast"
+            :type="pressureMeta[forecast.pressureLevel].tagType"
+            effect="light"
+            round
+          >
+            {{ pressureMeta[forecast.pressureLevel].label }}
+          </ElTag>
         </template>
         <template #loading>
           <ElSkeleton animated aria-hidden="true">
@@ -85,18 +81,19 @@
         <div v-if="forecast" class="cash-forecast-page__horizons">
           <article v-for="item in forecast.horizons" :key="item.days">
             <div class="cash-forecast-page__horizon-title">
-              <span>{{ item.days }} 天</span>
+              <span>未来 {{ item.days }} 天</span>
               <ArtSvgIcon icon="ri:calendar-schedule-line" />
             </div>
             <strong>{{ formatMoney(item.projectedBalance) }}</strong>
+            <p class="mt-1 mb-0 text-xs text-g-600">预计可用余额</p>
             <dl>
               <div>
                 <dt>预计流入</dt>
-                <dd class="is-inflow">+{{ formatMoney(item.expectedInflow) }}</dd>
+                <dd class="is-inflow">{{ formatFlowMoney(item.expectedInflow, '+') }}</dd>
               </div>
               <div>
                 <dt>预计流出</dt>
-                <dd class="is-outflow">-{{ formatMoney(item.expectedOutflow) }}</dd>
+                <dd class="is-outflow">{{ formatFlowMoney(item.expectedOutflow, '-') }}</dd>
               </div>
             </dl>
           </article>
@@ -154,7 +151,6 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
@@ -212,6 +208,8 @@
     forecast.value ? formatWithDayjs(forecast.value.generatedAt) : '--'
   )
   const formatMoney = (value?: number) => (value === undefined ? '--' : formatCurrencyValue(value))
+  const formatFlowMoney = (value: number | undefined, prefix: '+' | '-') =>
+    value === undefined ? '--' : `${prefix}${formatMoney(value)}`
   const formatSignedMoney = (value?: number) => {
     if (value === undefined) return '--'
     const prefix = value > 0 ? '+' : ''
@@ -287,22 +285,7 @@
     &__explain {
       display: flex;
       flex-direction: column;
-      gap: 18px;
       min-width: 0;
-      padding: 18px;
-    }
-
-    &__section-header {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      justify-content: space-between;
-
-      p {
-        margin: 5px 0 0;
-        font-size: 12px;
-        color: var(--art-gray-500);
-      }
     }
 
     &__horizons,
@@ -316,16 +299,16 @@
     &__explain-grid > div {
       min-width: 0;
       padding: 16px;
-      background: var(--art-main-bg-color);
-      border: 1px solid var(--art-border-color);
-      border-radius: calc(var(--el-border-radius-base) + 5px);
+      background: var(--art-gray-100);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: var(--el-border-radius-base);
     }
 
     &__horizon-title {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: var(--art-gray-500);
+      color: var(--el-text-color-regular);
     }
 
     &__horizons article > strong,
@@ -333,7 +316,8 @@
       display: block;
       margin-top: 12px;
       font-size: clamp(20px, 2vw, 28px);
-      color: var(--art-text-gray-900);
+      font-variant-numeric: tabular-nums;
+      color: var(--art-gray-900);
     }
 
     &__horizons dl {
@@ -354,7 +338,7 @@
       }
 
       dt {
-        color: var(--art-gray-500);
+        color: var(--el-text-color-regular);
       }
 
       .is-inflow {
@@ -405,14 +389,14 @@
         gap: 6px;
         align-items: center;
         font-size: 13px;
-        color: var(--art-gray-500);
+        color: var(--el-text-color-regular);
       }
 
       p {
         margin: 9px 0 0;
         font-size: 12px;
         line-height: 1.65;
-        color: var(--art-gray-500);
+        color: var(--el-text-color-regular);
       }
     }
   }
