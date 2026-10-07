@@ -88,8 +88,7 @@ export async function saveVoucher(payload: Api.Fms.SaveVoucherPayload) {
     () => supabase.rpc('save_fms_voucher_secure', { p_payload: payload }),
     {
       breakReturn: true,
-      showMessage: true,
-      message: payload.id ? '会计凭证已保存' : '会计凭证已创建'
+      showErrorMessage: true
     }
   )
 }
@@ -109,13 +108,25 @@ export async function transitionVoucher(
     reverse: '凭证已冲销并生成反向凭证'
   }
   return await responseHandle<Voucher>(
-    () =>
-      supabase.rpc('transition_fms_voucher_secure', {
+    async () => {
+      const result = await supabase.rpc('transition_fms_voucher_secure', {
         p_voucher_id: id,
         p_action: action,
         p_reason: reason || null,
         p_action_date: actionDate || null
-      }),
+      })
+      const data: unknown = result.data
+      if (
+        !result.error &&
+        (typeof data !== 'object' ||
+          data === null ||
+          !('id' in data) ||
+          typeof data.id !== 'string' ||
+          !data.id.trim())
+      )
+        throw new Error('凭证操作结果不完整，请刷新列表核实状态后重试')
+      return result
+    },
     { breakReturn: true, showMessage: true, message: messageMap[action] }
   )
 }
@@ -169,6 +180,6 @@ export async function saveVoucherTemplate(payload: Api.Fms.SaveVoucherTemplatePa
 export async function deleteVoucherTemplate(id: string) {
   return await responseHandle<void>(
     () => supabase.rpc('delete_fms_voucher_template_secure', { p_template_id: id }),
-    { breakReturn: true, showMessage: true, message: '凭证模板已删除' }
+    { breakReturn: true, showMessage: true, showErrorMessage: false, message: '凭证模板已删除' }
   )
 }

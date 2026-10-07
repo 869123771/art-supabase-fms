@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { storeToRefs } from 'pinia'
   import ArtButtonMore, {
@@ -144,9 +145,10 @@
                 ? `最近结账 ${formatWithDayjs(summary.value.latestCompletedAt, 'YYYY-MM-DD')}`
                 : '关账诊断汇总',
             icon: 'ri:alarm-warning-line',
-            tone: toFiniteNumber(summary.value.blockingCount)
-              ? ('danger' as const)
-              : ('info' as const)
+            tone:
+              (normalizeNullableNumber(summary.value.blockingCount) ?? 0)
+                ? ('danger' as const)
+                : ('info' as const)
           }
         ]
       : [])
@@ -236,7 +238,11 @@
               width: 90,
               align: 'right' as const,
               formatter: (row: Row) => (
-                <strong class={toFiniteNumber(row.blockingCount) ? 'period-close-blocking' : ''}>
+                <strong
+                  class={
+                    (normalizeNullableNumber(row.blockingCount) ?? 0) ? 'period-close-blocking' : ''
+                  }
+                >
                   {formatProtectedCount(row.blockingCount)}
                 </strong>
               )
@@ -404,10 +410,6 @@
   }
   async function refreshAll() {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
-  }
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined | null): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
   }
   function formatProtectedCount(
     value: Api.Fms.SensitiveNumber | undefined | null

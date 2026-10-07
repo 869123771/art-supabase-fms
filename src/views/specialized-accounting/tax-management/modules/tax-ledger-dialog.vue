@@ -20,7 +20,7 @@
   import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { FormRules } from 'element-plus'
@@ -152,9 +152,9 @@
       sourceNo: line?.sourceNo || null,
       occurredOn: line?.occurredOn || dayjs().format('YYYY-MM-DD'),
       direction: line?.direction || 'output',
-      taxableAmount: toFiniteNumber(line?.taxableAmount),
-      taxRate: toNullableFiniteNumber(line?.taxRate),
-      taxAmount: toFiniteNumber(line?.taxAmount),
+      taxableAmount: normalizeNullableNumber(line?.taxableAmount) ?? 0,
+      taxRate: normalizeNullableNumber(line?.taxRate),
+      taxAmount: normalizeNullableNumber(line?.taxAmount) ?? 0,
       isDeductible: line?.isDeductible ?? true,
       remark: line?.remark || null
     })
@@ -180,17 +180,6 @@
       },
       dialogProps: { closeOnClickModal: false }
     })
-  }
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
-  }
-  function toNullableFiniteNumber(
-    value: Api.Fms.SensitiveNumber | undefined | null
-  ): number | null {
-    if (value === null || value === undefined || value === '') return null
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : null
   }
   defineExpose({ handleOpen })
 </script>

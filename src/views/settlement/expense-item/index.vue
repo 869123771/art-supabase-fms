@@ -61,8 +61,6 @@
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import type { ColumnOption } from '@/types'
-  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { DeleteReferenceBlockedError } from '@/utils/supabase/delete-reference'
   import { useUserStore } from '@/store/modules/user'
   import { deleteExpenseItem, fetchExpenseItemTree } from '@fms/api'
   import { fetchTenantList } from '@/api/system-manage'
@@ -79,13 +77,12 @@
     handleOpen: (row?: ExpenseItem, parent?: ExpenseItem) => Promise<void>
   }
 
-  const { confirmAction } = useArtFeedback()
   const userStore = useUserStore()
   const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
   const route = useRoute()
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord, deleteBusy } = useRecordDeleteGuard(
     'tms_expense_item',
     '费用项目'
   )
@@ -168,6 +165,7 @@
       permission: 'FinanceExpenseItem:Add',
       type: 'add',
       label: '新增一级项目',
+      disabled: deleteBusy.value,
       onClick: () => openDialog()
     }
   ])
@@ -253,11 +251,12 @@
           <ArtButtonTable
             type="edit"
             permission="FinanceExpenseItem:Edit"
+            disabled={deleteBusy.value}
             onClick={() => openDialog(row)}
           />
           <ArtButtonMore
             trigger="click"
-            list={moreActions}
+            list={() => moreActions.map((item) => ({ ...item, disabled: deleteBusy.value }))}
             onClick={(item: ButtonMoreItem) => handleMoreAction(item, row)}
           />
         </BusinessTableRowActions>
@@ -282,38 +281,28 @@
   ]
 
   function openDialog(row?: ExpenseItem, parent?: ExpenseItem): void {
+    if (deleteBusy.value) return
     void dialogRef.value?.handleOpen(row, parent)
   }
 
   function handleMoreAction(item: ButtonMoreItem, row: ExpenseItem): void {
+    if (deleteBusy.value) return
     if (item.key === 'addChild') openDialog(undefined, row)
     if (item.key === 'delete') void handleDelete(row)
   }
 
   async function handleDelete(row: ExpenseItem): Promise<void> {
-    if (!row.id) return
+    const id = row.id
+    if (!id) return
     const tenantContext = isPlatformSuper.value ? `所属租户：${resolveTenantLabel(row)}。` : ''
-    try {
-      if (await inspectDeleteReferences([{ id: row.id, label: row.itemName }])) return
-      await confirmAction(
-        `确定删除费用项目“${row.itemName}”吗？${tenantContext}删除后不可撤销。`,
-        '删除费用项目',
-        {
-          type: 'warning',
-          confirmButtonText: '确认删除',
-          cancelButtonText: '取消',
-          confirmButtonType: 'danger'
-        }
-      )
-      await deleteExpenseItem(row.id)
-      await tableRef.value?.refreshRemove()
-    } catch (error) {
-      if (error === 'cancel' || error === 'close') return
-      // 外键并发拒绝已由共享响应层打开引用检查，避免重复打开。
-      if (error instanceof DeleteReferenceBlockedError) return
-      notifyFriendlyError(error, '费用项目删除失败，请重新检查关联记录后重试')
-      await inspectDeleteReferences([{ id: row.id, label: row.itemName }])
-    }
+    await deleteRecord({
+      resource: { id, label: row.itemName },
+      permission: 'FinanceExpenseItem:Delete',
+      confirmMessage: `确定删除费用项目“${row.itemName}”吗？${tenantContext}删除后不可撤销。`,
+      remove: () => deleteExpenseItem(id),
+      onDeleted: async () => tableRef.value?.refreshRemove(),
+      failureMessage: '费用项目删除失败，请重新检查关联记录后重试'
+    })
   }
 
   function handleSaved(type: 'add' | 'edit'): void {

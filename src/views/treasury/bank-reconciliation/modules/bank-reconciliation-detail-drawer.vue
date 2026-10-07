@@ -676,6 +676,11 @@
     })
   }
 
+  onDeactivated(() => {
+    detailRequestVersion += 1
+    matchRequestVersion += 1
+  })
+
   defineExpose({ handleOpen })
 </script>
 

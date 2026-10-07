@@ -47,6 +47,7 @@
           aria-label="当前账套"
           filterable
           :loading="scope.loading"
+          :disabled="mutationBusy"
           placeholder="请选择账套"
           @change="handleAccountSetChange"
         >
@@ -89,6 +90,7 @@
           <ElButton
             v-auth="'FinanceAccountingAuxiliary:AddType'"
             type="primary"
+            :disabled="mutationBusy"
             @click="openTypeDialog()"
           >
             <ArtSvgIcon icon="ri:add-line" />新增维度
@@ -108,6 +110,7 @@
                 class="accounting-auxiliary-page__type-select"
                 :aria-label="`选择核算维度${item.typeName}`"
                 :aria-pressed="item.id === workspace.selectedTypeId"
+                :disabled="mutationBusy"
                 @click="selectType(item.id)"
               >
                 <span class="accounting-auxiliary-page__type-icon">
@@ -158,6 +161,7 @@
           <ElButton
             v-if="hasAuth('FinanceAccountingAuxiliary:Sync') && canSync"
             :loading="workspace.syncing"
+            :disabled="mutationBusy"
             @click="handleSync"
           >
             <ArtSvgIcon icon="ri:refresh-line" />同步主数据
@@ -165,6 +169,7 @@
           <ElButton
             v-if="hasAuth('FinanceAccountingAuxiliary:Add') && canMaintainItems"
             type="primary"
+            :disabled="mutationBusy"
             @click="openItemDialog()"
           >
             <ArtSvgIcon icon="ri:add-line" />新增项目
@@ -200,6 +205,7 @@
           @retry="workspace.error ? retryWorkspace() : loadItems()"
         >
           <ArtTable
+            :border="false"
             :data="filteredItems"
             :columns="columns"
             :pagination="false"
@@ -220,7 +226,7 @@
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import { ElButton, ElTag } from 'element-plus'
+  import { ElButton, ElMessage, ElTag } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
@@ -285,6 +291,7 @@
     itemError: string
     items: AuxiliaryItem[]
     syncing: boolean
+    toggling: boolean
   }
 
   interface ItemFilter extends Record<string, unknown> {
@@ -305,7 +312,7 @@
   }
 
   const { confirmAction } = useArtFeedback()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord, deleteBusy } = useRecordDeleteGuard(
     'fms_auxiliary_type',
     '辅助核算维度'
   )
@@ -338,8 +345,10 @@
     itemLoading: false,
     itemError: '',
     items: [],
-    syncing: false
+    syncing: false,
+    toggling: false
   })
+  const mutationBusy = computed(() => deleteBusy.value || workspace.syncing || workspace.toggling)
   const itemFilterForm = ref<ItemFilter>(createDefaultItemFilter())
   const appliedItemFilter = reactive<ItemFilter>(createDefaultItemFilter())
   const itemSearchItems: SearchFormItem[] = [
@@ -474,6 +483,7 @@
               type="edit"
               permission="FinanceAccountingAuxiliary:Edit"
               label="编辑核算项目"
+              disabled={mutationBusy.value}
               onClick={() => openItemDialog(row)}
             />
             <ArtButtonTable
@@ -483,6 +493,7 @@
               buttonBgColor={row.isEnabled ? 'var(--el-color-danger-light-9)' : undefined}
               permission="FinanceAccountingAuxiliary:Toggle"
               label={row.isEnabled ? '停用核算项目' : '启用核算项目'}
+              disabled={mutationBusy.value}
               onClick={() => toggleItem(row)}
             />
           </BusinessTableRowActions>
@@ -512,7 +523,8 @@
         key: 'edit',
         label: '编辑维度',
         icon: 'ri:edit-line',
-        auth: 'FinanceAccountingAuxiliary:EditType'
+        auth: 'FinanceAccountingAuxiliary:EditType',
+        disabled: mutationBusy.value
       }
     ]
     if (!row.isSystem && row.sourceType === 'manual') {
@@ -521,13 +533,15 @@
         label: '删除维度',
         icon: 'ri:delete-bin-line',
         color: 'var(--el-color-danger)',
-        auth: 'FinanceAccountingAuxiliary:DeleteType'
+        auth: 'FinanceAccountingAuxiliary:DeleteType',
+        disabled: mutationBusy.value
       })
     }
     return actions
   }
 
   function handleTypeAction(action: ButtonMoreItem, row: AuxiliaryType): void {
+    if (mutationBusy.value) return
     if (action.key === 'edit') {
       void openTypeDialog(row)
       return
@@ -604,6 +618,7 @@
   }
 
   function selectType(id: string): void {
+    if (mutationBusy.value) return
     workspace.selectedTypeId = id
     resetItemFilters()
     void loadItems()
@@ -616,6 +631,7 @@
   }
 
   async function openTypeDialog(row?: AuxiliaryType): Promise<void> {
+    if (mutationBusy.value) return
     if (
       !(await ensureAccountSet({
         actionLabel: row ? '编辑核算维度' : '新增核算维度',
@@ -627,36 +643,34 @@
   }
 
   async function handleDeleteType(row: AuxiliaryType): Promise<void> {
-    try {
-      if (await inspectDeleteReferences([{ id: row.id, label: row.typeName }])) return
-      await confirmAction(
-        `确定删除手工维度“${row.typeName}（${row.typeCode}）”吗？仅未被会计科目和核算项目引用的维度可以删除。`,
-        '删除辅助核算维度',
-        {
-          type: 'warning',
-          confirmButtonText: '确认删除',
-          cancelButtonText: '取消'
-        }
-      )
-      await deleteAuxiliaryType(row.id)
-      await loadWorkspace()
-    } catch (error) {
-      if (error === 'cancel' || error === 'close') return
-      notifyFriendlyError(error, '核算维度删除失败，请检查引用关系后重试')
-      await inspectDeleteReferences([{ id: row.id, label: row.typeName }])
-    }
+    if (mutationBusy.value || row.isSystem || row.sourceType !== 'manual') return
+    await deleteRecord({
+      resource: { id: row.id, label: row.typeName },
+      permission: 'FinanceAccountingAuxiliary:DeleteType',
+      confirmMessage: `确定删除手工维度“${row.typeName}（${row.typeCode}）”吗？仅未被会计科目和核算项目引用的维度可以删除。`,
+      remove: () => deleteAuxiliaryType(row.id),
+      onDeleted: loadWorkspace,
+      failureMessage: '核算维度删除失败，请检查引用关系后重试'
+    })
   }
 
   async function openItemDialog(row?: AuxiliaryItem): Promise<void> {
+    if (mutationBusy.value) return
     if (!currentAccountSet.value || !selectedType.value) return
     await itemDialogRef.value?.handleOpen(currentAccountSet.value, selectedType.value, row)
   }
 
   async function handleSync(): Promise<void> {
-    if (!selectedType.value) return
+    if (mutationBusy.value || !selectedType.value || !canSync.value) return
+    if (!hasAuth('FinanceAccountingAuxiliary:Sync')) {
+      ElMessage.warning('辅助核算同步权限已变化，请刷新页面后重试')
+      return
+    }
+    const accountSetId = scope.accountSetId
+    const typeId = selectedType.value.id
     workspace.syncing = true
     try {
-      await syncAuxiliaryItems(scope.accountSetId, selectedType.value.id)
+      await syncAuxiliaryItems(accountSetId, typeId)
       await loadItems()
     } catch (error) {
       notifyFriendlyError(error, '辅助核算项目同步失败，请重试')
@@ -666,16 +680,28 @@
   }
 
   async function toggleItem(row: AuxiliaryItem): Promise<void> {
+    if (mutationBusy.value || row.externalEntityId) return
+    if (!hasAuth('FinanceAccountingAuxiliary:Toggle')) {
+      ElMessage.warning('核算项目启停权限已变化，请刷新页面后重试')
+      return
+    }
+    workspace.toggling = true
     try {
       await confirmAction(
         `确定${row.isEnabled ? '停用' : '启用'}项目“${row.itemCode} ${row.itemName}”吗？`,
         `${row.isEnabled ? '停用' : '启用'}辅助核算项目`
       )
+      if (!hasAuth('FinanceAccountingAuxiliary:Toggle')) {
+        ElMessage.warning('核算项目启停权限已变化，请刷新页面后重试')
+        return
+      }
       await setAuxiliaryItemEnabled(row.id, !row.isEnabled)
       await loadItems()
     } catch (error) {
       if (error === 'cancel' || error === 'close') return
       notifyFriendlyError(error, '辅助核算项目状态更新失败，请重试')
+    } finally {
+      workspace.toggling = false
     }
   }
 

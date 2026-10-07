@@ -100,14 +100,16 @@
       accountSetId: [{ required: true, message: '请选择所属账套', trigger: 'change' }],
       currencyId: [{ required: true, message: '请选择账户币种', trigger: 'change' }],
       accountCode: [
-        { required: true, message: '请输入账户编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入账户编码', trigger: 'blur' },
         {
           pattern: /^[A-Z0-9_-]{2,30}$/,
           message: '请输入 2-30 位大写字母、数字、下划线或连字符',
           trigger: 'blur'
         }
       ],
-      accountName: [{ required: true, message: '请输入账户名称', trigger: 'blur' }],
+      accountName: [
+        { required: true, whitespace: true, message: '请输入账户名称', trigger: 'blur' }
+      ],
       accountType: [{ required: true, message: '请选择账户类型', trigger: 'change' }],
       accountNo: [
         {

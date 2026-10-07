@@ -79,6 +79,7 @@
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useUserStore } from '@/store/modules/user'
@@ -112,10 +113,12 @@
   })
 
   const { confirmAction } = useArtFeedback()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord, deleteBusy } = useRecordDeleteGuard(
     'fms_fixed_asset',
     '固定资产'
   )
+  const { hasAuth } = useAuth()
+  const actionBusy = ref(false)
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const deleteContext = useMasterDataDeleteProcessingContext()
   const route = useRoute()
@@ -369,13 +372,17 @@
               <ArtButtonTable
                 type="edit"
                 permission="FinanceFixedAsset:Edit"
+                disabled={actionBusy.value || deleteBusy.value}
                 onClick={() => void dialogRef.value?.handleOpen(row)}
               />
             ) : null}
             {getActionItems(row).length ? (
               <ArtButtonMore
                 trigger="click"
-                list={getActionItems(row)}
+                list={getActionItems(row).map((item) => ({
+                  ...item,
+                  disabled: actionBusy.value || deleteBusy.value
+                }))}
                 onClick={(item: ButtonMoreItem) => void handleAction(item, row)}
               />
             ) : null}
@@ -493,31 +500,54 @@
   }
 
   async function handleAction(item: ButtonMoreItem, row: Asset): Promise<void> {
+    if (actionBusy.value || deleteBusy.value) return
+    const action = getActionItems(row).find((candidate) => candidate.key === item.key)
+    const canRunAction = () =>
+      Boolean(
+        action?.auth &&
+        hasAuth(action.auth) &&
+        getActionItems(row).some(
+          (candidate) => candidate.key === action.key && candidate.auth === action.auth
+        )
+      )
+    if (!canRunAction() || !action) {
+      ElMessage.error('资产操作权限或状态已变化，请刷新页面后重试')
+      return
+    }
+    if (item.key === 'delete') {
+      await deleteRecord({
+        resource: { id: row.id, label: `${row.assetName}（${row.assetNo}）` },
+        permission: 'FinanceFixedAsset:Delete',
+        confirmMessage: `确定删除资产草稿“${row.assetName}”吗？`,
+        remove: () => deleteFixedAsset(row.id),
+        onDeleted: refreshAll,
+        failureMessage: '资产草稿删除失败，请刷新资产状态后重试'
+      })
+      return
+    }
+    actionBusy.value = true
     try {
-      if (item.key === 'delete') {
-        if (await inspectDeleteReferences([{ id: row.id, label: row.assetName }])) return
-        await confirmAction(`确定删除资产草稿“${row.assetName}”吗？`, '删除资产', {
-          type: 'warning',
-          confirmButtonText: '确认删除'
-        })
-        await deleteFixedAsset(row.id)
-      } else if (item.key === 'dispose') {
+      if (item.key === 'dispose') {
         await disposalDialogRef.value?.handleOpen(row)
         return
       } else {
-        await confirmAction(`确定执行“${item.label}”吗？`, item.label, {
+        if (item.key !== 'activate' && item.key !== 'suspend' && item.key !== 'resume') return
+        await confirmAction(`确定执行“${action.label}”吗？`, action.label, {
           type: 'warning',
-          confirmButtonText: item.label
+          confirmButtonText: action.label
         })
-        await actFixedAsset(row.id, item.key as Api.Fms.FixedAssetAction)
+        if (!canRunAction()) {
+          ElMessage.error('资产操作权限或状态已变化，请刷新页面后重试')
+          return
+        }
+        await actFixedAsset(row.id, item.key)
       }
       await refreshAll()
     } catch (error) {
       if (error === 'cancel' || error === 'close') return
       notifyFriendlyError(error, `${item.label}失败，请刷新资产状态后重试。`)
-      if (item.key === 'delete') {
-        await inspectDeleteReferences([{ id: row.id, label: row.assetName }])
-      }
+    } finally {
+      actionBusy.value = false
     }
   }
 

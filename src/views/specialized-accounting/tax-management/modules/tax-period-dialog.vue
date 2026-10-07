@@ -22,6 +22,7 @@
   /></ArtDialog>
 </template>
 <script setup lang="ts">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import { replaceReactiveModel } from '@/utils/form/model'
   import { toRef } from 'vue'
   import { useAccountingPeriodOptions } from '../../../modules/use-accounting-period-options'
@@ -219,10 +220,10 @@
         accountingPeriodId: record?.accountingPeriodId || '',
         taxType: record?.taxType || 'vat',
         transferableInputAmount: canEditField(record?.fieldAccess, 'taxAmounts')
-          ? toFiniteNumber(record?.transferableInputAmount)
+          ? (normalizeNullableNumber(record?.transferableInputAmount) ?? 0)
           : 0,
         adjustmentAmount: canEditField(record?.fieldAccess, 'taxAmounts')
-          ? toFiniteNumber(record?.adjustmentAmount)
+          ? (normalizeNullableNumber(record?.adjustmentAmount) ?? 0)
           : 0,
         remark: record?.remark || null
       })
@@ -247,10 +248,6 @@
       },
       dialogProps: { closeOnClickModal: false }
     })
-  }
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
   }
   function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
     if (value === null || value === undefined || value === '') return '--'

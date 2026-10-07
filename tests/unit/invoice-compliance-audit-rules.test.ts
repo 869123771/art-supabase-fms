@@ -4,6 +4,27 @@ import { assessInvoiceCompliance } from '../../../../supabase/functions/_shared/
 
 const now = new Date('2026-08-06T08:00:00.000Z')
 
+test('raw secure invoice payload derives coverage from authorized statement links', () => {
+  for (const linkedAmount of [0, 400, 1060, 1100]) {
+    const rawInvoice = invoice()
+    delete rawInvoice.linked_amount
+    delete rawInvoice.unlinked_amount
+    const result = assessInvoiceCompliance(
+      {
+        invoice: rawInvoice,
+        statementLinks: linkedAmount ? [link({ linked_amount: linkedAmount })] : []
+      },
+      { now }
+    )
+    assert.equal(result.metrics.linkedAmount, linkedAmount)
+    assert.equal(result.metrics.unlinkedAmount, 1060 - linkedAmount)
+    assert.equal(
+      result.signals.some((item) => item.type === 'statement_amount_mismatch'),
+      linkedAmount > 1060
+    )
+  }
+})
+
 function invoice(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'invoice-current',

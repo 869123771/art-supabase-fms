@@ -67,8 +67,12 @@
   const form = reactive(initial())
   const rules: FormRules = {
     accountSetId: [{ required: true, message: '请选择账套', trigger: 'change' }],
-    categoryCode: [{ required: true, message: '请输入类别编码', trigger: 'blur' }],
-    categoryName: [{ required: true, message: '请输入类别名称', trigger: 'blur' }],
+    categoryCode: [
+      { required: true, whitespace: true, message: '请输入类别编码', trigger: 'blur' }
+    ],
+    categoryName: [
+      { required: true, whitespace: true, message: '请输入类别名称', trigger: 'blur' }
+    ],
     defaultUsefulLifeMonths: [{ required: true, message: '请输入使用寿命', trigger: 'change' }]
   }
   const items = computed<FormItem[]>(() => [

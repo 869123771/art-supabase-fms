@@ -143,7 +143,7 @@ export async function saveFundAccount(payload: Api.Fms.SaveFundAccountPayload) {
 export async function deleteFundAccount(id: string) {
   return await responseHandle<string>(
     () => supabase.rpc('delete_fms_fund_account_secure', { p_account_id: id }),
-    { breakReturn: true, showMessage: true, message: '资金账户已删除' }
+    { breakReturn: true, showErrorMessage: false, showMessage: true, message: '资金账户已删除' }
   )
 }
 
@@ -255,7 +255,7 @@ export async function transitionFundTransfer(
 export async function deleteFundTransfer(id: string) {
   return await responseHandle<string>(
     () => supabase.rpc('delete_fms_fund_transfer_secure', { p_transfer_id: id }),
-    { breakReturn: true, showMessage: true, message: '资金调拨单已删除' }
+    { breakReturn: true, showMessage: true, showErrorMessage: false, message: '资金调拨单已删除' }
   )
 }
 

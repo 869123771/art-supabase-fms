@@ -4,7 +4,7 @@
   >
     <MasterDeleteProcessingNotice
       v-if="!hideMasterDeleteNotice"
-      :location-ready="false"
+      :location-ready="locationReady"
       action-hint="请在当前页面核对关联记录，处理完成后返回原页面继续删除。"
     />
     <slot />
@@ -15,7 +15,7 @@
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
 
   defineOptions({ name: 'FinanceAccountingWorkspaceShell' })
-  defineProps<{ hideMasterDeleteNotice?: boolean }>()
+  defineProps<{ hideMasterDeleteNotice?: boolean; locationReady?: boolean }>()
 </script>
 
 <style scoped lang="scss">

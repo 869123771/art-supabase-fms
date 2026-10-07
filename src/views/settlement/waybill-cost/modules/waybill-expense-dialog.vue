@@ -124,6 +124,8 @@
   import { canEditField, canViewField } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import TreeUtils from '@/utils/tree'
   import ExpenseOcrPanel from './expense-ocr-panel.vue'
 
   defineOptions({ name: 'FinanceWaybillExpenseDialog' })
@@ -138,6 +140,7 @@
     locationPicker?: string
   }
   type Waybill = Api.Fms.WaybillOption
+  const expenseOptionTreeUtils = new TreeUtils({ parentKey: 'parentId' })
 
   interface SelectorWaybill extends Waybill, DataSelectRecord {
     orderNo: string
@@ -166,6 +169,8 @@
   }
 
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
+  const { hasAuth } = useAuth()
+  const savePermission = ref('FinanceWaybillCost:Add')
   const isCompact = useMediaQuery('(max-width: 767px)')
   const dialogRef = ref<ArtDialogExpose<ExpenseDialogOpenData>>()
   const ocrLoadError = ref('')
@@ -304,7 +309,8 @@
         key: 'expenseItemId',
         type: 'treeSelect',
         span: 24,
-        api: fetchExpenseItemTree,
+        api: fetchSelectableExpenseItems,
+        resultField: 'data',
         labelField: 'itemName',
         valueField: 'id',
         childrenField: 'children',
@@ -313,8 +319,7 @@
           checkStrictly: true,
           defaultExpandAll: true,
           renderAfterExpand: false
-        },
-        afterFetch: (result: unknown) => filterSelectableExpenseItems(result)
+        }
       },
       {
         label: '费用金额',
@@ -497,19 +502,19 @@
     { prop: 'route', label: '运输路线', minWidth: 220 }
   ]
 
-  function filterSelectableExpenseItems(result: unknown): Api.Fms.ExpenseItem[] {
-    const records = (result as { data?: Api.Fms.ExpenseItem[] })?.data ?? []
-    const normalize = (
-      items: Api.Fms.ExpenseItem[]
-    ): Array<Api.Fms.ExpenseItem & { disabled?: boolean }> =>
-      items
-        .filter((item) => item.isEnabled)
-        .map((item) => ({
-          ...item,
-          disabled: !item.isSelectable,
-          children: normalize(item.children ?? [])
-        }))
-    return normalize(records)
+  async function fetchSelectableExpenseItems() {
+    const result = await fetchExpenseItemTree()
+    const enabledItems = expenseOptionTreeUtils.removeNodesByCondition(
+      result.data,
+      (item) => !item.isEnabled
+    ).tree
+    return {
+      ...result,
+      data: expenseOptionTreeUtils.mapTree(enabledItems, (item) => ({
+        ...item,
+        disabled: !item.isSelectable
+      }))
+    }
   }
 
   async function fetchWaybillSelectorData(params: DataSelectFetchParams) {
@@ -633,17 +638,26 @@
     return omit(structuredClone(toRaw(form.data)), ['expenseRegionPath', 'locationPicker'])
   }
 
+  function canSave(): boolean {
+    if (hasAuth(savePermission.value)) return true
+    ElMessage.warning('运单费用操作权限已变化，请刷新页面后重试')
+    return false
+  }
+
   async function handleSubmit(): Promise<boolean> {
+    if (!canSave()) return false
     if (ocrLoadError.value) return false
-    if (isCompact.value && canEditExpenseLocation.value && !hasValidExpenseCoordinate.value) {
-      await addressPickerRef.value?.locateCurrent()
-    }
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!canSave()) return false
     } catch (error) {
       notifyFriendlyError(error, '运单费用校验失败，请重试')
       return false
     }
+    if (isCompact.value && canEditExpenseLocation.value && !hasValidExpenseCoordinate.value) {
+      await addressPickerRef.value?.locateCurrent()
+    }
+    if (!canSave()) return false
     const type = form.data.id ? 'edit' : 'add'
     let entityId: string | undefined
     try {
@@ -704,6 +718,12 @@
   }
 
   async function handleOpen(data: ExpenseDialogOpenData = {}): Promise<void> {
+    const permission = data.row ? 'FinanceWaybillCost:Edit' : 'FinanceWaybillCost:Add'
+    if (!hasAuth(permission)) {
+      ElMessage.warning('没有运单费用操作权限，请联系管理员')
+      return
+    }
+    savePermission.value = permission
     await resetForm()
     ocrLoadError.value = ''
     ocrResultLoader.value = data.loadOcrResult

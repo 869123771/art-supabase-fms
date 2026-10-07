@@ -35,6 +35,7 @@
   </ArtDialog>
 </template>
 <script setup lang="ts">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
@@ -175,9 +176,9 @@
     currentLine.value = line
     Object.assign(form, {
       employeeId: line?.employeeId || '',
-      grossAmount: toFiniteNumber(line?.grossAmount),
-      deductionAmount: toFiniteNumber(line?.deductionAmount),
-      employerCostAmount: toFiniteNumber(line?.employerCostAmount),
+      grossAmount: normalizeNullableNumber(line?.grossAmount) ?? 0,
+      deductionAmount: normalizeNullableNumber(line?.deductionAmount) ?? 0,
+      employerCostAmount: normalizeNullableNumber(line?.employerCostAmount) ?? 0,
       remark: line?.remark || null
     })
     await dialogRef.value?.handleOpen(undefined, {
@@ -207,10 +208,6 @@
       error: result.error,
       fieldAccess: {}
     }
-  }
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
   }
   defineExpose({ handleOpen })
 </script>

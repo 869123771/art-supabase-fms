@@ -21,8 +21,13 @@
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
-  import type { FormRules } from 'element-plus'
+  import {
+    normalizeNonNullableText,
+    normalizeNullableNumber,
+    normalizeNullableText
+  } from '@/utils/form/normalize'
+  import { ElMessage, type FormRules } from 'element-plus'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -41,6 +46,8 @@
   }
 
   const emit = defineEmits<{ success: [] }>()
+  const { hasAuth } = useAuth()
+  const savePermission = ref('FinanceAccountingAuxiliary:Add')
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
@@ -62,11 +69,11 @@
     data: createInitialForm(),
     rules: {
       itemCode: [
-        { required: true, message: '请输入项目编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入项目编码', trigger: 'blur' },
         { max: 60, message: '项目编码不能超过 60 个字符', trigger: 'blur' }
       ],
       itemName: [
-        { required: true, message: '请输入项目名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入项目名称', trigger: 'blur' },
         { max: 120, message: '项目名称不能超过 120 个字符', trigger: 'blur' }
       ]
     }
@@ -122,17 +129,25 @@
       tenantId: form.data.tenantId,
       accountSetId: form.data.accountSetId,
       auxiliaryTypeId: form.data.auxiliaryTypeId,
-      itemCode: form.data.itemCode.trim(),
-      itemName: form.data.itemName.trim(),
+      itemCode: normalizeNonNullableText(form.data.itemCode),
+      itemName: normalizeNonNullableText(form.data.itemName),
       isEnabled: form.data.isEnabled,
-      sort: form.data.sort,
+      sort: normalizeNullableNumber(form.data.sort) ?? 100,
       remark: normalizeNullableText(form.data.remark)
     }
   }
 
+  function canSave(): boolean {
+    if (hasAuth(savePermission.value)) return true
+    ElMessage.warning('核算项目操作权限已变化，请刷新页面后重试')
+    return false
+  }
+
   async function handleSubmit(): Promise<boolean> {
     try {
+      if (!canSave()) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!canSave()) return false
       await saveAuxiliaryItem(createPayload())
       emit('success')
       return true
@@ -147,6 +162,12 @@
     type: Api.Fms.AuxiliaryTypeRecord,
     row?: AuxiliaryItem
   ): Promise<void> {
+    const permission = row ? 'FinanceAccountingAuxiliary:Edit' : 'FinanceAccountingAuxiliary:Add'
+    if (!hasAuth(permission)) {
+      ElMessage.warning('没有核算项目操作权限，请联系管理员')
+      return
+    }
+    savePermission.value = permission
     Object.assign(form.data, createInitialForm(), {
       ...(row ?? {}),
       id: row?.id,

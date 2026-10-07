@@ -58,11 +58,11 @@
     data: createInitialForm(),
     rules: {
       currencyCode: [
-        { required: true, message: '请输入币种代码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入币种代码', trigger: 'blur' },
         { pattern: /^[A-Z]{3}$/, message: '请输入 3 位大写 ISO 币种代码', trigger: 'blur' }
       ],
       currencyName: [
-        { required: true, message: '请输入币种名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入币种名称', trigger: 'blur' },
         { max: 60, message: '币种名称不能超过 60 个字符', trigger: 'blur' }
       ],
       decimalPlaces: [{ required: true, message: '请输入小数位数', trigger: 'change' }]

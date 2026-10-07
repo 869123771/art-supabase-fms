@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" size="xl" :show-footer="false">
+  <ArtDrawer ref="drawerRef" header-icon="ri:bar-chart-box-line" size="xl" :show-footer="false">
     <div class="statement-config-drawer">
       <ArtSectionCard title="报表配置概览" preserve-content-structure>
         <ArtDescriptions :data="{}" :items="summaryItems" :columns="2" label-width="104px" />

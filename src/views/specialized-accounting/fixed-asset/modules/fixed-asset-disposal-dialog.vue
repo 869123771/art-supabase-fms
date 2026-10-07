@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { replaceReactiveModel } from '@/utils/form/model'
@@ -44,6 +45,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { actFixedAsset, fetchFixedAssetDetail, fetchFundAccountOptions } from '@fms/api'
   import { canEditField } from '@/utils/field-permission'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { financeRouteNames } from '@/router/business-paths'
   import { formatCurrencyValue } from '@/utils/ui'
 
@@ -66,6 +68,7 @@
 
   const emit = defineEmits<{ success: [] }>()
   const router = useRouter()
+  const { hasAuth } = useAuth()
   const dialogRef = ref<ArtDialogExpose<Asset>>()
   const formRef = ref<FormExpose>()
   const currentAsset = shallowRef<Asset>()
@@ -170,9 +173,9 @@
     const asset = currentAsset.value
     if (!asset) return 0
     return Math.max(
-      toFiniteNumber(asset.originalValue) -
-        toFiniteNumber(asset.accumulatedDepreciation) -
-        toFiniteNumber(asset.impairmentAmount),
+      (normalizeNullableNumber(asset.originalValue) ?? 0) -
+        (normalizeNullableNumber(asset.accumulatedDepreciation) ?? 0) -
+        (normalizeNullableNumber(asset.impairmentAmount) ?? 0),
       0
     )
   })
@@ -199,6 +202,7 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    if (!canDisposeAsset(currentAsset.value)) return false
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
     } catch (error) {
@@ -206,7 +210,7 @@
       return false
     }
     const asset = currentAsset.value
-    if (!asset) return false
+    if (!canDisposeAsset(asset) || !asset) return false
     const result = await actFixedAsset(asset.id, 'dispose', {
       actionDate: form.data.actionDate,
       amount: Number(form.data.amount || 0),
@@ -220,10 +224,7 @@
   }
 
   async function handleOpen(asset: Asset): Promise<void> {
-    if (!canEditField(asset.fieldAccess, 'assetValues')) {
-      ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
-      return
-    }
+    if (!canDisposeAsset(asset)) return
     await reset()
     currentAsset.value = asset
     accountOptions.value = []
@@ -231,6 +232,7 @@
       title: '处置固定资产',
       subtitle: `${asset.assetNo} · ${asset.assetName}`,
       confirmText: '确认处置',
+      confirmDisabled: false,
       contentMaxHeight: '68vh',
       loading: true,
       loadingText: '正在加载资产与资金账户…',
@@ -240,8 +242,7 @@
           if (detailResult.error) throw detailResult.error
           const record = detailResult.data
           if (!record) throw new Error('资产不存在或已不可访问，请刷新列表')
-          if (!canEditField(record.fieldAccess, 'assetValues')) {
-            ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
+          if (!canDisposeAsset(record)) {
             await api.handleClose()
             return
           }
@@ -268,13 +269,25 @@
     })
   }
 
-  function goToFundAccount(): void {
-    void router.push({ name: financeRouteNames.fundAccount })
+  function canDisposeAsset(asset: Asset | undefined): boolean {
+    if (!hasAuth('FinanceFixedAsset:Dispose')) {
+      dialogRef.value?.setOptions({ confirmDisabled: true })
+      ElMessage.error('资产处置权限已变化，请刷新页面后重试')
+      return false
+    }
+    if (!asset || !['active', 'suspended'].includes(asset.status)) {
+      ElMessage.error('当前资产状态不能处置，请刷新资产状态后重试')
+      return false
+    }
+    if (!canEditField(asset.fieldAccess, 'assetValues')) {
+      ElMessage.warning('你没有该资产价值字段的编辑权限，无法执行资产处置')
+      return false
+    }
+    return true
   }
 
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
+  function goToFundAccount(): void {
+    void router.push({ name: financeRouteNames.fundAccount })
   }
 
   defineExpose({ handleOpen })

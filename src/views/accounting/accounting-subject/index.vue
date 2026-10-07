@@ -119,6 +119,7 @@
         </template>
 
         <ArtTable
+          :border="false"
           :data="filteredSubjects"
           :columns="columns"
           :pagination="false"

@@ -1,15 +1,10 @@
 <template>
-  <ArtDrawer ref="drawerRef" :loading="state.loading" :show-footer="false">
-    <template #header>
-      <div class="profit-analyst__drawer-title">
-        <span><ArtSvgIcon icon="ri:line-chart-line" /></span>
-        <div>
-          <strong>AI 运单利润诊断</strong>
-          <small>跨运单成本完整性与经营风险分析</small>
-        </div>
-      </div>
-    </template>
-
+  <ArtDrawer
+    ref="drawerRef"
+    header-icon="ri:line-chart-line"
+    :loading="state.loading"
+    :show-footer="false"
+  >
     <div class="profit-analyst">
       <template v-if="state.data">
         <ArtSectionCard
@@ -378,6 +373,7 @@
       {},
       {
         title: 'AI 运单利润诊断',
+        subtitle: '跨运单成本完整性与经营风险分析',
         size: 'xl',
         showFooter: false,
         onOpen: loadAssessment,
@@ -434,36 +430,6 @@
 <style scoped lang="scss">
   .profit-analyst {
     min-width: 0;
-
-    &__drawer-title {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-
-      > span {
-        display: grid;
-        place-items: center;
-        width: 40px;
-        height: 40px;
-        color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
-        border-radius: var(--el-border-radius-base);
-      }
-
-      strong,
-      small {
-        display: block;
-      }
-
-      strong {
-        color: var(--art-text-gray-900);
-      }
-
-      small {
-        margin-top: 3px;
-        color: var(--art-text-gray-500);
-      }
-    }
 
     &__hero {
       position: relative;

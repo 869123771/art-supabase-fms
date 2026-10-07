@@ -1,5 +1,21 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
+    <template #header="{ data }">
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
+          aria-hidden="true"
+        >
+          <ArtSvgIcon icon="ri:bill-line" />
+        </span>
+        <div class="min-w-0">
+          <strong class="block text-base text-g-900">发票详情</strong>
+          <small class="block truncate text-xs text-g-600"
+            >{{ data.invoiceNo || data.invoiceRecordNo }} · 发票信息与审批记录</small
+          >
+        </div>
+      </div>
+    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -89,6 +105,7 @@
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'

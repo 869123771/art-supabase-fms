@@ -308,8 +308,15 @@
             />
           </ArtTooltip>
         ) : (
-          <ArtTooltip content={row.reverseReason || '核销已撤销'} placement="top">
-            <ElTag type="info">查看</ElTag>
+          <ArtTooltip
+            content={
+              row.isActive
+                ? '当前金额字段权限不允许撤销核销。'
+                : row.reverseReason || '此核销记录已撤销，保留历史供追溯。'
+            }
+            placement="top"
+          >
+            <span class="text-sm text-g-500">—</span>
           </ArtTooltip>
         )
     }

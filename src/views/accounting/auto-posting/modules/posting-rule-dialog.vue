@@ -39,6 +39,7 @@
           :columns="lineColumns"
           :pagination="false"
           table-layout="fixed"
+          scrollbar-always-on
           empty-text="暂无制证分录"
           empty-description="请新增借方和贷方分录，形成完整的会计规则。"
           empty-height="180px"
@@ -345,14 +346,14 @@
     rules: {
       accountSetId: [{ required: true, message: '请选择账套', trigger: 'change' }],
       ruleCode: [
-        { required: true, message: '请输入规则编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入规则编码', trigger: 'blur' },
         {
           pattern: /^[A-Za-z0-9_-]{2,40}$/,
           message: '规则编码只能包含字母、数字、下划线和短横线',
           trigger: 'blur'
         }
       ],
-      ruleName: [{ required: true, message: '请输入规则名称', trigger: 'blur' }],
+      ruleName: [{ required: true, whitespace: true, message: '请输入规则名称', trigger: 'blur' }],
       sourceEvent: [{ required: true, message: '请选择业务事件', trigger: 'change' }],
       voucherType: [{ required: true, message: '请选择凭证类型', trigger: 'change' }],
       submissionMode: [{ required: true, message: '请选择生成状态', trigger: 'change' }]
@@ -555,20 +556,23 @@
       prop: 'auxiliaryBindings',
       label: '核算维度',
       width: 124,
-      fixed: 'right',
       align: 'center',
       formatter: (row) => (
         <div class="flex items-center justify-center gap-2">
-          <ArtButtonTable
-            type="edit"
-            label="配置核算维度绑定"
-            permission=""
-            onClick={() => openAuxiliaryDialog(row)}
-          />
+          {payloadOptions.value.length ? (
+            <ArtButtonTable
+              type="edit"
+              label="配置核算维度绑定"
+              permission=""
+              onClick={() => openAuxiliaryDialog(row)}
+            />
+          ) : null}
           <span class="text-xs text-g-600">
             {Object.keys(row.auxiliaryBindings).length
               ? `${Object.keys(row.auxiliaryBindings).length} 项`
-              : '未绑定'}
+              : payloadOptions.value.length
+                ? '未绑定'
+                : '无需绑定'}
           </span>
         </div>
       )

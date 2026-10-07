@@ -1,5 +1,16 @@
 <template>
-  <FinanceAccountingWorkspaceShell class="commercial-bill-page">
+  <FinanceAccountingWorkspaceShell
+    class="commercial-bill-page"
+    :location-ready="Boolean(locatedBillId)"
+  >
+    <ArtAsyncState
+      v-if="linkedBillLoading || linkedBillError"
+      :loading="linkedBillLoading"
+      :error="linkedBillError ? '关联票据加载失败，请重新加载。' : null"
+      min-height="160px"
+      size="compact"
+      @retry="retryLinkedBill"
+    />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="COMMERCIAL PAPER"
@@ -45,7 +56,11 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { useRouteDocumentDrawer } from '@/hooks/core/useRouteDocumentDrawer'
+  import { useAuth } from '@/hooks/core/useAuth'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import ArtButtonMore, {
@@ -82,7 +97,6 @@
   import type { MasterDataDeleteDependencyDetail } from '@/api/master-data-delete'
   import { getDeleteReferenceContext } from '@/utils/supabase/delete-reference'
   import { financeRouteNames } from '@/router/business-paths'
-  import { useRoute, useRouter } from 'vue-router'
   import { useUserStore } from '@/store/modules/user'
   import {
     actCommercialBill,
@@ -128,8 +142,6 @@
   const deleteGuardRef = ref<{
     inspect: (options: MasterDataDeleteGuardOpenOptions) => Promise<boolean>
   }>()
-  const route = useRoute()
-  const router = useRouter()
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
@@ -470,14 +482,9 @@
     if (data?.fieldAccess) listFieldAccess.value = data.fieldAccess
   }
 
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined | null): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
-  }
-
   function getRemainingAmount(row: Bill): number | undefined {
-    const faceAmount = toFiniteNumber(row.faceAmount)
-    const settledAmount = toFiniteNumber(row.settledAmount)
+    const faceAmount = normalizeNullableNumber(row.faceAmount) ?? undefined
+    const settledAmount = normalizeNullableNumber(row.settledAmount) ?? undefined
     return faceAmount === undefined || settledAmount === undefined
       ? undefined
       : faceAmount - settledAmount
@@ -550,19 +557,29 @@
     })
   }
 
-  async function openReferencedBill(): Promise<void> {
-    const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
-    if (route.query.fromMasterDelete !== '1' || !recordId) return
-    const { data, error } = await fetchCommercialBillDetail(recordId, {
-      showErrorMessage: false
-    })
-    if (error || !data) {
-      ElMessage.error('关联票据已不存在或当前账号无法查看')
-      return
+  const locatedBillId = ref('')
+  const { hasAuth } = useAuth()
+  const {
+    loading: linkedBillLoading,
+    error: linkedBillError,
+    retry: retryLinkedBill
+  } = useRouteDocumentDrawer({
+    routeName: 'FinanceCommercialBill',
+    queryKey: 'recordId',
+    clearQueryOnOpen: false,
+    canOpen: () => hasAuth('FinanceCommercialBill:View'),
+    fetchDocument: async (id) => {
+      locatedBillId.value = ''
+      const { data, error } = await fetchCommercialBillDetail(id, { showErrorMessage: false })
+      if (error || !data) throw new Error('关联票据加载失败', { cause: error })
+      return data
+    },
+    openDocument: async (bill) => {
+      if (!drawerRef.value) throw new Error('票据详情尚未就绪')
+      await drawerRef.value.handleOpen(bill)
+      locatedBillId.value = bill.id
     }
-    await drawerRef.value?.handleOpen(data)
-    await router.replace({ query: { ...route.query, recordId: undefined } })
-  }
+  })
 
   async function handleAction(item: ButtonMoreItem, row: Bill): Promise<void> {
     try {
@@ -700,13 +717,7 @@
     table.search.accountSetId = accountSetOptions.value[0]?.value
     await loadSummary()
     await tableRef.value?.getData()
-    await openReferencedBill()
   })
-
-  watch(
-    () => route.query.recordId,
-    () => void openReferencedBill()
-  )
 </script>
 
 <style scoped lang="scss">

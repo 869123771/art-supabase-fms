@@ -76,7 +76,7 @@
     formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { financePaths } from '@/router/business-paths'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
@@ -533,8 +533,10 @@
         businessTitle: `发票 ${row.invoiceNo || row.invoiceRecordNo}`
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消或业务校验未通过
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, `${label}失败，请检查审批流程与发票状态后重试`)
+      }
     }
   }
 
@@ -555,8 +557,10 @@
         businessTitle: `发票 ${row.invoiceNo || row.invoiceRecordNo}`
       })
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消或业务校验未通过
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        notifyFriendlyError(error, `${label}失败，请刷新发票状态后重试`)
+      }
     }
   }
 

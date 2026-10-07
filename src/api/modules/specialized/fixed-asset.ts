@@ -118,7 +118,7 @@ export async function saveAssetCategory(payload: Api.Fms.SaveAssetCategoryPayloa
 export async function deleteAssetCategory(id: string) {
   return await responseHandle<string>(
     () => supabase.rpc('delete_fms_asset_category_secure', { p_category_id: id }),
-    { breakReturn: true, showMessage: true, message: '资产类别已删除' }
+    { breakReturn: true, showMessage: true, showErrorMessage: false, message: '资产类别已删除' }
   )
 }
 
@@ -139,7 +139,8 @@ export async function deleteFixedAsset(id: string) {
     {
       breakReturn: true,
       showMessage: true,
-      message: '资产草稿已删除'
+      message: '资产草稿已删除',
+      showErrorMessage: false
     }
   )
 }

@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -103,8 +103,7 @@
   )
   const sourceAvailableBalance = computed(() => {
     const value = sourceOption.value?.availableBalance
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
+    return normalizeNullableNumber(value) ?? undefined
   })
   const isEditing = computed(() => Boolean(form.data.id))
   const canView = (field: Api.Fms.FundTransferFieldKey) =>
@@ -364,11 +363,6 @@
     return accountNo ? `${name || '--'}（${accountNo}）` : name || '--'
   }
 
-  function toEditableNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
-  }
-
   async function handleOpen(row?: Transfer): Promise<void> {
     currentRecord.value = row
     Object.assign(form.data, createInitialForm())
@@ -396,10 +390,10 @@
             : undefined,
           transferDate: record.transferDate,
           amount: canEditField(record.fieldAccess, 'transferAmounts')
-            ? toEditableNumber(record.amount)
+            ? (normalizeNullableNumber(record.amount) ?? undefined)
             : undefined,
           feeAmount: canEditField(record.fieldAccess, 'transferAmounts')
-            ? toEditableNumber(record.feeAmount)
+            ? (normalizeNullableNumber(record.feeAmount) ?? undefined)
             : undefined,
           purpose: record.purpose,
           bankReference: canEditField(record.fieldAccess, 'bankReference')

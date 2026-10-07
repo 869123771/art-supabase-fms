@@ -29,8 +29,10 @@
   import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { ElMessage } from 'element-plus'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -81,6 +83,15 @@
     remark: null
   })
   const form = reactive(initial())
+  const { hasAuth } = useAuth()
+  const savePermission = computed(() =>
+    form.id ? 'FinanceFixedAsset:Edit' : 'FinanceFixedAsset:Add'
+  )
+  function canSave(): boolean {
+    if (hasAuth(savePermission.value)) return true
+    ElMessage.warning('固定资产操作权限已变化，请刷新页面后重试')
+    return false
+  }
   const isEditing = computed(() => Boolean(form.id))
   const canView = (field: Api.Fms.FixedAssetFieldKey): boolean =>
     !isEditing.value || canViewField(fieldAccess.value, field)
@@ -89,7 +100,7 @@
   const rules: FormRules = {
     accountSetId: [{ required: true, message: '请选择账套', trigger: 'change' }],
     categoryId: [{ required: true, message: '请选择资产类别', trigger: 'change' }],
-    assetName: [{ required: true, message: '请输入资产名称', trigger: 'blur' }],
+    assetName: [{ required: true, whitespace: true, message: '请输入资产名称', trigger: 'blur' }],
     acquisitionDate: [{ required: true, message: '请选择购置日期', trigger: 'change' }],
     readyForUseDate: [{ required: true, message: '请选择达到可用日期', trigger: 'change' }],
     originalValue: [
@@ -303,9 +314,11 @@
     }
   )
   async function submit(): Promise<boolean> {
+    if (!canSave()) return false
     try {
       if (categoriesLoading.value || categoriesFailed.value) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!canSave()) return false
       if (
         dayjs(form.readyForUseDate).isBefore(form.acquisitionDate) ||
         dayjs(form.depreciationStartDate).isBefore(form.readyForUseDate)
@@ -356,6 +369,10 @@
     }
   }
   async function handleOpen(row?: Api.Fms.FixedAssetRecord, accountSetId?: string): Promise<void> {
+    if (!hasAuth(row?.id ? 'FinanceFixedAsset:Edit' : 'FinanceFixedAsset:Add')) {
+      ElMessage.warning('当前账号无权新增或编辑固定资产')
+      return
+    }
     currentRecord.value = row
     form.id = undefined
     Object.assign(form, initial())
@@ -386,10 +403,10 @@
           readyForUseDate: record.readyForUseDate,
           depreciationStartDate: record.depreciationStartDate,
           originalValue: canEditField(record.fieldAccess, 'assetValues')
-            ? toEditableNumber(record.originalValue)
+            ? (normalizeNullableNumber(record.originalValue) ?? undefined)
             : undefined,
           residualValue: canEditField(record.fieldAccess, 'assetValues')
-            ? toEditableNumber(record.residualValue)
+            ? (normalizeNullableNumber(record.residualValue) ?? undefined)
             : undefined,
           usefulLifeMonths: record.usefulLifeMonths,
           departmentId: canEditField(record.fieldAccess, 'assetCustody')
@@ -436,11 +453,6 @@
       },
       dialogProps: { closeOnClickModal: false }
     })
-  }
-
-  function toEditableNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
   }
 
   function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {

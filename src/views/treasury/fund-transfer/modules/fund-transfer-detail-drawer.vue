@@ -79,7 +79,19 @@
           :min-height="148"
           preserve-content-structure
         >
+          <ol v-if="isMobile" class="m-0 grid list-none gap-4 p-0">
+            <li v-for="action in actions" :key="action.id" class="grid min-w-0 gap-3">
+              <strong class="text-sm text-g-900">{{ actionLabels[action.action] }}</strong>
+              <ArtDescriptions
+                :data="action"
+                :items="actionItems(action)"
+                :columns="1"
+                label-width="88px"
+              />
+            </li>
+          </ol>
           <ArtTable
+            v-else
             :border="false"
             :data="actions"
             :columns="actionColumns"
@@ -98,6 +110,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useMediaQuery } from '@vueuse/core'
   import { ElButton } from 'element-plus'
   import type { ColumnOption } from '@/types'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -143,6 +156,24 @@
   }, '资金调拨详情加载失败，请重试或返回列表重新选择。')
   const detail = computed(() => loadedDetail.value?.record)
   const actions = computed(() => loadedDetail.value?.actions ?? [])
+  const isMobile = useMediaQuery('(max-width: 700px)')
+
+  function actionItems(action: Action): ArtDescriptionItem<Action>[] {
+    return [
+      { key: 'actionTime', label: '操作时间', field: 'actionTime', format: 'datetime' },
+      { key: 'actionBy', label: '操作人', field: 'actionBy' },
+      {
+        key: 'toStatus',
+        label: '结果状态',
+        field: 'toStatus',
+        dictCode: 'fmsFundTransferStatus',
+        dictDisplay: 'tag'
+      },
+      ...(action.actionRemark
+        ? [{ key: 'actionRemark', label: '操作说明', field: 'actionRemark' }]
+        : [])
+    ]
+  }
 
   const canViewAccounts = computed(() =>
     canViewField(detail.value?.fieldAccess, 'transferAccounts')

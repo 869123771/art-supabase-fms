@@ -56,6 +56,8 @@
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { financeRouteNames } from '@/router/business-paths'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
@@ -66,7 +68,6 @@
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useUserStore } from '@/store/modules/user'
   import {
     deleteFundAccount,
@@ -86,16 +87,26 @@
     handleOpen: (row?: Account) => Promise<void>
   }
 
-  const { confirmAction } = useArtFeedback()
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
-    'fms_fund_account',
-    '资金账户'
-  )
+  const { hasAuth } = useAuth()
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard('fms_fund_account', '资金账户', {
+    fms_bank_statement_line: {
+      routeName: financeRouteNames.bankReconciliation,
+      canNavigate: () => hasAuth('FinanceBankReconciliation:View')
+    },
+    fms_commercial_bill_event: {
+      routeName: financeRouteNames.commercialBill,
+      canNavigate: () => hasAuth('FinanceCommercialBill:View')
+    },
+    tms_expense_payment: {
+      routeName: financeRouteNames.expenseReimbursement,
+      canNavigate: () => hasAuth('FinanceWaybillCost:View')
+    }
+  })
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const overview = ref<Api.Fms.FundAccountOverview>()
   const currentRows = ref<Account[]>([])
@@ -322,7 +333,6 @@
             <ArtButtonTable
               type="delete"
               permission="FinanceFundAccount:Delete"
-              disabled={row.ledgerEntryCount > 0}
               onClick={() => void handleDelete(row)}
             />
           </BusinessTableRowActions>
@@ -356,18 +366,16 @@
   }
 
   async function handleDelete(row: Account): Promise<void> {
-    try {
-      if (await inspectDeleteReferences([{ id: row.id, label: row.accountName }])) return
-      await confirmAction(
-        `确定删除资金账户“${row.accountName}”吗？已有业务或流水的账户不能删除，应改为关闭。`,
-        '删除资金账户',
-        { type: 'warning', confirmButtonText: '确认删除' }
-      )
-      await deleteFundAccount(row.id)
-      await Promise.all([tableRef.value?.refreshRemove(), loadOverview()])
-    } catch {
-      // 用户取消或业务约束阻止时不重复提示。
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: row.accountName },
+      permission: 'FinanceFundAccount:Delete',
+      confirmMessage: `确定删除资金账户“${row.accountName}”吗？已有业务或流水的账户不能删除，应改为关闭。`,
+      remove: () => deleteFundAccount(row.id),
+      onDeleted: async () => {
+        await Promise.all([tableRef.value?.refreshRemove(), loadOverview()])
+      },
+      failureMessage: '资金账户删除失败，请刷新列表后重试'
+    })
   }
 
   async function handleSaved(type: 'add' | 'edit'): Promise<void> {

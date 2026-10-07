@@ -126,14 +126,26 @@
 
       <div
         class="opening-balance-page__validation-strip"
-        :class="summary.isBalanced ? 'is-balanced' : 'is-unbalanced'"
+        :class="
+          !workspace.balances.length
+            ? 'is-pending'
+            : summary.isBalanced
+              ? 'is-balanced'
+              : 'is-unbalanced'
+        "
         role="status"
         aria-live="polite"
         aria-atomic="true"
       >
         <span class="opening-balance-page__validation-icon" aria-hidden="true">
           <ArtSvgIcon
-            :icon="summary.isBalanced ? 'ri:checkbox-circle-line' : 'ri:error-warning-line'"
+            :icon="
+              !workspace.balances.length
+                ? 'ri:file-add-line'
+                : summary.isBalanced
+                  ? 'ri:checkbox-circle-line'
+                  : 'ri:error-warning-line'
+            "
           />
         </span>
         <div class="opening-balance-page__validation-copy">
@@ -180,6 +192,7 @@
         @retry="scope.accountSetId ? loadFoundation() : loadAccountSets()"
       >
         <ArtTable
+          :border="false"
           v-if="!isCompact"
           :data="filteredBalances"
           :columns="columns"
@@ -300,7 +313,7 @@
   }
 
   const { confirmAction, promptReason } = useArtFeedback()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord, deleteBusy } = useRecordDeleteGuard(
     'fms_opening_balance',
     '期初余额'
   )
@@ -372,6 +385,7 @@
       !workspace.loading &&
       !workspace.error &&
       !workspace.statusChanging &&
+      !deleteBusy.value &&
       summary.entryCount > 0 &&
       summary.isBalanced &&
       summary.status === 'draft'
@@ -473,12 +487,14 @@
           <ArtButtonTable
             type="edit"
             permission="FinanceOpeningBalance:Edit"
+            disabled={deleteBusy.value || workspace.statusChanging}
             onClick={() => openDialog(row)}
           />
         ) : null}
         <ArtButtonTable
           type="delete"
           permission="FinanceOpeningBalance:Delete"
+          disabled={deleteBusy.value || workspace.statusChanging}
           onClick={() => removeBalance(row)}
         />
       </BusinessTableRowActions>
@@ -712,6 +728,7 @@
   }
 
   async function openDialog(row?: OpeningBalance): Promise<void> {
+    if (deleteBusy.value || workspace.statusChanging) return
     if (workspace.loading || workspace.error) return
     if (summary.status !== 'draft') return
     if (row && !canEditRow(row)) return
@@ -737,19 +754,21 @@
   }
 
   async function removeBalance(row: OpeningBalance): Promise<void> {
-    const records = [
-      { id: row.id, label: `${row.subject?.subjectCode ?? ''} ${row.subject?.subjectName ?? ''}` }
-    ]
-    if (await inspectDeleteReferences(records)) return
-    try {
-      await confirmAction(`确定删除“${records[0].label}”的期初余额吗？`, '删除期初余额')
-      await deleteOpeningBalance(row.id)
-      await loadBalances()
-    } catch (error) {
-      if (error === 'cancel' || error === 'close') return
-      notifyFriendlyError(error, '期初余额删除失败，请检查引用后重试')
-      await inspectDeleteReferences(records)
-    }
+    if (workspace.statusChanging || summary.status !== 'draft') return
+    const label =
+      [row.subject?.subjectCode, row.subject?.subjectName].filter(Boolean).join(' ') || '期初余额'
+    await deleteRecord({
+      resource: { id: row.id, label },
+      permission: 'FinanceOpeningBalance:Delete',
+      confirmMessage: `确定删除“${label}”的期初余额吗？`,
+      remove: () => {
+        if (workspace.statusChanging || summary.status !== 'draft')
+          throw new Error('期初余额状态已变化，请刷新页面后重试')
+        return deleteOpeningBalance(row.id)
+      },
+      onDeleted: loadBalances,
+      failureMessage: '期初余额删除失败，请刷新余额状态后重试'
+    })
   }
 
   async function confirmOpeningBalance(): Promise<void> {
@@ -775,7 +794,7 @@
   }
 
   async function reopenOpeningBalance(): Promise<void> {
-    if (workspace.statusChanging || workspace.loading || workspace.error) return
+    if (deleteBusy.value || workspace.statusChanging || workspace.loading || workspace.error) return
     const accountSetId = scope.accountSetId
     const fiscalYear = scope.fiscalYear
     workspace.statusChanging = true
@@ -943,6 +962,11 @@
       margin-bottom: var(--art-space-3);
       border-radius: var(--el-border-radius-base);
 
+      &.is-pending {
+        background: var(--art-gray-100);
+        border: 1px solid var(--el-border-color-lighter);
+      }
+
       &.is-balanced {
         background: color-mix(in srgb, var(--el-color-success) 7%, var(--default-box-color));
         border: 1px solid color-mix(in srgb, var(--el-color-success) 18%, var(--el-border-color));
@@ -969,6 +993,11 @@
     &__validation-strip.is-unbalanced &__validation-icon {
       color: var(--el-color-warning-dark-2);
       background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+    }
+
+    &__validation-strip.is-pending &__validation-icon {
+      color: var(--el-text-color-secondary);
+      background: var(--art-gray-200);
     }
 
     &__validation-copy {

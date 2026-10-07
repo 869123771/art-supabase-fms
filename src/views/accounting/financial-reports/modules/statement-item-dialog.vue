@@ -61,7 +61,7 @@
     data: createInitialForm(),
     rules: {
       itemCode: [
-        { required: true, message: '请输入报表项目编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入报表项目编码', trigger: 'blur' },
         {
           pattern: /^[A-Z0-9_-]{2,30}$/,
           message: '使用 2 到 30 位大写字母、数字、横线或下划线',
@@ -69,7 +69,7 @@
         }
       ],
       itemName: [
-        { required: true, message: '请输入报表项目名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入报表项目名称', trigger: 'blur' },
         { max: 120, message: '项目名称不能超过 120 个字符', trigger: 'blur' }
       ],
       lineNo: [{ required: true, message: '请输入行次', trigger: 'change' }],

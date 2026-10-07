@@ -1,5 +1,5 @@
 <template>
-  <FinanceAccountingWorkspaceShell class="fund-journal-page">
+  <FinanceAccountingWorkspaceShell class="fund-journal-page" :location-ready="linkedRecordFound">
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="TREASURY LEDGER"
@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -66,6 +67,14 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
+  const route = useRoute()
+  const linkedRecordNo = computed(() =>
+    route.name === 'FinanceFundJournal' &&
+    route.query.fromMasterDelete === '1' &&
+    typeof route.query.recordNo === 'string'
+      ? route.query.recordNo
+      : ''
+  )
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const accountOptions = ref<Api.Fms.FundAccountOption[]>([])
   const overviewRows = ref<Ledger[]>([])
@@ -75,6 +84,12 @@
   let ledgerRequestId = 0
   let accountOptionsRequestId = 0
   const currentRows = ref<Ledger[]>([])
+  const linkedRecordFound = computed(
+    () =>
+      overviewReady.value &&
+      !overviewLoading.value &&
+      currentRows.value.some((row) => row.id === route.query.recordId)
+  )
   const listFieldAccess = ref<Api.Fms.FundLedgerFieldAccessMap>({})
   const effectiveFieldAccess = computed(() =>
     mergeFieldAccessMaps(listFieldAccess.value, ...currentRows.value.map((row) => row.fieldAccess))
@@ -86,7 +101,7 @@
   )
   const table = reactive<{ search: SearchParams }>({
     search: {
-      keyword: '',
+      keyword: linkedRecordNo.value,
       accountSetId: undefined,
       fundAccountId: undefined,
       direction: undefined,
@@ -173,7 +188,7 @@
     const amountAccess = getFieldAccess(listFieldAccess.value, 'ledgerAmounts')
     const summarizeAmount = (direction: Api.Fms.FundLedgerDirection) => {
       const directionRows = rows.filter((row) => row.direction === direction)
-      const values = directionRows.map((row) => toFiniteNumber(row.amount))
+      const values = directionRows.map((row) => normalizeNullableNumber(row.amount) ?? undefined)
       const readable =
         ['read', 'edit'].includes(amountAccess) &&
         values.every((value): value is number => value !== undefined)
@@ -369,11 +384,6 @@
     accountOptions.value = data ?? []
   }
 
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
-  }
-
   function formatLedgerAmount(
     value: Api.Fms.SensitiveNumber | undefined,
     currency = 'CNY'
@@ -411,6 +421,11 @@
   )
 
   onMounted(async () => {
+    watch(linkedRecordNo, (recordNo, previousRecordNo) => {
+      if (route.name !== 'FinanceFundJournal' || (!recordNo && !previousRecordNo)) return
+      table.search.keyword = recordNo
+      void tableRef.value?.getData()
+    })
     await Promise.all([
       userStore.ensureDictLoaded('fmsFundLedgerDirection'),
       userStore.ensureDictLoaded('fmsFundLedgerSourceType')

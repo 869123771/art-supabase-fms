@@ -324,11 +324,15 @@
   }
   function issueDetailPath(issue: Api.Fms.FinancialExceptionIssue): string | undefined {
     if (!hasAuth(requiredPermission[issue.category])) return undefined
-    if (issue.category !== 'cost') return issue.routePath
     const [, sourceId] = issue.id.split(':', 2)
+    if (issue.category === 'posting' && sourceId) {
+      return `${issue.routePath}?tab=events&fromException=1&recordId=${encodeURIComponent(sourceId)}`
+    }
+    if (issue.category !== 'cost') return issue.routePath
     return sourceId ? getWaybillCostDetailPath(sourceId) : issue.routePath
   }
   async function loadOverview(): Promise<void> {
+    if (loading.value) return
     loading.value = true
     errorMessage.value = ''
     try {
@@ -342,6 +346,16 @@
       loading.value = false
     }
   }
+
+  let refreshOnReturn = false
+  onDeactivated(() => {
+    refreshOnReturn = true
+  })
+  onActivated(() => {
+    if (!refreshOnReturn) return
+    refreshOnReturn = false
+    void loadOverview()
+  })
 
   onMounted(() => {
     void userStore.ensureDictLoaded('fmsPostingSourceEvent')

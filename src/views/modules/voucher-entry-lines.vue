@@ -19,6 +19,7 @@
     </template>
 
     <ArtTable
+      :border="false"
       ref="tableRef"
       :data="modelValue"
       :columns="columns"

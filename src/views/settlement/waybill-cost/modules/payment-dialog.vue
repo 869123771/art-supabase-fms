@@ -66,7 +66,7 @@
   interface FormGroup {
     data: PaymentForm
     items: ComputedRef<FormItem[]>
-    rules: FormRules<PaymentForm>
+    rules: ComputedRef<FormRules<PaymentForm>>
   }
 
   interface FormExpose {
@@ -91,7 +91,7 @@
   })
   const form = reactive<FormGroup>({
     data: createInitialForm(),
-    rules: {
+    rules: computed<FormRules<PaymentForm>>(() => ({
       paymentNo: [
         {
           validator: (_rule, value, callback) =>
@@ -123,6 +123,7 @@
       ],
       bankReference: [
         {
+          required: state.reimbursement?.paymentMethod === 'bank_transfer',
           validator: (_rule, value, callback) =>
             state.reimbursement?.paymentMethod !== 'bank_transfer' || String(value || '').trim()
               ? callback()
@@ -130,7 +131,7 @@
           trigger: 'blur'
         }
       ]
-    },
+    })),
     items: computed<FormItem[]>(() => [
       { label: '付款信息', key: 'paymentSection', type: 'divider', span: 24 },
       {

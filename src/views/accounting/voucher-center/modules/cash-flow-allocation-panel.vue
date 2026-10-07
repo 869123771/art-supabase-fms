@@ -44,6 +44,7 @@
         </header>
 
         <ArtTable
+          :border="false"
           ref="allocationTableRefs"
           :data="allocationsFor(line.lineNo)"
           :columns="allocationColumns(line)"

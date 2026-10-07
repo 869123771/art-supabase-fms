@@ -19,16 +19,23 @@
 
 <script setup lang="ts">
   import { replaceReactiveModel } from '@/utils/form/model'
+  import {
+    normalizeNonNullableText,
+    normalizeNullableNumber,
+    normalizeNullableText
+  } from '@/utils/form/normalize'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
-  import type { FormRules } from 'element-plus'
+  import { ElMessage, type FormRules } from 'element-plus'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { addExpenseItem, editExpenseItem, fetchExpenseItemTree } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
+  import TreeUtils from '@/utils/tree'
 
   const fmsExpenseItemAccountingModeOptions = useDictionaryOptions(
     'fmsExpenseItemAccountingMode',
@@ -43,6 +50,9 @@
 
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
   const userStore = useUserStore()
+  const { hasAuth } = useAuth()
+  const savePermission = ref('FinanceExpenseItem:Add')
+  const parentTreeUtils = new TreeUtils({ parentKey: 'parentId' })
   const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose<{ row?: ExpenseItem; parent?: ExpenseItem }>>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
@@ -65,11 +75,11 @@
 
   const rules = computed<FormRules<ExpenseItemForm>>(() => ({
     itemName: [
-      { required: true, message: '请输入费用项目名称', trigger: 'blur' },
+      { required: true, whitespace: true, message: '请输入费用项目名称', trigger: 'blur' },
       { min: 2, max: 80, message: '长度应为 2 到 80 个字符', trigger: 'blur' }
     ],
     itemCode: [
-      { required: true, message: '请输入项目编码', trigger: 'blur' },
+      { required: true, whitespace: true, message: '请输入项目编码', trigger: 'blur' },
       {
         pattern: /^[A-Za-z0-9_-]{2,50}$/,
         message: '编码仅支持字母、数字、下划线和中横线，长度 2 到 50',
@@ -160,24 +170,24 @@
     }
   ])
 
-  function excludeCurrentNode(result: unknown): ExpenseItem[] {
-    const records = (result as { data?: ExpenseItem[] })?.data ?? []
-    const walk = (nodes: ExpenseItem[]): ExpenseItem[] =>
-      nodes
-        .filter((node) => node.id !== form.id)
-        .map((node) => ({ ...node, children: walk(node.children ?? []) }))
-    return walk(records)
-  }
-
   async function handleSubmit(): Promise<boolean> {
     try {
+      if (!checkSavePermission()) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
-      if (!form.isSelectable) {
-        form.businessCategory = null
-        form.reimbursementAllowed = false
+      if (!checkSavePermission()) return false
+      const payload: Api.Fms.ExpenseItemWritePayload = {
+        parentId: form.parentId || null,
+        itemCode: normalizeNonNullableText(form.itemCode),
+        itemName: normalizeNonNullableText(form.itemName),
+        businessCategory: form.isSelectable ? form.businessCategory || null : null,
+        isSelectable: form.isSelectable,
+        reimbursementAllowed: form.isSelectable && form.reimbursementAllowed,
+        isEnabled: form.isEnabled,
+        sort: normalizeNullableNumber(form.sort) ?? 0,
+        remark: normalizeNullableText(form.remark)
       }
       const type = form.id ? 'edit' : 'add'
-      await (form.id ? editExpenseItem(form) : addExpenseItem(form))
+      await (form.id ? editExpenseItem({ ...payload, id: form.id }) : addExpenseItem(payload))
       emit('success', type)
       return true
     } catch (error) {
@@ -186,7 +196,23 @@
     }
   }
 
+  function checkSavePermission(): boolean {
+    if (hasAuth(savePermission.value)) return true
+    ElMessage.warning('费用项目操作权限已变化，请刷新页面后重试')
+    return false
+  }
+
   async function handleOpen(row?: ExpenseItem, parent?: ExpenseItem): Promise<void> {
+    const permission = row
+      ? 'FinanceExpenseItem:Edit'
+      : parent
+        ? 'FinanceExpenseItem:AddChild'
+        : 'FinanceExpenseItem:Add'
+    if (!hasAuth(permission)) {
+      ElMessage.warning('没有费用项目操作权限，请联系管理员')
+      return
+    }
+    savePermission.value = permission
     parentOptions.value = []
     Object.assign(form, createInitialForm(), row ? structuredClone(toRaw(row)) : {})
     delete (form as ExpenseItem).children
@@ -214,7 +240,10 @@
             ])
             const result = await fetchExpenseItemTree()
             if (result.error) throw result.error
-            parentOptions.value = excludeCurrentNode(result)
+            parentOptions.value = parentTreeUtils.removeNodesByCondition(
+              result.data,
+              (node) => node.id === form.id
+            ).tree
             formRef.value?.clearValidate()
           } catch (error) {
             notifyFriendlyError(error, '费用项目选项加载失败，请重新打开重试')

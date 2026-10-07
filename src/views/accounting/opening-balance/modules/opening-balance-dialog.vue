@@ -20,6 +20,8 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { ElMessage, type FormRules } from 'element-plus'
@@ -53,6 +55,7 @@
   }
 
   const emit = defineEmits<{ success: [] }>()
+  const { hasAuth } = useAuth()
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const fieldAccess = ref<Api.Fms.OpeningBalanceFieldAccessMap>({})
@@ -282,7 +285,13 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
+      if (!checkSavePermission()) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!checkSavePermission()) return false
+      if (!canEditAmounts.value && !canEditAuxiliary.value) {
+        ElMessage.warning('当前期初余额字段不可编辑，请刷新页面后重试')
+        return false
+      }
       if (!validateBusinessRules() || !selectedSubject.value) return false
       const isDebit = selectedSubject.value.balanceDirection === 'debit'
       await saveOpeningBalance({
@@ -290,20 +299,24 @@
         accountSetId: form.data.accountSetId,
         fiscalYear: form.data.fiscalYear,
         subjectId: form.data.subjectId,
-        currencyId: selectedSubject.value.allowForeignCurrency ? form.data.currencyId : null,
-        auxiliaryValues: Object.fromEntries(
-          Object.entries(form.data.auxiliaryValues).filter(([, value]) => Boolean(value))
-        ),
-        openingDebit: isDebit ? Number(form.data.openingAmount) : 0,
-        openingCredit: isDebit ? 0 : Number(form.data.openingAmount),
-        yearToDateDebit: Number(form.data.yearToDateDebit),
-        yearToDateCredit: Number(form.data.yearToDateCredit),
-        openingQuantity: selectedSubject.value.allowQuantity
-          ? Number(form.data.openingQuantity)
-          : 0,
-        originalCurrencyAmount: selectedSubject.value.allowForeignCurrency
-          ? Number(form.data.originalCurrencyAmount)
-          : 0
+        ...(canEditAuxiliary.value && {
+          currencyId: selectedSubject.value.allowForeignCurrency ? form.data.currencyId : null,
+          auxiliaryValues: Object.fromEntries(
+            Object.entries(form.data.auxiliaryValues).filter(([, value]) => Boolean(value))
+          )
+        }),
+        ...(canEditAmounts.value && {
+          openingDebit: isDebit ? Number(form.data.openingAmount) : 0,
+          openingCredit: isDebit ? 0 : Number(form.data.openingAmount),
+          yearToDateDebit: Number(form.data.yearToDateDebit),
+          yearToDateCredit: Number(form.data.yearToDateCredit),
+          openingQuantity: selectedSubject.value.allowQuantity
+            ? Number(form.data.openingQuantity)
+            : 0,
+          originalCurrencyAmount: selectedSubject.value.allowForeignCurrency
+            ? Number(form.data.originalCurrencyAmount)
+            : 0
+        })
       })
       emit('success')
       return true
@@ -313,9 +326,11 @@
     }
   }
 
-  function toFormNumber(value: number | string | null | undefined): number {
-    const numericValue = Number(value)
-    return Number.isFinite(numericValue) ? numericValue : 0
+  function checkSavePermission(): boolean {
+    if (hasAuth(form.data.id ? 'FinanceOpeningBalance:Edit' : 'FinanceOpeningBalance:Add'))
+      return true
+    ElMessage.warning('期初余额操作权限已变化，请刷新页面后重试')
+    return false
   }
 
   async function handleOpen(
@@ -324,6 +339,10 @@
     dialogContext: DialogContext,
     row?: Api.Fms.OpeningBalanceRecord
   ): Promise<void> {
+    if (!hasAuth(row ? 'FinanceOpeningBalance:Edit' : 'FinanceOpeningBalance:Add')) {
+      ElMessage.warning('没有期初余额操作权限，请联系管理员')
+      return
+    }
     Object.assign(context, dialogContext)
     fieldAccess.value = row?.fieldAccess ?? {
       balanceAmounts: 'edit',
@@ -337,15 +356,16 @@
       subjectId: row?.subjectId ?? '',
       currencyId: row?.currencyId ?? null,
       auxiliaryValues: { ...(row?.auxiliaryValues ?? {}) },
-      openingAmount: toFormNumber(row ? row.openingDebit || row.openingCredit : 0),
-      yearToDateDebit: toFormNumber(row?.yearToDateDebit),
-      yearToDateCredit: toFormNumber(row?.yearToDateCredit),
-      openingQuantity: toFormNumber(row?.openingQuantity),
-      originalCurrencyAmount: toFormNumber(row?.originalCurrencyAmount)
+      openingAmount: normalizeNullableNumber(row ? row.openingDebit || row.openingCredit : 0) ?? 0,
+      yearToDateDebit: normalizeNullableNumber(row?.yearToDateDebit) ?? 0,
+      yearToDateCredit: normalizeNullableNumber(row?.yearToDateCredit) ?? 0,
+      openingQuantity: normalizeNullableNumber(row?.openingQuantity) ?? 0,
+      originalCurrencyAmount: normalizeNullableNumber(row?.originalCurrencyAmount) ?? 0
     })
     await dialogRef.value?.handleOpen(undefined, {
       title: row ? `编辑期初余额 · ${row.subject?.subjectCode ?? ''}` : '录入期初余额',
       confirmText: row ? '保存修改' : '保存余额',
+      confirmDisabled: !canEditAmounts.value && !canEditAuxiliary.value,
       contentMaxHeight: '70vh',
       onConfirm: handleSubmit,
       onOpen: () => formRef.value?.clearValidate(),

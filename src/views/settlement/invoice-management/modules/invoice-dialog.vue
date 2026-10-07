@@ -210,7 +210,7 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { formatCnyCurrencyValue as formatMoney } from '@/utils/ui/format'
 
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage, type FormRules } from 'element-plus'
@@ -535,7 +535,7 @@
       invoiceType: [{ required: true, message: '请选择发票类型', trigger: 'change' }],
       issueDate: [{ required: true, message: '请选择开票日期', trigger: 'change' }],
       invoiceNo: [
-        { required: true, message: '请输入发票号码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入发票号码', trigger: 'blur' },
         { validator: validateInvoiceNo, trigger: 'blur' }
       ],
       amountExcludingTax: [
@@ -736,7 +736,10 @@
         const availableAmount = row ? getAvailableAmount(row) : 0
         nextAmounts[statementId] =
           selection.linkAmounts[statementId] ??
-          Math.min(availableAmount, sensitiveNumberValue(form.data.totalAmount) || availableAmount)
+          Math.min(
+            availableAmount,
+            (normalizeNullableNumber(form.data.totalAmount) ?? 0) || availableAmount
+          )
       }
       selection.linkAmounts = nextAmounts
     },
@@ -745,11 +748,6 @@
 
   function roundMoney(value: number): number {
     return roundInvoiceMoney(value)
-  }
-
-  function sensitiveNumberValue(value?: Api.Fms.SensitiveNumber): number {
-    const numeric = Number(value)
-    return Number.isFinite(numeric) ? numeric : 0
   }
 
   function validateInvoiceNo(
@@ -1092,7 +1090,7 @@
     const links = data.statementLinks ?? []
     const counterpartyId = data.direction === 'output' ? data.customerId : data.carrierId
     const linkAmounts = Object.fromEntries(
-      links.map((item) => [item.statementId, sensitiveNumberValue(item.linkedAmount)])
+      links.map((item) => [item.statementId, normalizeNullableNumber(item.linkedAmount) ?? 0])
     )
     replaceForm({
       id: data.id,
@@ -1173,7 +1171,7 @@
         return false
       }
       const linkedAmountTotal = statementLinks.reduce((total, item) => total + item.linkedAmount, 0)
-      if (linkedAmountTotal > sensitiveNumberValue(form.data.totalAmount) + 0.01) {
+      if (linkedAmountTotal > (normalizeNullableNumber(form.data.totalAmount) ?? 0) + 0.01) {
         ElMessage.warning('关联对账金额不能超过发票价税合计')
         return false
       }

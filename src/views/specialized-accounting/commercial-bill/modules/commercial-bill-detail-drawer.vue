@@ -55,10 +55,12 @@
               >
                 <div class="commercial-bill-detail__event-card">
                   <strong>{{ dictLabel('fmsBillEventType', event.eventType) }}</strong>
-                  <span>{{ formatProtectedAmount(event.amount) }}</span>
-                  <small>{{
-                    event.counterpartyName || event.referenceNo || event.remark || '系统登记'
-                  }}</small>
+                  <ArtDescriptions
+                    :data="event"
+                    :items="eventItems(event)"
+                    :columns="2"
+                    label-width="88px"
+                  />
                 </div>
               </ElTimelineItem>
             </ElTimeline>
@@ -126,6 +128,30 @@
   }, '票据详情加载失败，请重试或返回列表重新选择。')
   const bill = computed(() => loadedDetail.value?.record)
   const events = computed(() => loadedDetail.value?.events ?? [])
+
+  function eventItems(event: Event): ArtDescriptionItem<Event>[] {
+    return [
+      ...(event.eventDate
+        ? [{ key: 'eventDate', field: 'eventDate', label: '业务日期', format: 'date' as const }]
+        : []),
+      ...(canView('billAmounts')
+        ? [
+            {
+              key: 'amount',
+              label: '发生金额',
+              formatter: (_value: unknown, row: Event) => formatProtectedAmount(row.amount)
+            }
+          ]
+        : []),
+      ...(canView('billParties') && event.counterpartyName
+        ? [{ key: 'counterpartyName', field: 'counterpartyName', label: '往来单位', span: 2 }]
+        : []),
+      ...(canView('billReferences') && event.referenceNo
+        ? [{ key: 'referenceNo', field: 'referenceNo', label: '业务依据', copyable: true, span: 2 }]
+        : []),
+      ...(event.remark ? [{ key: 'remark', field: 'remark', label: '备注', span: 2 }] : [])
+    ]
+  }
 
   const canView = (field: Api.Fms.CommercialBillFieldKey): boolean =>
     canViewField(bill.value?.fieldAccess, field)
@@ -223,16 +249,10 @@
 
     &__event-card {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 4px 16px;
+      gap: 12px;
       padding: 12px 14px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--el-border-radius-base);
-
-      small {
-        grid-column: 1 / -1;
-        color: var(--el-text-color-secondary);
-      }
     }
   }
 </style>

@@ -241,14 +241,16 @@
     rules: {
       accountSetId: [{ required: true, message: '请选择账套', trigger: 'change' }],
       templateCode: [
-        { required: true, message: '请输入模板编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入模板编码', trigger: 'blur' },
         {
           pattern: /^[A-Za-z0-9_-]{2,30}$/,
           message: '模板编码只能包含字母、数字、下划线和短横线',
           trigger: 'blur'
         }
       ],
-      templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
+      templateName: [
+        { required: true, whitespace: true, message: '请输入模板名称', trigger: 'blur' }
+      ],
       voucherType: [{ required: true, message: '请选择凭证类型', trigger: 'change' }]
     }
   })

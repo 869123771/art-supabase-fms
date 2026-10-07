@@ -1,35 +1,5 @@
 <template>
   <ArtDrawer ref="drawerRef" :show-footer="false">
-    <template #header>
-      <div v-if="detail" class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:git-branch-line" />
-        </span>
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <strong class="text-base text-g-900">{{ eventHeading }}</strong>
-            <ElTag :type="statusType(detail.status)" effect="light">
-              {{ statusLabel(detail.status) }}
-            </ElTag>
-          </div>
-          <p class="my-1 text-xs text-g-600">{{
-            detail.accountSet?.accountSetName || '待匹配账套'
-          }}</p>
-          <ArtDictDisplay
-            v-if="canViewSourceReferences && detail.sourceType === 'commercial_bill'"
-            dict-code="fmsPostingSourceEvent"
-            :value="detail.sourceEvent"
-            display="text"
-          />
-          <span v-else-if="canViewSourceReferences">{{ detail.summary || '暂无事件摘要' }}</span>
-          <span v-else>业务来源信息受字段权限保护</span>
-        </div>
-      </div>
-      <strong v-else class="text-base text-g-900">自动入账事件</strong>
-    </template>
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -133,10 +103,9 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElButton, ElTag } from 'element-plus'
+  import { ElButton } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import { useUserStore } from '@/store/modules/user'
-  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -233,9 +202,6 @@
       Boolean(detail.value?.voucherId) &&
       ['read', 'edit'].includes(getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences'))
   )
-  const eventHeading = computed(() =>
-    canViewSourceReferences.value ? detail.value?.sourceNo || '自动入账事件' : '自动入账事件'
-  )
   const friendlyProcessingError = computed(() =>
     getFriendlySupabaseErrorMessage(
       detail.value?.lastError,
@@ -257,6 +223,13 @@
     ]
     if (canViewSourceReferences.value) {
       items.push(
+        {
+          key: 'accountSet',
+          label: '所属账套',
+          field: 'accountSet',
+          formatter: (_value, row) => row.accountSet?.accountSetName || '待匹配账套'
+        },
+        { key: 'summary', label: '事件摘要', field: 'summary' },
         {
           key: 'rule',
           label: '命中规则',
@@ -359,44 +332,25 @@
     { prop: 'value', label: '业务值', minWidth: 260, showOverflowTooltip: true }
   ]
 
-  function statusLabel(status: Api.Fms.PostingEventStatus): string {
-    return {
-      pending: '待处理',
-      processing: '处理中',
-      generated: '已生成凭证',
-      pending_configuration: '待配置',
-      failed: '生成失败',
-      reversed: '已冲销',
-      ignored: '无需处理'
-    }[status]
-  }
-
-  function statusType(
-    status: Api.Fms.PostingEventStatus
-  ): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
-    return {
-      pending: 'info',
-      processing: 'primary',
-      generated: 'success',
-      pending_configuration: 'warning',
-      failed: 'danger',
-      reversed: 'warning',
-      ignored: 'info'
-    }[status] as 'success' | 'warning' | 'danger' | 'info' | 'primary'
-  }
-
   function viewVoucher(): void {
     const voucherId = detail.value?.voucherId
     if (canOpenVoucher.value && voucherId) emit('view-voucher', voucherId)
   }
 
-  async function handleOpen(row: Event): Promise<void> {
+  async function handleOpen(row: Event | string): Promise<void> {
+    const eventId = typeof row === 'string' ? row : row.id
+    const initialRow = typeof row === 'string' ? undefined : row
     showReferences.value = false
-    openDetail(row.id)
-    await drawerRef.value?.handleOpen(row, {
+    openDetail(eventId)
+    await drawerRef.value?.handleOpen(initialRow, {
       title: '自动入账事件',
+      headerIcon: 'ri:git-branch-line',
+      subtitle:
+        initialRow && canViewField(initialRow.fieldAccess, 'eventSourceReferences')
+          ? initialRow.sourceNo || undefined
+          : undefined,
       size: 'xl',
-      onOpen: () => loadDetail(row.id),
+      onOpen: () => loadDetail(eventId),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
   }

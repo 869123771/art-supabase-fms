@@ -1,0 +1,1 @@
+import"./clipboard-CLnPUuhb.js";import{S as e,z as t}from"./index-CiXcfhKj.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=t();new e({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

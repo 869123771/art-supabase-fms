@@ -1,1 +1,0 @@
-import{H as e,w as t}from"./sys-DBtpju0X.js";import"./clipboard-CYayB2O3.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

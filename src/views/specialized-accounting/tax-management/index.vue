@@ -41,6 +41,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { storeToRefs } from 'pinia'
   import ArtButtonMore, {
@@ -409,7 +410,7 @@
             fundExecutionRef.value?.handleOpen(
               {
                 accountSetId: row.accountSetId,
-                amount: toFiniteNumber(row.payableAmount),
+                amount: normalizeNullableNumber(row.payableAmount) ?? 0,
                 direction: 'outflow',
                 title: '确认缴税',
                 subtitle: '选择实际扣款账户，系统会同步登记资金日记账和税费支付凭证',
@@ -440,10 +441,6 @@
   }
   async function refreshAll() {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
-  }
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : 0
   }
   function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'

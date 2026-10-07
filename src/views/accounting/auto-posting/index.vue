@@ -104,6 +104,7 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
@@ -161,7 +162,7 @@
   }
 
   interface EventDetailExpose {
-    handleOpen: (row: Event) => Promise<void>
+    handleOpen: (row: Event | string) => Promise<void>
   }
 
   interface VoucherDetailExpose {
@@ -183,7 +184,7 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
-  const { confirm, confirmDelete } = useArtFeedback()
+  const { confirm } = useArtFeedback()
   const { ensureAccountSet } = useFinanceAccountSetPrerequisite()
   const route = useRoute()
   const postingEventStatuses = new Set<Api.Fms.PostingEventStatus>([
@@ -207,9 +208,16 @@
     activeTab.value === 'rules' ? ruleTableRef.value : eventTableRef.value
   )
   const ruleDialogRef = ref<RuleDialogExpose>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard(
     'fms_posting_rule',
-    '自动入账规则'
+    '自动入账规则',
+    {
+      fms_posting_event: {
+        label: '自动入账事件',
+        routeName: 'FinanceAutoPosting',
+        routeQuery: { tab: 'events' }
+      }
+    }
   )
   const eventDetailRef = ref<EventDetailExpose>()
   const voucherDetailRef = ref<VoucherDetailExpose>()
@@ -279,6 +287,7 @@
         label: '关键词',
         key: 'keyword',
         type: 'input',
+        span: 12,
         props: { clearable: true, placeholder: '规则编码或名称' }
       }
     ]),
@@ -402,11 +411,12 @@
     { type: 'globalIndex', label: '序号', width: 72 },
     {
       prop: 'ruleCode',
-      label: '规则编码',
-      width: 190,
-      formatter: (row) => <span class="auto-posting-page__code">{row.ruleCode}</span>
+      label: '制证规则',
+      minWidth: 280,
+      formatter: (row) => (
+        <BusinessTableIdentityCell primary={row.ruleName} secondary={row.ruleCode} />
+      )
     },
-    { prop: 'ruleName', label: '规则名称', minWidth: 210, showOverflowTooltip: true },
     {
       prop: 'sourceEvent',
       label: '业务事件',
@@ -433,7 +443,7 @@
     {
       prop: 'effectiveFrom',
       label: '有效期',
-      width: 205,
+      width: 172,
       formatter: (row) => `${row.effectiveFrom || '即时'} 至 ${row.effectiveTo || '长期'}`
     },
     {
@@ -670,21 +680,16 @@
 
   async function handleDeleteRule(row: Rule): Promise<void> {
     if (!canEditField(row.fieldAccess, 'ruleConfiguration')) return
-    const resources = [{ id: row.id, label: `${row.ruleCode} · ${row.ruleName}` }]
-    try {
-      if (await inspectDeleteReferences(resources)) return
-      await confirmDelete(
-        `确定删除规则 ${row.ruleCode} · ${row.ruleName} 吗？已产生事件的规则只能停用。`
-      )
-    } catch {
-      return
-    }
-    try {
-      await deletePostingRule(row.id)
-      await ruleTableRef.value?.refreshRemove()
-    } catch {
-      await inspectDeleteReferences(resources)
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: `${row.ruleCode} · ${row.ruleName}` },
+      permission: 'FinanceAutoPosting:Delete',
+      confirmMessage: `确定删除规则 ${row.ruleCode} · ${row.ruleName} 吗？已产生事件的规则只能停用。`,
+      remove: () => deletePostingRule(row.id),
+      onDeleted: async () => {
+        await ruleTableRef.value?.refreshRemove()
+      },
+      failureMessage: '制证规则删除失败，请刷新列表后重试'
+    })
   }
 
   function handleRuleSaved(): void {
@@ -780,7 +785,35 @@
       userStore.ensureDictLoaded('fmsVoucherType')
     ])
     await loadAccountSets()
+    await openReferencedEvent()
   })
+
+  async function openReferencedEvent(): Promise<void> {
+    const recordId = route.query.recordId
+    if (
+      !(
+        route.query.fromException === '1' ||
+        (route.query.fromMasterDelete === '1' && route.query.dependencyCode === 'fms_posting_event')
+      ) ||
+      typeof recordId !== 'string' ||
+      !recordId ||
+      !hasAuth('FinanceAutoPosting:View')
+    )
+      return
+    activeTab.value = 'events'
+    await nextTick()
+    await eventDetailRef.value?.handleOpen(recordId)
+  }
+
+  watch(
+    () => [
+      route.query.recordId,
+      route.query.dependencyCode,
+      route.query.fromMasterDelete,
+      route.query.fromException
+    ],
+    () => void openReferencedEvent()
+  )
 
   watch(
     () => [route.query.tab, route.query.status] as const,

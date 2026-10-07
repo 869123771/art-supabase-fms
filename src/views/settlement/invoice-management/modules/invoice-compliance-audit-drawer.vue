@@ -1,15 +1,10 @@
 <template>
-  <ArtDrawer ref="drawerRef" :loading="state.loading" :show-footer="false">
-    <template #header="{ data }">
-      <div class="invoice-auditor__drawer-title">
-        <span><ArtSvgIcon icon="ri:file-shield-2-line" /></span>
-        <div>
-          <strong>AI 发票合规审核</strong>
-          <small>{{ data.invoiceRecordNo }} · 票面数据与对账关系复核</small>
-        </div>
-      </div>
-    </template>
-
+  <ArtDrawer
+    ref="drawerRef"
+    header-icon="ri:file-shield-2-line"
+    :loading="state.loading"
+    :show-footer="false"
+  >
     <div class="invoice-auditor">
       <template v-if="state.data">
         <section :class="['invoice-auditor__hero art-card-xs', `is-${assessment.riskLevel}`]">
@@ -323,7 +318,8 @@
   async function handleOpen(data: DrawerOpenData): Promise<void> {
     Object.assign(state, { data: null, error: '', loading: false, openData: data })
     await drawerRef.value?.handleOpen(data, {
-      title: `AI 发票合规审核 · ${data.invoiceRecordNo}`,
+      title: 'AI 发票合规审核',
+      subtitle: `${data.invoiceRecordNo} · 票面数据与对账关系复核`,
       size: 'lg',
       showFooter: false,
       onOpen: loadAssessment,
@@ -381,46 +377,6 @@
   .invoice-auditor {
     display: grid;
     gap: 24px;
-
-    &__drawer-title {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      min-width: 0;
-
-      > span {
-        display: grid;
-        flex: none;
-        place-items: center;
-        width: 38px;
-        height: 38px;
-        font-size: 20px;
-        color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
-        border-radius: var(--el-border-radius-base);
-      }
-
-      > div {
-        display: grid;
-        gap: 2px;
-        min-width: 0;
-      }
-
-      strong,
-      small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      strong {
-        font-size: 16px;
-      }
-
-      small {
-        color: var(--el-text-color-secondary);
-      }
-    }
 
     &__hero {
       display: grid;
@@ -946,7 +902,6 @@
 
   @media (width <= 480px) {
     .invoice-auditor {
-      &__drawer-title small,
       &__eyebrow {
         display: none;
       }

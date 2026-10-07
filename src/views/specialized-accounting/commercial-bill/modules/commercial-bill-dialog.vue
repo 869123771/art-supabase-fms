@@ -22,7 +22,7 @@
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import { useMediaQuery } from '@vueuse/core'
@@ -86,9 +86,11 @@
       accountSetId: [{ required: true, message: '请选择所属账套', trigger: 'change' }],
       direction: [{ required: true, message: '请选择票据方向', trigger: 'change' }],
       billType: [{ required: true, message: '请选择票据类型', trigger: 'change' }],
-      drawerName: [{ required: true, message: '请输入出票人', trigger: 'blur' }],
-      payeeName: [{ required: true, message: '请输入收款人', trigger: 'blur' }],
-      acceptorName: [{ required: true, message: '请输入承兑人', trigger: 'blur' }],
+      drawerName: [{ required: true, whitespace: true, message: '请输入出票人', trigger: 'blur' }],
+      payeeName: [{ required: true, whitespace: true, message: '请输入收款人', trigger: 'blur' }],
+      acceptorName: [
+        { required: true, whitespace: true, message: '请输入承兑人', trigger: 'blur' }
+      ],
       issueDate: [{ required: true, message: '请选择出票日', trigger: 'change' }],
       dueDate: [{ required: true, message: '请选择到期日', trigger: 'change' }],
       faceAmount: [
@@ -99,7 +101,9 @@
           trigger: 'change'
         }
       ],
-      currencyCode: [{ required: true, message: '请输入币种代码', trigger: 'blur' }]
+      currencyCode: [
+        { required: true, whitespace: true, message: '请输入币种代码', trigger: 'blur' }
+      ]
     }
   })
 
@@ -369,7 +373,7 @@
           issueDate: record.issueDate,
           dueDate: record.dueDate,
           faceAmount: canEditField(record.fieldAccess, 'billAmounts')
-            ? toEditableNumber(record.faceAmount)
+            ? (normalizeNullableNumber(record.faceAmount) ?? undefined)
             : undefined,
           currencyCode: record.currencyCode,
           transferable: record.transferable,
@@ -409,11 +413,6 @@
       },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
-  }
-
-  function toEditableNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
   }
 
   function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {

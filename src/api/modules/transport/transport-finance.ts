@@ -102,18 +102,6 @@ const createCostWritePayload = (params: WaybillCost) => ({
   ocrStatus: params.ocrStatus ?? 'not_started'
 })
 
-const createExpenseItemWritePayload = (params: ExpenseItem) => ({
-  parentId: params.parentId || null,
-  itemCode: params.itemCode.trim(),
-  itemName: params.itemName.trim(),
-  businessCategory: params.isSelectable ? params.businessCategory || null : null,
-  isSelectable: Boolean(params.isSelectable),
-  reimbursementAllowed: params.isSelectable && Boolean(params.reimbursementAllowed),
-  isEnabled: Boolean(params.isEnabled),
-  sort: Number(params.sort || 0),
-  remark: normalizeNullableText(params.remark)
-})
-
 export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {}) {
   const { from = 0, to = 999, keyword, tenantId, isEnabled, parentId } = params
   let query = supabase
@@ -149,26 +137,22 @@ export async function fetchExpenseItemTree(params: ExpenseItemSearchParams = {})
   }
 }
 
-export async function addExpenseItem(params: ExpenseItem) {
+export async function addExpenseItem(params: Api.Fms.ExpenseItemWritePayload) {
   return await responseHandle<ExpenseItem>(
-    () =>
-      supabase
-        .from('tms_expense_item')
-        .insert(keysToSnakeDeep(createExpenseItemWritePayload(params)))
-        .select('*')
-        .single(),
+    () => supabase.from('tms_expense_item').insert(keysToSnakeDeep(params)).select('*').single(),
     { showMessage: true, breakReturn: true, message: '费用项目已创建' }
   )
 }
 
-export async function editExpenseItem(params: ExpenseItem) {
-  if (!params.id) throw new Error('缺少费用项目 ID')
+export async function editExpenseItem(params: Api.Fms.ExpenseItemWritePayload & { id: string }) {
+  const { id, ...payload } = params
+  if (!id) throw new Error('缺少费用项目 ID')
   return await responseHandle<ExpenseItem>(
     () =>
       supabase
         .from('tms_expense_item')
-        .update(keysToSnakeDeep(createExpenseItemWritePayload(params)), { count: 'exact' })
-        .eq('id', params.id)
+        .update(keysToSnakeDeep(payload), { count: 'exact' })
+        .eq('id', id)
         .select('*')
         .single(),
     { showMessage: true, breakReturn: true, requireAffected: true, message: '费用项目已更新' }
@@ -178,7 +162,13 @@ export async function editExpenseItem(params: ExpenseItem) {
 export async function deleteExpenseItem(id: string) {
   return await responseHandle(
     () => supabase.from('tms_expense_item').delete({ count: 'exact' }).eq('id', id),
-    { showMessage: true, breakReturn: true, requireAffected: true, message: '费用项目已删除' }
+    {
+      showMessage: true,
+      showErrorMessage: false,
+      breakReturn: true,
+      requireAffected: true,
+      message: '费用项目已删除'
+    }
   )
 }
 

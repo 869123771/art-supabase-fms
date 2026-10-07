@@ -191,6 +191,7 @@
           @retry="loadWorkspace"
         >
           <ArtTable
+            :border="false"
             :data="filteredRates"
             :columns="columns"
             :pagination="false"

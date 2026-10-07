@@ -1,5 +1,16 @@
 <template>
-  <FinanceAccountingWorkspaceShell class="fund-transfer-page">
+  <FinanceAccountingWorkspaceShell
+    class="fund-transfer-page"
+    :location-ready="Boolean(locatedTransferId)"
+  >
+    <ArtAsyncState
+      v-if="linkedTransferLoading || linkedTransferError"
+      :loading="linkedTransferLoading"
+      :error="linkedTransferError ? '关联资金调拨加载失败，请重新加载。' : null"
+      min-height="160px"
+      size="compact"
+      @retry="retryLinkedTransfer"
+    />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="TREASURY CONTROL"
@@ -45,7 +56,11 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { useRouteDocumentDrawer } from '@/hooks/core/useRouteDocumentDrawer'
+  import { useAuth } from '@/hooks/core/useAuth'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -71,7 +86,7 @@
   import { formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useUserStore } from '@/store/modules/user'
@@ -79,6 +94,7 @@
     deleteFundTransfer,
     fetchAccountSetOptions,
     fetchFundAccountOptions,
+    fetchFundTransferDetail,
     fetchFundTransferList,
     transitionFundTransfer
   } from '@fms/api'
@@ -99,16 +115,40 @@
   }
 
   const { confirmAction, promptReason } = useArtFeedback()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord, deleteBusy } = useRecordDeleteGuard(
     'fms_fund_transfer',
     '资金调拨'
   )
+  const transitionBusy = ref(false)
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
   const drawerRef = ref<DrawerExpose>()
+  const locatedTransferId = ref('')
+  const { hasAuth } = useAuth()
+  const {
+    loading: linkedTransferLoading,
+    error: linkedTransferError,
+    retry: retryLinkedTransfer
+  } = useRouteDocumentDrawer({
+    routeName: 'FinanceFundTransfer',
+    queryKey: 'recordId',
+    clearQueryOnOpen: false,
+    canOpen: () => hasAuth('FinanceFundTransfer:View'),
+    fetchDocument: async (id) => {
+      locatedTransferId.value = ''
+      const { data, error } = await fetchFundTransferDetail(id, { showErrorMessage: false })
+      if (error || !data) throw new Error('关联资金调拨加载失败', { cause: error })
+      return data
+    },
+    openDocument: async (transfer) => {
+      if (!drawerRef.value) throw new Error('资金调拨详情尚未就绪')
+      await drawerRef.value.handleOpen(transfer)
+      locatedTransferId.value = transfer.id
+    }
+  })
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const accountOptions = ref<Api.Fms.FundAccountOption[]>([])
   const overviewRows = ref<Transfer[]>([])
@@ -216,7 +256,9 @@
       overviewRows.value.filter((row) => row.status === status).length
     const completedRows = overviewRows.value.filter((row) => row.status === 'completed')
     const amountAccess = getFieldAccess(listFieldAccess.value, 'transferAmounts')
-    const completedAmounts = completedRows.map((row) => toFiniteNumber(row.amount))
+    const completedAmounts = completedRows.map(
+      (row) => normalizeNullableNumber(row.amount) ?? undefined
+    )
     const canAggregateAmount =
       ['read', 'edit'].includes(amountAccess) &&
       completedAmounts.every((value): value is number => value !== undefined)
@@ -365,13 +407,17 @@
               <ArtButtonTable
                 type="edit"
                 permission="FinanceFundTransfer:Edit"
+                disabled={transitionBusy.value || deleteBusy.value}
                 onClick={() => void dialogRef.value?.handleOpen(row)}
               />
             ) : null}
             {getActionItems(row).length ? (
               <ArtButtonMore
                 trigger="click"
-                list={getActionItems(row)}
+                list={getActionItems(row).map((item) => ({
+                  ...item,
+                  disabled: transitionBusy.value || deleteBusy.value
+                }))}
                 onClick={(item: ButtonMoreItem) => void handleAction(item, row)}
               />
             ) : null}
@@ -478,17 +524,41 @@
   }
 
   async function handleAction(item: ButtonMoreItem, row: Transfer): Promise<void> {
+    if (transitionBusy.value || deleteBusy.value) return
+    const action = getActionItems(row).find((candidate) => candidate.key === item.key)
+    const canRunAction = () =>
+      Boolean(
+        action?.auth &&
+        hasAuth(action.auth) &&
+        getActionItems(row).some(
+          (candidate) => candidate.key === action.key && candidate.auth === action.auth
+        )
+      )
+    if (!action || !canRunAction()) {
+      ElMessage.error('调拨操作权限或状态已变化，请刷新页面后重试')
+      return
+    }
+    if (item.key === 'delete') {
+      await deleteRecord({
+        resource: { id: row.id, label: row.transferNo },
+        permission: 'FinanceFundTransfer:Delete',
+        confirmMessage: `确定删除调拨草稿“${row.transferNo}”吗？`,
+        remove: () => deleteFundTransfer(row.id),
+        onDeleted: () => refreshAll('delete'),
+        failureMessage: '资金调拨删除失败，请刷新调拨状态后重试'
+      })
+      return
+    }
+    transitionBusy.value = true
     try {
-      if (item.key === 'delete') {
-        if (await inspectDeleteReferences([{ id: row.id, label: row.transferNo }])) return
-        await confirmAction(`确定删除调拨草稿“${row.transferNo}”吗？`, '删除资金调拨', {
-          type: 'warning',
-          confirmButtonText: '确认删除'
-        })
-        await deleteFundTransfer(row.id)
-        await refreshAll('delete')
+      if (
+        item.key !== 'submit' &&
+        item.key !== 'approve' &&
+        item.key !== 'reject' &&
+        item.key !== 'execute' &&
+        item.key !== 'reverse'
+      )
         return
-      }
       let reason: string | undefined
       if (item.key === 'reject' || item.key === 'reverse') {
         reason = await promptReason(
@@ -509,26 +579,24 @@
           confirmButtonText: item.label
         })
       }
-      await transitionFundTransfer(
-        row.id,
-        item.key as Exclude<Api.Fms.FundTransferAction, 'create' | 'edit'>,
-        {
-          reason,
-          executionDate: ['execute', 'reverse'].includes(String(item.key))
-            ? dayjs().format('YYYY-MM-DD')
-            : null,
-          version: row.version
-        }
-      )
+      if (!canRunAction()) {
+        ElMessage.error('调拨操作权限或状态已变化，请刷新页面后重试')
+        return
+      }
+      await transitionFundTransfer(row.id, item.key, {
+        reason,
+        executionDate: ['execute', 'reverse'].includes(String(item.key))
+          ? dayjs().format('YYYY-MM-DD')
+          : null,
+        version: row.version
+      })
       await refreshAll('update')
-    } catch {
-      // 用户取消或数据库业务约束阻止时不重复提示。
+    } catch (error) {
+      if (error === 'cancel' || error === 'close') return
+      notifyFriendlyError(error, `${item.label}失败，请刷新调拨状态后重试`)
+    } finally {
+      transitionBusy.value = false
     }
-  }
-
-  function toFiniteNumber(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
   }
 
   function formatTransferAmount(
@@ -540,8 +608,8 @@
   }
 
   function buildExecuteConfirmMessage(row: Transfer): string {
-    const amount = toFiniteNumber(row.amount)
-    const feeAmount = toFiniteNumber(row.feeAmount)
+    const amount = normalizeNullableNumber(row.amount) ?? undefined
+    const feeAmount = normalizeNullableNumber(row.feeAmount) ?? undefined
     if (row.sourceAccountName && amount !== undefined && feeAmount !== undefined) {
       return `执行后将从“${row.sourceAccountName}”扣减 ${formatCurrencyValue(amount + feeAmount, row.currencyCode)}。`
     }

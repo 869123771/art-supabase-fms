@@ -1,15 +1,10 @@
 <template>
-  <ArtDrawer ref="drawerRef" :loading="state.loading" :show-footer="false">
-    <template #header>
-      <div class="collection-advisor__drawer-title">
-        <span><ArtSvgIcon icon="ri:hand-coin-line" /></span>
-        <div>
-          <strong>AI 回款风险助手</strong>
-          <small>从对账、开票到回款核销的只读风险研判</small>
-        </div>
-      </div>
-    </template>
-
+  <ArtDrawer
+    ref="drawerRef"
+    header-icon="ri:hand-coin-line"
+    :loading="state.loading"
+    :show-footer="false"
+  >
     <div class="collection-advisor">
       <template v-if="state.data">
         <section :class="['collection-advisor__hero art-card-xs', `is-${assessment.riskLevel}`]">
@@ -428,6 +423,7 @@
       {},
       {
         title: 'AI 回款风险助手',
+        subtitle: '从对账、开票到回款核销的只读风险研判',
         size: 'xl',
         showFooter: false,
         onOpen: loadAssessment,
@@ -492,36 +488,6 @@
 <style scoped lang="scss">
   .collection-advisor {
     min-width: 0;
-
-    &__drawer-title {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-
-      > span {
-        display: grid;
-        place-items: center;
-        width: 40px;
-        height: 40px;
-        color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
-        border-radius: var(--el-border-radius-base);
-      }
-
-      strong,
-      small {
-        display: block;
-      }
-
-      strong {
-        color: var(--art-text-gray-900);
-      }
-
-      small {
-        margin-top: 3px;
-        color: var(--art-text-gray-500);
-      }
-    }
 
     &__hero {
       position: relative;

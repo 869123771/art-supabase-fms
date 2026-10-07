@@ -88,12 +88,14 @@
       <ArtSectionCard
         class="expense-reimbursement-detail__section"
         preserve-content-structure
-        title="逐笔核销明细"
+        title="费用明细"
+        subtitle="逐笔保留申请时的费用快照，审批通过并付清后自动核销。"
         :empty="!detail.data.items?.length"
         empty-title="当前报销单暂无费用明细"
         empty-description="登记费用明细后，可在此查看逐笔核销情况。"
       >
         <ArtTable
+          v-if="!isMobile"
           :data="detail.data.items ?? []"
           :columns="expenseColumns"
           :border="false"
@@ -101,6 +103,22 @@
           :show-table-header="false"
           table-layout="fixed"
         />
+        <div v-else class="grid gap-4">
+          <article v-for="item in detail.data.items ?? []" :key="item.id" class="min-w-0">
+            <RouterLink
+              class="mb-3 inline-block break-all text-sm font-medium text-primary"
+              :to="getWaybillCostDetailPath(item.costId)"
+            >
+              {{ item.costNoSnapshot || '查看费用详情' }}
+            </RouterLink>
+            <ArtDescriptions
+              :data="item"
+              :items="expenseMobileItems"
+              :columns="1"
+              label-width="96px"
+            />
+          </article>
+        </div>
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -350,8 +368,8 @@
       { key: 'submittedAt', label: '提交时间', field: 'submittedAt', format: 'datetime' },
       { key: 'submittedBy', label: '提交人', field: 'submittedBy' },
       { key: 'reviewedAt', label: '审批完成时间', field: 'reviewedAt', format: 'datetime' },
-      { key: 'reviewedBy', label: '最终审批人', field: 'reviewedBy' },
-      { key: 'reviewRemark', label: '审批意见', field: 'reviewRemark', span: 2 }
+      { key: 'reviewedBy', label: '审批结果登记人', field: 'reviewedBy' },
+      { key: 'reviewRemark', label: '审批结果说明', field: 'reviewRemark', span: 2 }
     ]
     if (paymentExecutionAccess.value !== 'hidden') {
       const copyable = ['read', 'edit'].includes(paymentExecutionAccess.value)
@@ -417,10 +435,38 @@
       ? [
           {
             prop: 'amountSnapshot',
-            label: '核销金额',
+            label: '费用金额',
             width: 140,
             align: 'right' as const,
             formatter: (row: ExpenseItem) => money(row.amountSnapshot)
+          }
+        ]
+      : [])
+  ])
+
+  const expenseMobileItems = computed<ArtDescriptionItem<ExpenseItem>[]>(() => [
+    {
+      key: 'waybillNoSnapshot',
+      label: '运单号',
+      field: 'waybillNoSnapshot',
+      render: (_value, row) => (
+        <RouterLink
+          class="break-all text-primary"
+          to={{ name: 'TmsWaybillDetail', params: { id: row.waybillId } }}
+        >
+          {row.waybillNoSnapshot || '--'}
+        </RouterLink>
+      )
+    },
+    { key: 'expenseItemNameSnapshot', label: '费用项目', field: 'expenseItemNameSnapshot' },
+    { key: 'occurredOnSnapshot', label: '发生日期', field: 'occurredOnSnapshot', format: 'date' },
+    ...(amountAccess.value !== 'hidden'
+      ? [
+          {
+            key: 'amountSnapshot',
+            label: '费用金额',
+            field: 'amountSnapshot',
+            value: (row: ExpenseItem) => money(row.amountSnapshot)
           }
         ]
       : [])

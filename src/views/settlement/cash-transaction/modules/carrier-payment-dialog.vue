@@ -99,7 +99,7 @@
   import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { ElInputNumber, ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -568,7 +568,7 @@
         transactionNo: transaction.transactionNo,
         carrierId: transaction.carrierId ?? '',
         transactionDate: transaction.transactionDate,
-        amount: sensitiveNumberValue(transaction.amount),
+        amount: normalizeNullableNumber(transaction.amount) ?? 0,
         paymentMethod: transaction.paymentMethod,
         bankReference: transaction.bankReference ?? '',
         voucherUrls: [...(transaction.voucherUrls ?? [])]
@@ -584,7 +584,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记承运商付款',
       subtitle: transaction
-        ? `本笔付款尚有 ${money(sensitiveNumberValue(transaction.unallocatedAmount))} 未核销`
+        ? `本笔付款尚有 ${money(normalizeNullableNumber(transaction.unallocatedAmount) ?? 0)} 未核销`
         : '登记实际付款流水，可同时核销一份或多份已确认承运商对账单',
       confirmText: transaction ? '确认核销' : '登记付款',
       contentMaxHeight: '76vh',
@@ -607,11 +607,6 @@
     })
   }
   defineExpose({ handleOpen })
-
-  function sensitiveNumberValue(value?: Api.Fms.SensitiveNumber): number {
-    const numeric = Number(value)
-    return Number.isFinite(numeric) ? numeric : 0
-  }
 
   async function recordOcrReview(transactionId?: string | null): Promise<void> {
     if (!ocrResult.value || !transactionId) return

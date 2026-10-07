@@ -1,5 +1,16 @@
 <template>
-  <FinanceAccountingWorkspaceShell class="bank-reconciliation-page">
+  <FinanceAccountingWorkspaceShell
+    class="bank-reconciliation-page"
+    :location-ready="Boolean(locatedBatchId)"
+  >
+    <ArtAsyncState
+      v-if="linkedBatchLoading || linkedBatchError"
+      :loading="linkedBatchLoading"
+      :error="linkedBatchError ? '关联银行对账批次加载失败，请重新加载。' : null"
+      min-height="160px"
+      size="compact"
+      @retry="retryLinkedBatch"
+    />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="BANK RECONCILIATION"
@@ -45,6 +56,9 @@
 
 <script setup lang="tsx">
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { useRouteDocumentDrawer } from '@/hooks/core/useRouteDocumentDrawer'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -67,6 +81,7 @@
   import { useUserStore } from '@/store/modules/user'
   import {
     fetchAccountSetOptions,
+    fetchBankReconciliationDetail,
     fetchBankReconciliationList,
     fetchFundAccountOptions
   } from '@fms/api'
@@ -90,6 +105,29 @@
   const tableRef = ref<ArtTableQueryExpose>()
   const importDialogRef = ref<ImportDialogExpose>()
   const drawerRef = ref<DrawerExpose>()
+  const locatedBatchId = ref('')
+  const { hasAuth } = useAuth()
+  const {
+    loading: linkedBatchLoading,
+    error: linkedBatchError,
+    retry: retryLinkedBatch
+  } = useRouteDocumentDrawer({
+    routeName: 'FinanceBankReconciliation',
+    queryKey: 'recordId',
+    clearQueryOnOpen: false,
+    canOpen: () => hasAuth('FinanceBankReconciliation:View'),
+    fetchDocument: async (id) => {
+      locatedBatchId.value = ''
+      const { data, error } = await fetchBankReconciliationDetail(id, { showErrorMessage: false })
+      if (error || !data) throw new Error('关联银行对账批次加载失败', { cause: error })
+      return data
+    },
+    openDocument: async (batch) => {
+      if (!drawerRef.value) throw new Error('银行对账详情尚未就绪')
+      locatedBatchId.value = batch.id
+      await drawerRef.value.handleOpen(batch)
+    }
+  })
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const accountSetOptionsLoaded = ref(false)
   let accountSetOptionsRequest: Promise<void> | undefined

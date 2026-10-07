@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -391,7 +392,7 @@
           ) : null}
           {row.direction === 'receipt' &&
             ['pending_allocation', 'partially_allocated'].includes(row.status) &&
-            sensitiveNumberValue(row.unallocatedAmount) > 0 &&
+            (normalizeNullableNumber(row.unallocatedAmount) ?? 0) > 0 &&
             canEditField(row.fieldAccess, 'transactionAmounts') &&
             hasAuth('FinanceCashTransaction:Allocate') && (
               <ArtButtonTable
@@ -404,7 +405,7 @@
             )}
           {row.direction === 'payment' &&
             ['pending_allocation', 'partially_allocated'].includes(row.status) &&
-            sensitiveNumberValue(row.unallocatedAmount) > 0 &&
+            (normalizeNullableNumber(row.unallocatedAmount) ?? 0) > 0 &&
             canEditField(row.fieldAccess, 'transactionAmounts') &&
             hasAuth('FinanceCashTransaction:Allocate') && (
               <ArtButtonTable
@@ -416,7 +417,7 @@
               />
             )}
           {row.status === 'pending_allocation' &&
-            sensitiveNumberValue(row.allocatedAmount) === 0 &&
+            (normalizeNullableNumber(row.allocatedAmount) ?? 0) === 0 &&
             hasAuth('FinanceCashTransaction:Void') && (
               <ArtButtonTable
                 type="delete"
@@ -477,11 +478,6 @@
 
   const getSensitiveColumnVisibility = (): string =>
     `${canViewListField('transactionAmounts')}:${canViewListField('bankDetails')}`
-
-  function sensitiveNumberValue(value?: Api.Fms.SensitiveNumber): number {
-    const numeric = Number(value)
-    return Number.isFinite(numeric) ? numeric : 0
-  }
 
   async function loadCustomerOptions(): Promise<void> {
     const { data } = await fetchCustomerOptions()

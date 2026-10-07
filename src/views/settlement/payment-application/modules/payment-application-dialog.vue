@@ -124,7 +124,7 @@
 <script setup lang="tsx">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import { useMediaQuery } from '@vueuse/core'
@@ -352,8 +352,8 @@
     )
     return {
       allocated,
-      limit: round(sensitiveNumberValue(form.data.amount)),
-      remaining: round(sensitiveNumberValue(form.data.amount) - allocated)
+      limit: round(normalizeNullableNumber(form.data.amount) ?? 0),
+      remaining: round((normalizeNullableNumber(form.data.amount) ?? 0) - allocated)
     }
   })
   const summaryText = computed(() => {
@@ -422,8 +422,8 @@
             v-model={selection.amounts[row.id]}
             min={0}
             max={Math.min(
-              sensitiveNumberValue(row.outstandingAmount),
-              sensitiveNumberValue(form.data.amount)
+              normalizeNullableNumber(row.outstandingAmount) ?? 0,
+              normalizeNullableNumber(form.data.amount) ?? 0
             )}
             precision={2}
             controlsPosition="right"
@@ -439,10 +439,6 @@
 
   const round = (value: number): number =>
     Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
-  const sensitiveNumberValue = (value?: Api.Fms.SensitiveNumber): number => {
-    const numericValue = Number(value)
-    return Number.isFinite(numericValue) ? numericValue : 0
-  }
   const money = (value?: Api.Fms.SensitiveNumber): string => {
     return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
@@ -493,9 +489,11 @@
 
   function autoAllocate(): void {
     if (!canEditApplicationField('applicationAmounts')) return
-    let remaining = round(sensitiveNumberValue(form.data.amount))
+    let remaining = round(normalizeNullableNumber(form.data.amount) ?? 0)
     selectedStatements.value.forEach((statement) => {
-      const amount = round(Math.min(remaining, sensitiveNumberValue(statement.outstandingAmount)))
+      const amount = round(
+        Math.min(remaining, normalizeNullableNumber(statement.outstandingAmount) ?? 0)
+      )
       selection.amounts[statement.id] = Math.max(amount, 0)
       remaining = round(remaining - amount)
     })
@@ -533,7 +531,7 @@
         carrierId: form.data.carrierId,
         plannedPaymentDate: form.data.plannedPaymentDate,
         amount: canEditApplicationField('applicationAmounts')
-          ? sensitiveNumberValue(form.data.amount)
+          ? (normalizeNullableNumber(form.data.amount) ?? 0)
           : null,
         paymentMethod: form.data.paymentMethod,
         basisUrls: [...form.data.basisUrls],
@@ -590,8 +588,8 @@
       waybillCount: 0,
       statementAmount: item.statementAmountSnapshot,
       settledAmount: round(
-        sensitiveNumberValue(item.statementAmountSnapshot) -
-          sensitiveNumberValue(item.outstandingAmountSnapshot)
+        (normalizeNullableNumber(item.statementAmountSnapshot) ?? 0) -
+          (normalizeNullableNumber(item.outstandingAmountSnapshot) ?? 0)
       ),
       outstandingAmount: item.outstandingAmountSnapshot,
       statementOutstandingAmount: item.outstandingAmountSnapshot,
@@ -600,7 +598,10 @@
       createTime: item.createTime
     }))
     selection.amounts = Object.fromEntries(
-      (data.items ?? []).map((item) => [item.statementId, sensitiveNumberValue(item.appliedAmount)])
+      (data.items ?? []).map((item) => [
+        item.statementId,
+        normalizeNullableNumber(item.appliedAmount) ?? 0
+      ])
     )
   }
 

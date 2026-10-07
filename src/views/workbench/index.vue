@@ -48,6 +48,7 @@
           </ElSkeleton>
         </template>
         <ArtTable
+          :border="false"
           :data="overview.tasks"
           :columns="taskColumns"
           :pagination="false"
@@ -154,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import type { AlertProps, TagProps } from 'element-plus'
   import type { ColumnOption } from '@/types'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -418,8 +420,8 @@
   })
 
   const grossMargin = computed(() => {
-    const revenue = toFiniteNumber(overview.stats.monthRevenueAmount)
-    const profit = toFiniteNumber(overview.stats.monthGrossProfit)
+    const revenue = normalizeNullableNumber(overview.stats.monthRevenueAmount) ?? undefined
+    const profit = normalizeNullableNumber(overview.stats.monthGrossProfit) ?? undefined
     if (revenue === undefined || profit === undefined) {
       return isMaskedValue(overview.stats.monthRevenueAmount) ||
         isMaskedValue(overview.stats.monthGrossProfit)
@@ -437,15 +439,9 @@
     return value === '***'
   }
 
-  function toFiniteNumber(value?: SensitiveNumber): number | undefined {
-    if (value === null || value === undefined || isMaskedValue(value)) return undefined
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : undefined
-  }
-
   function formatMoney(value?: SensitiveNumber): string {
     if (isMaskedValue(value)) return '***'
-    const numberValue = toFiniteNumber(value)
+    const numberValue = normalizeNullableNumber(value) ?? undefined
     if (numberValue === undefined) return '—'
     return `¥${numberValue.toLocaleString('zh-CN', {
       minimumFractionDigits: 2,
@@ -455,12 +451,12 @@
 
   function formatPercent(value?: SensitiveNumber): string {
     if (isMaskedValue(value)) return '***'
-    const numberValue = toFiniteNumber(value)
+    const numberValue = normalizeNullableNumber(value) ?? undefined
     return numberValue === undefined ? '—' : `${numberValue.toFixed(2)}%`
   }
 
   function clampRate(value?: SensitiveNumber): number {
-    const numberValue = toFiniteNumber(value)
+    const numberValue = normalizeNullableNumber(value) ?? undefined
     return numberValue === undefined ? 0 : Math.min(100, Math.max(0, numberValue))
   }
 
@@ -469,7 +465,7 @@
   }
 
   function buildMetrics(stats: Stats): BusinessWorkspaceMetric[] {
-    const profit = toFiniteNumber(stats.monthGrossProfit)
+    const profit = normalizeNullableNumber(stats.monthGrossProfit) ?? undefined
     const candidates: Array<{ access: WorkbenchFieldKey; metric: BusinessWorkspaceMetric }> = [
       {
         access: 'customerSettlementAmounts',
@@ -710,7 +706,7 @@
           value: formatPercent(stats.receiptCompletionRate),
           percent: clampRate(stats.receiptCompletionRate),
           color:
-            toFiniteNumber(stats.receiptCompletionRate) !== undefined
+            (normalizeNullableNumber(stats.receiptCompletionRate) ?? undefined) !== undefined
               ? 'var(--el-color-success)'
               : 'var(--el-color-info)'
         }
@@ -722,7 +718,7 @@
           value: formatPercent(stats.paymentCompletionRate),
           percent: clampRate(stats.paymentCompletionRate),
           color:
-            toFiniteNumber(stats.paymentCompletionRate) !== undefined
+            (normalizeNullableNumber(stats.paymentCompletionRate) ?? undefined) !== undefined
               ? 'var(--el-color-warning)'
               : 'var(--el-color-info)'
         }
@@ -734,7 +730,7 @@
           value: formatPercent(stats.invoiceMatchRate),
           percent: clampRate(stats.invoiceMatchRate),
           color:
-            toFiniteNumber(stats.invoiceMatchRate) !== undefined
+            (normalizeNullableNumber(stats.invoiceMatchRate) ?? undefined) !== undefined
               ? 'var(--el-color-primary)'
               : 'var(--el-color-info)'
         }
@@ -746,7 +742,7 @@
           value: formatPercent(stats.costApprovalRate),
           percent: clampRate(stats.costApprovalRate),
           color:
-            toFiniteNumber(stats.costApprovalRate) !== undefined
+            (normalizeNullableNumber(stats.costApprovalRate) ?? undefined) !== undefined
               ? 'var(--el-color-success)'
               : 'var(--el-color-info)'
         }
@@ -796,7 +792,7 @@
       })
     }
     if (stats.draftInvoiceCount > 0 || stats.pendingInvoiceCount > 0) {
-      const invoiceRate = toFiniteNumber(stats.invoiceMatchRate)
+      const invoiceRate = normalizeNullableNumber(stats.invoiceMatchRate) ?? undefined
       const invoiceRateLabel =
         fieldAccessLevel('invoiceAmounts') === 'hidden'
           ? ''

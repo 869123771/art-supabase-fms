@@ -260,6 +260,7 @@
   ])
 
   async function loadForecast(): Promise<void> {
+    if (loading.value) return
     loading.value = true
     errorMessage.value = ''
     try {
@@ -272,6 +273,16 @@
   }
 
   onMounted(() => void loadForecast())
+
+  let refreshOnReturn = false
+  onDeactivated(() => {
+    refreshOnReturn = true
+  })
+  onActivated(() => {
+    if (!refreshOnReturn) return
+    refreshOnReturn = false
+    void loadForecast()
+  })
 </script>
 
 <style scoped lang="scss">

@@ -23,10 +23,10 @@
           <small>费用核销状态</small>
           <ArtDictDisplay
             dict-code="tmsWaybillCostSettlementStatus"
-            value="pending_payment"
+            value="unsettled"
             display="tag"
           />
-          <p>付款登记后自动更新为已支付</p>
+          <p>审批通过并付清后逐笔核销</p>
         </div>
       </article>
     </section>

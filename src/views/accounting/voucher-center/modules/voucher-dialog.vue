@@ -20,6 +20,7 @@
         label-width="92px"
         :show-reset="false"
         :show-submit="false"
+        :disabled="!canEditVoucher"
         scroll-to-error
       />
 
@@ -69,6 +70,7 @@
             /> </div
         ></template>
         <ArtTable
+          :border="false"
           :data="form.data.attachments"
           :columns="attachmentColumns"
           :pagination="false"
@@ -83,6 +85,7 @@
       <div class="voucher-dialog__footer">
         <ElButton :disabled="loading" @click="api.handleClose()">取消</ElButton>
         <ElButton
+          v-if="hasAuth(form.data.id ? 'FinanceVoucherCenter:Edit' : 'FinanceVoucherCenter:Add')"
           :loading="loading && submitMode === 'save'"
           :disabled="templateLoading"
           @click="handleFooterConfirm(api, 'save')"
@@ -90,6 +93,10 @@
           保存草稿
         </ElButton>
         <ElButton
+          v-if="
+            hasAuth(form.data.id ? 'FinanceVoucherCenter:Edit' : 'FinanceVoucherCenter:Add') &&
+            hasAuth('FinanceVoucherCenter:Submit')
+          "
           type="primary"
           :loading="loading && submitMode === 'submit'"
           :disabled="templateLoading"
@@ -137,8 +144,10 @@
   import VoucherEntryLines from '@fms/views/modules/voucher-entry-lines.vue'
   import CashFlowAllocationPanel from './cash-flow-allocation-panel.vue'
   import { useUserStore } from '@/store/modules/user'
+  import { useAuth } from '@/hooks/core/useAuth'
 
   defineOptions({ name: 'FinanceVoucherDialog' })
+  const { hasAuth } = useAuth()
 
   type Voucher = Api.Fms.SecureVoucherRecord
   type FormData = Api.Fms.SaveVoucherPayload & { templateId?: string }
@@ -189,9 +198,16 @@
     voucherAttachments: 'edit',
     auditTrail: 'edit'
   })
-  const amountEditable = computed(() => canEditField(fieldAccess.value, 'voucherAmounts'))
+  const canEditVoucher = computed(() =>
+    hasAuth(form.data.id ? 'FinanceVoucherCenter:Edit' : 'FinanceVoucherCenter:Add')
+  )
+  const amountEditable = computed(
+    () => canEditVoucher.value && canEditField(fieldAccess.value, 'voucherAmounts')
+  )
   const canViewAttachments = computed(() => canViewField(fieldAccess.value, 'voucherAttachments'))
-  const canEditAttachments = computed(() => canEditField(fieldAccess.value, 'voucherAttachments'))
+  const canEditAttachments = computed(
+    () => canEditVoucher.value && canEditField(fieldAccess.value, 'voucherAttachments')
+  )
   const context = reactive<DialogContext>({
     accountSet: { label: '', value: '', status: 'draft', tenantId: '' },
     subjects: [],
@@ -218,6 +234,7 @@
 
   function createInitialForm(): FormData {
     return {
+      id: undefined,
       accountSetId: '',
       voucherType: 'general',
       voucherDate: dayjs().format('YYYY-MM-DD'),
@@ -259,7 +276,7 @@
         props: {
           options: voucherTypeOptions.value,
           clearable: false,
-          disabled: form.data.voucherType === 'reversal'
+          disabled: !canEditVoucher.value || form.data.voucherType === 'reversal'
         }
       },
       {
@@ -280,7 +297,7 @@
           clearable: true,
           filterable: true,
           placeholder: '可选，快速生成分录',
-          disabled: Boolean(form.data.id) || templateLoading.value,
+          disabled: !canEditVoucher.value || Boolean(form.data.id) || templateLoading.value,
           loading: templateLoading.value,
           onChange: (value?: string) => void applyTemplate(value)
         }
@@ -306,6 +323,7 @@
           maxlength: 80,
           clearable: true,
           disabled:
+            !canEditVoucher.value ||
             getFieldAccess(fieldAccess.value, 'sourceReferences') !== 'edit' ||
             form.data.sourceType === 'manual'
         }
@@ -316,7 +334,7 @@
       voucherDate: [{ required: true, message: '请选择凭证日期', trigger: 'change' }],
       voucherType: [{ required: true, message: '请选择凭证类型', trigger: 'change' }],
       summary: [
-        { required: true, message: '请输入凭证摘要', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入凭证摘要', trigger: 'blur' },
         { max: 200, message: '凭证摘要不能超过 200 个字符', trigger: 'blur' }
       ]
     }
@@ -384,6 +402,15 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    const savePermission = form.data.id ? 'FinanceVoucherCenter:Edit' : 'FinanceVoucherCenter:Add'
+    const mode = submitMode.value
+    const writeAmounts = amountEditable.value
+    const canSave = (): boolean =>
+      hasAuth(savePermission) && (mode !== 'submit' || hasAuth('FinanceVoucherCenter:Submit'))
+    if (!canSave()) {
+      ElMessage.warning('凭证操作权限已变化，请刷新页面后重试')
+      return false
+    }
     if (templateLoading.value) return false
     partialSaveError.value = ''
     try {
@@ -393,11 +420,11 @@
       return false
     }
     if (!(await validateLines())) return false
-    if (
-      amountEditable.value &&
-      !(await cashFlowPanelRef.value?.validate(submitMode.value === 'submit'))
-    )
+    if (!canSave()) {
+      ElMessage.warning('凭证操作权限已变化，请刷新页面后重试')
       return false
+    }
+    if (writeAmounts && !(await cashFlowPanelRef.value?.validate(mode === 'submit'))) return false
     let savedVoucherId: string | undefined
     let saveStage: 'voucher' | 'allocations' | 'submit' = 'voucher'
     try {
@@ -411,17 +438,26 @@
           Object.entries(line.auxiliaryValues).filter(([, value]) => Boolean(value))
         )
       }))
+      if (!canSave()) {
+        ElMessage.warning('凭证操作权限已变化，请刷新页面后重试')
+        return false
+      }
       const { data } = await saveVoucher(payload)
+      if (!data?.id) throw new Error('凭证保存结果不完整，请保留草稿并刷新列表核实')
       savedVoucherId = data?.id
       if (savedVoucherId) form.data.id = savedVoucherId
       saveStage = 'allocations'
-      if (data?.id && amountEditable.value) {
+      if (data?.id && writeAmounts) {
         const { data: detail } = await fetchVoucherDetail(data.id)
+        if (!detail) throw new Error('凭证已保存，但分录读取失败，请刷新后核实现金流量归集')
         const lineIdByNo = new Map(
           (detail?.lines ?? [])
             .filter((line): line is Api.Fms.VoucherLineRecord & { id: string } => Boolean(line.id))
             .map((line) => [line.lineNo, line.id])
         )
+        if (!canSave()) throw new Error('凭证已保存，操作权限已变化，请刷新后核实归集与提交状态')
+        if (cashFlowDrafts.value.some((item) => !lineIdByNo.get(item.voucherLineNo)))
+          throw new Error('凭证已保存，但归集分录未匹配，请刷新后核实现金流量归集')
         await saveCashFlowAllocations(
           data.id,
           cashFlowDrafts.value.map((item) => ({
@@ -432,11 +468,13 @@
           }))
         )
       }
-      if (submitMode.value === 'submit' && data?.id) {
+      if (mode === 'submit' && data?.id) {
         saveStage = 'submit'
+        if (!canSave()) throw new Error('凭证已保存，提交权限已变化，请刷新后核实凭证状态')
         await transitionVoucher(data.id, 'submit')
       }
-      emit('success', submitMode.value)
+      if (mode === 'save') ElMessage.success('会计凭证草稿已保存')
+      emit('success', mode)
       return true
     } catch (error) {
       const fallback =
@@ -455,12 +493,20 @@
   }
 
   async function applyTemplate(templateId?: string): Promise<void> {
+    if (!canEditVoucher.value) {
+      ElMessage.warning('当前权限不足，无法套用凭证模板')
+      return
+    }
     const requestId = ++templateRequestId
     if (!templateId) return
     templateLoading.value = true
     try {
       const { data, error } = await fetchVoucherTemplateDetail(templateId)
       if (requestId !== templateRequestId) return
+      if (!canEditVoucher.value) {
+        ElMessage.warning('凭证操作权限已变化，模板未套用，请刷新后重试')
+        return
+      }
       if (error) throw error
       if (!data) throw new Error('凭证模板不存在或无权查看，请重新选择')
       const entriesAccess = getFieldAccess(data.fieldAccess, 'templateEntries')
@@ -501,6 +547,10 @@
   }
 
   function handleAttachmentUpload(resources: Api.DataCenter.Resources.ResourceListItem[]): void {
+    if (!canEditAttachments.value) {
+      ElMessage.warning('当前权限不足，无法修改凭证附件')
+      return
+    }
     const resource = resources[0]
     if (!resource) return
     if (!resource.url) return
@@ -519,6 +569,10 @@
   }
 
   function removeAttachment(row: Api.Fms.VoucherAttachment): void {
+    if (!canEditAttachments.value) {
+      ElMessage.warning('当前权限不足，无法修改凭证附件')
+      return
+    }
     form.data.attachments = form.data.attachments.filter((item) => item.url !== row.url)
   }
 
@@ -538,6 +592,10 @@
     row?: Voucher,
     loadContext?: () => Promise<Omit<DialogContext, 'cashFlowItems'> | undefined>
   ): Promise<void> {
+    if (!hasAuth(row?.id ? 'FinanceVoucherCenter:Edit' : 'FinanceVoucherCenter:Add')) {
+      ElMessage.warning('当前账号无权新增或编辑凭证')
+      return
+    }
     ++templateRequestId
     templateLoading.value = false
     Object.assign(context, dialogContext)

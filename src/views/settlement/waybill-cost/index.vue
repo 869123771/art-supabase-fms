@@ -174,7 +174,7 @@
     getWaybillCostDetailPath
   } from '@/router/business-paths'
   import { useUserStore } from '@/store/modules/user'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { toWaybillExpenseOcrAnalyzeResponse } from '@fms/utils/intelligent-recognition'
   import WaybillExpenseDialog from './modules/waybill-expense-dialog.vue'
@@ -236,14 +236,22 @@
   const { getDictMap } = storeToRefs(userStore)
   const { confirmAction } = useArtFeedback()
   const { hasAuth } = useAuth()
-  const {
-    deleteGuardRef: expenseDeleteGuardRef,
-    inspectDeleteReferences: inspectExpenseDeleteReferences
-  } = useRecordDeleteGuard('tms_waybill_cost', '运单费用')
-  const {
-    deleteGuardRef: reimbursementDeleteGuardRef,
-    inspectDeleteReferences: inspectReimbursementDeleteReferences
-  } = useRecordDeleteGuard('tms_expense_reimbursement', '费用报销单')
+  const { deleteGuardRef: expenseDeleteGuardRef, deleteRecord: deleteExpenseRecord } =
+    useRecordDeleteGuard('tms_waybill_cost', '运单费用', {
+      tms_carrier_statement: {
+        label: '承运商对账单',
+        routeName: financeRouteNames.carrierSettlement,
+        canNavigate: () => hasAuth('FinanceCarrierSettlement:View')
+      },
+      tms_expense_reimbursement: {
+        label: '费用报销单',
+        routeName: financeRouteNames.expenseReimbursementDetail,
+        routeParams: (record) => ({ id: record.targetId }),
+        canNavigate: () => router.hasRoute(financeRouteNames.expenseReimbursementDetail)
+      }
+    })
+  const { deleteGuardRef: reimbursementDeleteGuardRef, deleteRecord: deleteReimbursementRecord } =
+    useRecordDeleteGuard('tms_expense_reimbursement', '费用报销单')
   const activeTab = ref<'expense' | 'reimbursement'>(
     route.name === financeRouteNames.expenseReimbursement ? 'reimbursement' : 'expense'
   )
@@ -1111,27 +1119,22 @@
       })
       await submitWaybillCost(row.id)
       await Promise.all([expenseTableRef.value?.refreshUpdate(), loadOverview()])
-    } catch {
-      // User cancelled the confirmation.
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close')
+        notifyFriendlyError(error, '费用审核提交失败，请检查审批配置后重试')
     }
   }
 
   async function handleExpenseDelete(row: Expense): Promise<void> {
     if (!row.id) return
-    try {
-      if (await inspectExpenseDeleteReferences([{ id: row.id, label: row.costNo || '运单费用' }]))
-        return
-      await confirmAction('删除后票据与草稿关联将无法恢复。', '删除运单费用草稿', {
-        type: 'warning',
-        confirmButtonText: '确认删除',
-        cancelButtonText: '取消',
-        confirmButtonType: 'danger'
-      })
-      await deleteWaybillCost(row.id)
-      await Promise.all([expenseTableRef.value?.refreshRemove(), loadOverview()])
-    } catch {
-      // User cancelled the confirmation.
-    }
+    const id = row.id
+    await deleteExpenseRecord({
+      resource: { id, label: row.costNo || '运单费用' },
+      permission: 'FinanceWaybillCost:Delete',
+      confirmMessage: '删除后票据与草稿关联将无法恢复。',
+      remove: () => deleteWaybillCost(id),
+      onDeleted: () => Promise.all([expenseTableRef.value?.refreshRemove(), loadOverview()])
+    })
   }
 
   async function handleReimbursementSubmit(row: Reimbursement): Promise<void> {
@@ -1147,34 +1150,25 @@
       })
       await submitExpenseReimbursement(row)
       await reimbursementTableRef.value?.refreshUpdate()
-    } catch {
-      // User cancelled the confirmation.
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close')
+        notifyFriendlyError(error, '报销审批提交失败，请检查审批配置后重试')
     }
   }
 
   async function handleReimbursementDelete(row: Reimbursement): Promise<void> {
-    try {
-      if (
-        await inspectReimbursementDeleteReferences([
-          { id: row.id, label: row.reimbursementNo || '费用报销单' }
+    await deleteReimbursementRecord({
+      resource: { id: row.id, label: row.reimbursementNo || '费用报销单' },
+      permission: 'FinanceWaybillCost:Delete',
+      confirmMessage: '删除后，明细费用会退回“未转报销”状态。',
+      remove: () => deleteExpenseReimbursement(row.id),
+      onDeleted: () =>
+        Promise.all([
+          reimbursementTableRef.value?.refreshRemove(),
+          expenseTableRef.value?.refreshUpdate(),
+          loadOverview()
         ])
-      )
-        return
-      await confirmAction('删除后，明细费用会退回“未转报销”状态。', '删除费用报销单', {
-        type: 'warning',
-        confirmButtonText: '删除并退回',
-        cancelButtonText: '取消',
-        confirmButtonType: 'danger'
-      })
-      await deleteExpenseReimbursement(row.id)
-      await Promise.all([
-        reimbursementTableRef.value?.refreshRemove(),
-        expenseTableRef.value?.refreshUpdate(),
-        loadOverview()
-      ])
-    } catch {
-      // User cancelled the confirmation.
-    }
+    })
   }
 
   function handleExpenseSaved(type: 'add' | 'edit'): void {
@@ -1288,6 +1282,16 @@
     }
     await openFromOrderQuery()
   }
+
+  let refreshOnReturn = false
+  onDeactivated(() => {
+    refreshOnReturn = true
+  })
+  onActivated(() => {
+    if (!refreshOnReturn) return
+    refreshOnReturn = false
+    void Promise.all([activeTableRef.value?.getData(), loadOverview()])
+  })
 
   onMounted(() => {
     void Promise.all([

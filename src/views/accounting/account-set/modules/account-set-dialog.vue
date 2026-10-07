@@ -73,7 +73,7 @@
     rules: {
       tenantId: [{ required: true, message: '请选择所属租户', trigger: 'change' }],
       accountSetCode: [
-        { required: true, message: '请输入账套编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入账套编码', trigger: 'blur' },
         {
           pattern: /^[A-Z0-9_-]{2,30}$/,
           message: '编码仅支持 2 到 30 位大写字母、数字、下划线和中横线',
@@ -81,11 +81,11 @@
         }
       ],
       accountSetName: [
-        { required: true, message: '请输入账套名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入账套名称', trigger: 'blur' },
         { max: 80, message: '账套名称不能超过 80 个字符', trigger: 'blur' }
       ],
       legalEntityName: [
-        { required: true, message: '请输入法人主体名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入法人主体名称', trigger: 'blur' },
         { max: 120, message: '法人主体名称不能超过 120 个字符', trigger: 'blur' }
       ],
       unifiedSocialCreditCode: [
@@ -98,7 +98,7 @@
       accountingStandard: [{ required: true, message: '请选择会计准则', trigger: 'change' }],
       vatTaxpayerType: [{ required: true, message: '请选择纳税人类型', trigger: 'change' }],
       baseCurrencyCode: [
-        { required: true, message: '请输入本位币代码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入本位币代码', trigger: 'blur' },
         { pattern: /^[A-Z]{3}$/, message: '本位币使用三位大写代码，如 CNY', trigger: 'blur' }
       ],
       enabledOn: [{ required: true, message: '请选择启用日期', trigger: 'change' }],

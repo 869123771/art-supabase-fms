@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer ref="drawerRef" header-icon="ri:file-list-3-line" :show-footer="false">
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"

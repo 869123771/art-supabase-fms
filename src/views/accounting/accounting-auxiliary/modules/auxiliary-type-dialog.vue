@@ -21,8 +21,13 @@
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
-  import type { FormRules } from 'element-plus'
+  import {
+    normalizeNonNullableText,
+    normalizeNullableNumber,
+    normalizeNullableText
+  } from '@/utils/form/normalize'
+  import { ElMessage, type FormRules } from 'element-plus'
+  import { useAuth } from '@/hooks/core/useAuth'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -41,6 +46,8 @@
   }
 
   const emit = defineEmits<{ success: [] }>()
+  const { hasAuth } = useAuth()
+  const savePermission = ref('FinanceAccountingAuxiliary:AddType')
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const dialogRef = ref<ArtDialogExpose>()
@@ -63,7 +70,7 @@
     data: createInitialForm(),
     rules: {
       typeCode: [
-        { required: true, message: '请输入维度编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入维度编码', trigger: 'blur' },
         {
           pattern: /^[A-Z][A-Z0-9_]{1,29}$/,
           message: '使用 2 到 30 位大写字母、数字或下划线',
@@ -71,7 +78,7 @@
         }
       ],
       typeName: [
-        { required: true, message: '请输入维度名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入维度名称', trigger: 'blur' },
         { max: 60, message: '维度名称不能超过 60 个字符', trigger: 'blur' }
       ],
       sourceType: [{ required: true, message: '请选择主数据来源', trigger: 'change' }]
@@ -147,18 +154,26 @@
       id: form.data.id,
       tenantId: form.data.tenantId,
       accountSetId: form.data.accountSetId,
-      typeCode: form.data.typeCode.trim().toUpperCase(),
-      typeName: form.data.typeName.trim(),
+      typeCode: normalizeNonNullableText(form.data.typeCode).toUpperCase(),
+      typeName: normalizeNonNullableText(form.data.typeName),
       sourceType: form.data.sourceType,
       isEnabled: form.data.isEnabled,
-      sort: form.data.sort,
+      sort: normalizeNullableNumber(form.data.sort) ?? 100,
       remark: normalizeNullableText(form.data.remark)
     }
   }
 
+  function canSave(): boolean {
+    if (hasAuth(savePermission.value)) return true
+    ElMessage.warning('核算维度操作权限已变化，请刷新页面后重试')
+    return false
+  }
+
   async function handleSubmit(): Promise<boolean> {
     try {
+      if (!canSave()) return false
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!canSave()) return false
       await saveAuxiliaryType(createPayload())
       emit('success')
       return true
@@ -172,6 +187,14 @@
     accountSet: Api.Fms.AccountSetOption,
     row?: AuxiliaryType
   ): Promise<void> {
+    const permission = row
+      ? 'FinanceAccountingAuxiliary:EditType'
+      : 'FinanceAccountingAuxiliary:AddType'
+    if (!hasAuth(permission)) {
+      ElMessage.warning('没有核算维度操作权限，请联系管理员')
+      return
+    }
+    savePermission.value = permission
     context.isSystem = row?.isSystem ?? false
     Object.assign(form.data, createInitialForm(), {
       ...(row ?? {}),

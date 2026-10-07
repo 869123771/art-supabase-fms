@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer ref="drawerRef" header-icon="ri:calendar-check-line" :show-footer="false">
     <ArtAsyncState
       :loading="state.loading"
       loading-mode="skeleton"

@@ -94,11 +94,11 @@
     data: createInitialForm(),
     rules: {
       subjectCode: [
-        { required: true, message: '请输入科目编码', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入科目编码', trigger: 'blur' },
         { pattern: /^[0-9]{1,40}$/, message: '科目编码仅支持数字，最多 40 位', trigger: 'blur' }
       ],
       subjectName: [
-        { required: true, message: '请输入科目名称', trigger: 'blur' },
+        { required: true, whitespace: true, message: '请输入科目名称', trigger: 'blur' },
         { max: 120, message: '科目名称不能超过 120 个字符', trigger: 'blur' }
       ],
       category: [{ required: true, message: '请选择科目类别', trigger: 'change' }],

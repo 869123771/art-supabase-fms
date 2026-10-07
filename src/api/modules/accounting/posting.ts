@@ -79,7 +79,7 @@ export async function savePostingRule(payload: Api.Fms.SavePostingRulePayload) {
 export async function deletePostingRule(id: string) {
   return await responseHandle<string>(
     () => supabase.rpc('delete_fms_posting_rule_secure', { p_rule_id: id }),
-    { breakReturn: true, showMessage: true, message: '自动入账规则已删除' }
+    { breakReturn: true, showMessage: true, showErrorMessage: false, message: '自动入账规则已删除' }
   )
 }
 

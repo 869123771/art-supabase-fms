@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer ref="drawerRef" header-icon="ri:truck-line" :show-footer="false">
     <ArtAsyncState
       :loading="loading"
       loading-mode="skeleton"
@@ -195,7 +195,8 @@
   async function handleOpen(row: Statement) {
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
-      title: `承运商对账单 · ${row.statementNo}`,
+      title: '承运商对账详情',
+      subtitle: row.statementNo,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

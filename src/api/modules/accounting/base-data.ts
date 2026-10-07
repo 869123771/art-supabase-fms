@@ -166,6 +166,7 @@ export async function deleteAuxiliaryType(id: string) {
     {
       breakReturn: true,
       showMessage: true,
+      showErrorMessage: false,
       message: '辅助核算维度已删除'
     }
   )
@@ -244,6 +245,7 @@ export async function deleteOpeningBalance(id: string) {
     () => supabase.rpc('delete_fms_opening_balance_secure', { p_balance_id: id }),
     {
       breakReturn: true,
+      showErrorMessage: false,
       showMessage: true,
       message: '期初余额记录已删除'
     }

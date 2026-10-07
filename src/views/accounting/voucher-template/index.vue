@@ -53,12 +53,12 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useFinanceAccountSetPrerequisite } from '../../modules/use-finance-account-set-prerequisite'
   import { useUserStore } from '@/store/modules/user'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
@@ -103,14 +103,10 @@
   const userStore = useUserStore()
   const { getDictMap } = storeToRefs(userStore)
   const { hasAuth } = useAuth()
-  const { confirmDelete } = useArtFeedback()
   const { ensureAccountSet } = useFinanceAccountSetPrerequisite()
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
-    'fms_voucher_template',
-    '凭证模板'
-  )
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard('fms_voucher_template', '凭证模板')
   const entryContext = shallowRef<DialogContext>()
   const currentRows = ref<Template[]>([])
   const listFieldAccess = ref<Api.Fms.VoucherTemplateFieldAccessMap>({})
@@ -200,11 +196,12 @@
     { type: 'globalIndex', label: '序号', width: 72 },
     {
       prop: 'templateCode',
-      label: '模板编码',
-      width: 180,
-      formatter: (row) => <span class="voucher-template-page__code">{row.templateCode}</span>
+      label: '凭证模板',
+      minWidth: 260,
+      formatter: (row) => (
+        <BusinessTableIdentityCell primary={row.templateName} secondary={row.templateCode} />
+      )
     },
-    { prop: 'templateName', label: '模板名称', minWidth: 210, showOverflowTooltip: true },
     ...(canViewListField('templateEntries')
       ? ([
           {
@@ -315,19 +312,16 @@
   }
 
   async function handleDelete(row: Template): Promise<void> {
-    const resources = [{ id: row.id, label: `${row.templateCode} · ${row.templateName}` }]
-    try {
-      if (await inspectDeleteReferences(resources)) return
-      await confirmDelete(`确定删除凭证模板 ${row.templateCode} · ${row.templateName} 吗？`)
-    } catch {
-      return
-    }
-    try {
-      await deleteVoucherTemplate(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      await inspectDeleteReferences(resources)
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: `${row.templateCode} · ${row.templateName}` },
+      permission: 'FinanceVoucherTemplate:Delete',
+      confirmMessage: `确定删除凭证模板 ${row.templateCode} · ${row.templateName} 吗？`,
+      remove: () => deleteVoucherTemplate(row.id),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      },
+      failureMessage: '凭证模板删除失败，请刷新列表后重试'
+    })
   }
 
   function handleSaveSuccess(): void {

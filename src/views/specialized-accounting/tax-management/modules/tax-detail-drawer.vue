@@ -38,6 +38,10 @@
           />
         </ArtSectionCard>
 
+        <ArtSectionCard v-if="filingItems.length" title="申报及缴纳" preserve-content-structure>
+          <ArtDescriptions :data="period" :items="filingItems" :columns="2" label-width="104px" />
+        </ArtSectionCard>
+
         <ArtSectionCard
           title="税务台账明细"
           subtitle="销项、进项与调整项目"
@@ -257,6 +261,30 @@
     { key: 'remark', field: 'remark', label: '备注', span: 2 }
   ])
   const lines = ref<Api.Fms.TaxLedgerLineRecord[]>([])
+  const filingItems = computed<ArtDescriptionItem<Api.Fms.TaxPeriodRecord>[]>(() => {
+    const record = period.value
+    if (!record) return []
+    const items: ArtDescriptionItem<Api.Fms.TaxPeriodRecord>[] = []
+    if (canViewField(record.fieldAccess, 'filingReferences') && record.filingReference) {
+      items.push({
+        key: 'filingReference',
+        field: 'filingReference',
+        label: '申报凭证号',
+        copyable: true,
+        span: 2
+      })
+    }
+    if (record.filedAt) {
+      items.push({ key: 'filedAt', field: 'filedAt', label: '申报时间', format: 'datetime' })
+    }
+    if (record.filedBy) {
+      items.push({ key: 'filedBy', field: 'filedBy', label: '申报人' })
+    }
+    if (record.paidAt) {
+      items.push({ key: 'paidAt', field: 'paidAt', label: '缴纳时间', format: 'datetime', span: 2 })
+    }
+    return items
+  })
   const linesLoading = ref(false)
   const linesError = ref('')
   let linesRequestId = 0
@@ -331,15 +359,7 @@
     await drawerRef.value?.handleOpen(row, {
       title: '税务期间详情',
       size: 'xl',
-      loading: true,
-      loadingText: '正在加载税务明细…',
-      onOpen: async (_data, api) => {
-        try {
-          await reloadDetail()
-        } finally {
-          api.setLoading(false)
-        }
-      },
+      onOpen: reloadDetail,
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
   }

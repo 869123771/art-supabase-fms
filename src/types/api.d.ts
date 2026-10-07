@@ -375,13 +375,13 @@ declare global {
         fiscalYear: number
         subjectId: string
         currencyId?: string | null
-        auxiliaryValues: Record<string, string>
-        openingDebit: number
-        openingCredit: number
-        yearToDateDebit: number
-        yearToDateCredit: number
-        openingQuantity: number
-        originalCurrencyAmount: number
+        auxiliaryValues?: Record<string, string>
+        openingDebit?: number
+        openingCredit?: number
+        yearToDateDebit?: number
+        yearToDateCredit?: number
+        openingQuantity?: number
+        originalCurrencyAmount?: number
       }
 
       interface OpeningBalanceControlRecord {
@@ -1425,6 +1425,19 @@ declare global {
         updateTime?: string
         children?: ExpenseItem[]
       }
+
+      type ExpenseItemWritePayload = Pick<
+        ExpenseItem,
+        | 'parentId'
+        | 'itemCode'
+        | 'itemName'
+        | 'businessCategory'
+        | 'isSelectable'
+        | 'reimbursementAllowed'
+        | 'isEnabled'
+        | 'sort'
+        | 'remark'
+      >
 
       type ExpenseItemSearchParams = Api.Common.CommonSearchParams & {
         keyword?: string

@@ -55,7 +55,6 @@
   import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { createFinancePrerequisiteOverlay } from '../../../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -72,11 +71,7 @@
   const accountSetId = ref('')
   const search = ref({ keyword: '' })
   const isNarrow = useMediaQuery('(max-width: 520px)')
-  const { confirmDelete } = useArtFeedback()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
-    'fms_asset_category',
-    '资产类别'
-  )
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard('fms_asset_category', '资产类别')
   const searchItems: SearchFormItem[] = [
     {
       key: 'keyword',
@@ -160,19 +155,14 @@
   }
 
   async function remove(row: Category): Promise<void> {
-    const resources = [{ id: row.id, label: `${row.categoryName}（${row.categoryCode}）` }]
-    try {
-      if (await inspectDeleteReferences(resources)) return
-      await confirmDelete(`确定删除资产类别“${row.categoryName}”吗？`)
-    } catch {
-      return
-    }
-    try {
-      await deleteAssetCategory(row.id)
-      await refresh()
-    } catch {
-      await inspectDeleteReferences(resources)
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: `${row.categoryName}（${row.categoryCode}）` },
+      permission: 'FinanceFixedAsset:ManageCategory',
+      confirmMessage: `确定删除资产类别“${row.categoryName}”吗？`,
+      remove: () => deleteAssetCategory(row.id),
+      onDeleted: refresh,
+      failureMessage: '资产类别删除失败，请刷新列表后重试'
+    })
   }
 
   async function handleOpen(id?: string): Promise<void> {
