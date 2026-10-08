@@ -1,8 +1,11 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:bank-card-line" :show-footer="false">
+  <ArtDrawer
+    :loading="loading"
+    ref="drawerRef"
+    header-icon="ri:bank-card-line"
+    :show-footer="false"
+  >
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无付款申请详情"

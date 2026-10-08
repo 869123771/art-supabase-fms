@@ -36,7 +36,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchAccountSetOptions, fetchTaxPeriodDetail, saveTaxPeriod } from '@fms/api'
   import { canEditField, canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import { useUserStore } from '@/store/modules/user'
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../../modules/accounting-select-text'
   defineOptions({ name: 'FinanceTaxPeriodDialog' })
@@ -248,10 +248,6 @@
       },
       dialogProps: { closeOnClickModal: false }
     })
-  }
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
   defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

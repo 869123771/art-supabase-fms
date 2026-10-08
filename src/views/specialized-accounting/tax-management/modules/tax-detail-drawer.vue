@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -20,8 +20,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!period"
       empty-text="暂无税务期间详情"
@@ -194,7 +192,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { deleteTaxLedgerLine, fetchTaxLedgerLines, fetchTaxPeriodDetail } from '@fms/api'
   import { canEditField, canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import TaxLedgerDialog from './tax-ledger-dialog.vue'
   import { useMediaQuery } from '@vueuse/core'
   defineOptions({ name: 'FinanceTaxDetailDrawer' })
@@ -362,10 +360,6 @@
       onOpen: reloadDetail,
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
-  }
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
   function formatProtectedRate(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'

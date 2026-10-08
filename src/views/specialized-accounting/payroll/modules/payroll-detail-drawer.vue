@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -15,8 +15,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!run"
       empty-text="暂无薪资批次详情"
@@ -195,7 +193,7 @@
     importHrCompensationLines
   } from '@fms/api'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { useMediaQuery } from '@vueuse/core'
   import PayrollLineDialog from './payroll-line-dialog.vue'
@@ -415,10 +413,6 @@
       },
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
-  }
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
   defineExpose({ handleOpen })
 </script>

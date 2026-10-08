@@ -209,7 +209,7 @@
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchExpenseReimbursementDetail } from '@fms/api'
   import { getWaybillCostDetailPath } from '@/router/business-paths'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCurrencyValue } from '@/utils/ui'
   import { canViewField, getFieldAccess, isMaskedValue } from '@/utils/field-permission'
 
@@ -516,13 +516,8 @@
     return Number.isFinite(numericValue) ? formatCurrencyValue(numericValue) : String(value)
   }
 
-  function formatDate(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD') || '--'
-  }
-
-  function formatDateTime(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '--'
-  }
+  const formatDate = createDateTimeFormatter({ format: 'YYYY-MM-DD' })
+  const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm' })
 </script>
 
 <style scoped lang="scss">

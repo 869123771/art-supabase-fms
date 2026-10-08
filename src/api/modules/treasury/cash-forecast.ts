@@ -2,18 +2,12 @@ import dayjs from 'dayjs'
 import { fetchFundAccountOverview, fetchFundLedgerList } from '@fms/api/modules/treasury/treasury'
 import { fetchCustomerStatementList } from '@fms/api/modules/transport/customer-settlement'
 import { fetchCarrierStatementList } from '@fms/api/modules/transport/carrier-settlement'
+import { parseReadableSensitiveNumber } from '@/utils/field-permission'
 
 const OPEN_STATUSES = new Set(['pending_review', 'confirmed', 'partially_settled'])
 
-const toReadableNumber = (value: unknown): number | undefined => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
-  if (typeof value !== 'string' || !value.trim() || value.includes('*')) return undefined
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : undefined
-}
-
 const sumReadable = (values: unknown[]): number | undefined => {
-  const parsed = values.map(toReadableNumber)
+  const parsed = values.map(parseReadableSensitiveNumber)
   return parsed.every((value): value is number => value !== undefined)
     ? parsed.reduce((sum, value) => sum + value, 0)
     : undefined
@@ -44,7 +38,9 @@ export async function fetchCashForecastOverview(): Promise<Api.Fms.CashForecastO
   ].find(Boolean)
   if (firstError) throw firstError
 
-  const availableBalance = toReadableNumber(accountOverview.data?.baseCurrencyAvailableBalance)
+  const availableBalance = parseReadableSensitiveNumber(
+    accountOverview.data?.baseCurrencyAvailableBalance
+  )
   const receivableOutstanding = sumReadable(
     customerStatements.data
       .filter((record) => OPEN_STATUSES.has(record.status))
@@ -55,7 +51,7 @@ export async function fetchCashForecastOverview(): Promise<Api.Fms.CashForecastO
       .filter((record) => OPEN_STATUSES.has(record.status))
       .map((record) => record.outstandingAmount)
   )
-  const ledgerAmounts = ledger.data.map((record) => toReadableNumber(record.amount))
+  const ledgerAmounts = ledger.data.map((record) => parseReadableSensitiveNumber(record.amount))
   const historicalNetFlow30d = ledgerAmounts.every((value): value is number => value !== undefined)
     ? ledger.data.reduce((sum, record, index) => {
         const amount = ledgerAmounts[index] ?? 0

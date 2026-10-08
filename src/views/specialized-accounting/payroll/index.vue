@@ -68,7 +68,7 @@
   } from '../../modules/fund-execution-dialog.vue'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -434,10 +434,6 @@
   }
   async function refreshAll(): Promise<void> {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
-  }
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
   function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
     if (value === null || value === undefined || value === '') return '--'

@@ -1,7 +1,7 @@
 <template>
   <ArtDialog ref="dialogRef" size="sm">
     <ElAlert
-      class="fund-execution-dialog__notice"
+      class="fund-execution-dialog__notice mb-4"
       :type="context.direction === 'inflow' ? 'success' : 'warning'"
       :closable="false"
       show-icon
@@ -195,9 +195,3 @@
 
   defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>
-
-<style scoped lang="scss">
-  .fund-execution-dialog__notice {
-    margin-bottom: var(--art-space-4);
-  }
-</style>

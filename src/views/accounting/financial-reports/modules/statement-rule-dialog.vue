@@ -1,6 +1,6 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
-    <ArtAsyncState :loading="formulasLoading" :error="formulasError" @retry="loadFormulas">
+  <ArtDialog :loading="formulasLoading" ref="dialogRef" size="lg">
+    <ArtAsyncState :error="formulasError" @retry="loadFormulas">
       <div class="statement-rule-dialog">
         <div class="statement-rule-dialog__toolbar">
           <div>

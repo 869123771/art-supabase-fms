@@ -1,8 +1,6 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无自动入账事件详情"

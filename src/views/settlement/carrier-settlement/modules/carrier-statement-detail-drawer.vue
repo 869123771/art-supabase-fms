@@ -1,8 +1,6 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:truck-line" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" header-icon="ri:truck-line" :show-footer="false">
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无承运商对账详情"

@@ -255,6 +255,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { uniq } from 'lodash-es'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElButton, ElTag } from 'element-plus'
@@ -698,7 +699,7 @@
         if (result.error) throw result.error
       }
       const periods = periodResult.data ?? []
-      scope.fiscalYears = [...new Set(periods.map((item) => item.fiscalYear))].sort(
+      scope.fiscalYears = uniq(periods.map((item) => item.fiscalYear)).sort(
         (left, right) => right - left
       )
       if (!scope.fiscalYears.length) scope.fiscalYears = [new Date().getFullYear()]

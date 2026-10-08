@@ -191,7 +191,7 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchWaybillCostDetail } from '@fms/api'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
     canViewField,
@@ -491,13 +491,8 @@
     void router.back()
   }
 
-  function formatDate(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD') || '--'
-  }
-
-  function formatDateTime(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '--'
-  }
+  const formatDate = createDateTimeFormatter({ format: 'YYYY-MM-DD' })
+  const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm' })
 
   function formatOptionalNumber(value: unknown): string {
     return formatSensitiveNumber(value as Api.Fms.SensitiveNumber, {

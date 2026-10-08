@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header="{ data }">
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -17,8 +17,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无银行对账详情"
@@ -253,7 +251,7 @@
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useUserStore } from '@/store/modules/user'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, getFieldAccess } from '@/utils/field-permission'
   import BankLineMatchDialog from './bank-line-match-dialog.vue'
@@ -479,8 +477,7 @@
   ])
 
   function formatMoney(value: unknown): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, detail.value?.currencyCode)
+    return formatSensitiveCurrencyValue(value, detail.value?.currencyCode)
   }
 
   async function loadDetail(): Promise<void> {

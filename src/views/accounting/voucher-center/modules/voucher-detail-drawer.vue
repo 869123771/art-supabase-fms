@@ -1,8 +1,11 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:file-list-3-line" :show-footer="false">
+  <ArtDrawer
+    :loading="loading"
+    ref="drawerRef"
+    header-icon="ri:file-list-3-line"
+    :show-footer="false"
+  >
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无凭证详情"

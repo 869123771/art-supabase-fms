@@ -1,5 +1,6 @@
 import { groupBy } from 'lodash-es'
 import { useSupabase } from '@/hooks'
+import { parseReadableSensitiveNumber } from '@/utils/field-permission'
 
 const { supabase, responseHandle } = useSupabase()
 
@@ -19,13 +20,6 @@ interface ReceivableAgingSource {
   }>
 }
 
-const toReadableNumber = (value: unknown): number | undefined => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
-  if (typeof value !== 'string' || !value.trim() || value.includes('*')) return undefined
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : undefined
-}
-
 const bucketFor = (days: number): Api.Fms.ReceivableAgingBucketKey => {
   if (days <= 0) return 'current'
   if (days <= 30) return 'days1To30'
@@ -42,12 +36,12 @@ export async function fetchReceivableAgingOverview(): Promise<Api.Fms.Receivable
 
   const sourceRecords = result.data?.records ?? []
   const readable = sourceRecords.every(
-    (record) => toReadableNumber(record.outstandingAmount) !== undefined
+    (record) => parseReadableSensitiveNumber(record.outstandingAmount) !== undefined
   )
   const records: Api.Fms.ReceivableAgingRecord[] = sourceRecords.map((record) => ({
     ...record,
     bucket: bucketFor(Number(record.agingDays ?? 0)),
-    amount: toReadableNumber(record.outstandingAmount)
+    amount: parseReadableSensitiveNumber(record.outstandingAmount)
   }))
   const bucketGroups = groupBy(records, 'bucket')
   const bucketKeys: Api.Fms.ReceivableAgingBucketKey[] = [

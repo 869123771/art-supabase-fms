@@ -69,7 +69,7 @@
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../modules/accounting-select-text'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import {
     canEditField,
     canViewField,
@@ -492,11 +492,6 @@
     } finally {
       if (requestId === summaryRequestId) summaryLoading.value = false
     }
-  }
-
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined | null): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
 
   async function handleAction(item: ButtonMoreItem, row: Asset): Promise<void> {

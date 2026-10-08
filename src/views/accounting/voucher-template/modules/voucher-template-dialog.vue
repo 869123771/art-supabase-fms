@@ -1,6 +1,6 @@
 <template>
   <ArtDialog ref="dialogRef" size="lg">
-    <div class="voucher-template-dialog">
+    <div class="voucher-template-dialog flex flex-col gap-3 min-w-0">
       <ArtForm
         ref="formRef"
         root-class="art-form--mobile-stack"
@@ -441,12 +441,3 @@
 
   defineExpose({ handleOpen })
 </script>
-
-<style scoped lang="scss">
-  .voucher-template-dialog {
-    display: flex;
-    flex-direction: column;
-    gap: var(--art-space-3);
-    min-width: 0;
-  }
-</style>

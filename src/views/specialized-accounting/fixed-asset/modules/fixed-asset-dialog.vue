@@ -45,7 +45,7 @@
     saveFixedAsset
   } from '@fms/api'
   import { canEditField, canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
 
   defineOptions({ name: 'FinanceFixedAssetDialog' })
   const emit = defineEmits<{ success: [] }>()
@@ -455,9 +455,5 @@
     })
   }
 
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
-  }
   defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>

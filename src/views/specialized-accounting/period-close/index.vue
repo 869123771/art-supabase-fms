@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { formatSensitiveCountValue } from '@/utils/ui'
   import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { storeToRefs } from 'pinia'
@@ -131,7 +132,7 @@
           {
             key: 'checking',
             label: '关账进行中',
-            value: formatProtectedCount(summary.value.checkingCount),
+            value: formatSensitiveCountValue(summary.value.checkingCount),
             description: '检查或待确认',
             icon: 'ri:loader-4-line',
             tone: 'warning' as const
@@ -139,7 +140,7 @@
           {
             key: 'blocking',
             label: '阻断事项',
-            value: formatProtectedCount(summary.value.blockingCount),
+            value: formatSensitiveCountValue(summary.value.blockingCount),
             description:
               canViewListField('closeAudit') && summary.value.latestCompletedAt
                 ? `最近结账 ${formatWithDayjs(summary.value.latestCompletedAt, 'YYYY-MM-DD')}`
@@ -223,14 +224,14 @@
               label: '通过项',
               width: 90,
               align: 'right' as const,
-              formatter: (row: Row) => formatProtectedCount(row.passedCount)
+              formatter: (row: Row) => formatSensitiveCountValue(row.passedCount)
             },
             {
               prop: 'warningCount',
               label: '提醒项',
               width: 90,
               align: 'right' as const,
-              formatter: (row: Row) => formatProtectedCount(row.warningCount)
+              formatter: (row: Row) => formatSensitiveCountValue(row.warningCount)
             },
             {
               prop: 'blockingCount',
@@ -243,7 +244,7 @@
                     (normalizeNullableNumber(row.blockingCount) ?? 0) ? 'period-close-blocking' : ''
                   }
                 >
-                  {formatProtectedCount(row.blockingCount)}
+                  {formatSensitiveCountValue(row.blockingCount)}
                 </strong>
               )
             }
@@ -410,12 +411,6 @@
   }
   async function refreshAll() {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
-  }
-  function formatProtectedCount(
-    value: Api.Fms.SensitiveNumber | undefined | null
-  ): string | number {
-    if (value === null || value === undefined || value === '') return '--'
-    return typeof value === 'string' ? value : value.toLocaleString('zh-CN')
   }
   watch(() => table.search.accountSetId, loadSummary)
   watch(

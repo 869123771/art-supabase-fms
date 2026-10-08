@@ -272,7 +272,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import { useMediaQuery } from '@vueuse/core'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../../modules/accounting-select-text'
@@ -478,10 +478,6 @@
     })
   }
 
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
-  }
   defineExpose({ handleOpen, ...prerequisiteOverlay })
 </script>
 

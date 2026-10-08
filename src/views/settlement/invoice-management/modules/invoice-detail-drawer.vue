@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header="{ data }">
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -17,8 +17,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无发票详情"

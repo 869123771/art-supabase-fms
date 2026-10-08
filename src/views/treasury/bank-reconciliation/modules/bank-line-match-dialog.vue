@@ -1,5 +1,6 @@
 <template>
   <ArtDialog
+    :loading="candidatesLoading"
     ref="dialogRef"
     size="md"
     :confirm-disabled="candidatesLoading || candidateLoadFailed || !ledgerOptions.length"
@@ -20,7 +21,7 @@
         重新加载候选
       </ElButton>
     </ElAlert>
-    <ArtAsyncState :loading="candidatesLoading" loading-text="正在加载匹配候选…">
+    <ArtAsyncState loading-text="正在加载匹配候选…">
       <ArtEmptyState
         v-if="!candidatesLoading && !candidateLoadFailed && !ledgerOptions.length"
         title="暂无可匹配资金流水"

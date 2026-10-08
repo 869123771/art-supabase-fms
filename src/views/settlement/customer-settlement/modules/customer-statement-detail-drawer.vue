@@ -1,8 +1,11 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:file-text-line" :show-footer="false">
+  <ArtDrawer
+    :loading="loading"
+    ref="drawerRef"
+    header-icon="ri:file-text-line"
+    :show-footer="false"
+  >
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无客户对账详情"

@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { uniq } from 'lodash-es'
   import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { ElTag } from 'element-plus'
@@ -155,7 +156,7 @@
   )
 
   const yearOptions = computed(() =>
-    [...new Set(periods.value.map((item) => item.fiscalYear))]
+    uniq(periods.value.map((item) => item.fiscalYear))
       .sort((a, b) => b - a)
       .map((value) => ({ label: `${value} 年`, value }))
   )

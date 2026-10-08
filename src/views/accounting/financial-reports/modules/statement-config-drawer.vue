@@ -1,5 +1,11 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:bar-chart-box-line" size="xl" :show-footer="false">
+  <ArtDrawer
+    :loading="loading"
+    ref="drawerRef"
+    header-icon="ri:bar-chart-box-line"
+    size="xl"
+    :show-footer="false"
+  >
     <div class="statement-config-drawer">
       <ArtSectionCard title="报表配置概览" preserve-content-structure>
         <ArtDescriptions :data="{}" :items="summaryItems" :columns="2" label-width="104px" />
@@ -8,7 +14,6 @@
       <ArtSectionCard
         title="账套报表项目"
         subtitle="项目结构决定报表展示，科目映射与公式关系决定可审计取数口径。"
-        :loading="loading"
         :error="loadError"
         @retry="loadConfiguration"
         :empty="!items.length"

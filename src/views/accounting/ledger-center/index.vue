@@ -135,6 +135,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { uniq } from 'lodash-es'
   import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import VoucherDetailDrawer from '@fms/views/accounting/voucher-center/modules/voucher-detail-drawer.vue'
@@ -288,7 +289,7 @@
   const activeTableRef = computed(() => getTableRef(activeTab.value))
 
   const yearOptions = (tab: LedgerTab) =>
-    [...new Set(contexts[tab].periods.map((item) => item.fiscalYear))]
+    uniq(contexts[tab].periods.map((item) => item.fiscalYear))
       .sort((a, b) => b - a)
       .map((value) => ({ label: `${value} 年`, value }))
 

@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header>
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -15,8 +15,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!run"
       empty-text="暂无关账检查详情"
@@ -56,7 +54,9 @@
               </template>
             </ElTableColumn>
             <ElTableColumn v-if="canViewDiagnostics" label="问题数" width="90" align="right">
-              <template #default="{ row }">{{ formatProtectedCount(row.issueCount) }}</template>
+              <template #default="{ row }">{{
+                formatSensitiveCountValue(row.issueCount)
+              }}</template>
             </ElTableColumn>
             <ElTableColumn
               v-if="canViewDiagnostics"
@@ -92,7 +92,7 @@
               <template v-if="canViewDiagnostics">
                 <p>{{ check.summary || '暂无检查结论' }}</p>
                 <footer>
-                  <span>问题数 {{ formatProtectedCount(check.issueCount) }}</span>
+                  <span>问题数 {{ formatSensitiveCountValue(check.issueCount) }}</span>
                   <ElTag :type="check.status === 'blocked' ? 'danger' : 'info'" effect="plain">
                     {{
                       check.isBlocking === '***'
@@ -112,6 +112,7 @@
   </ArtDrawer>
 </template>
 <script setup lang="ts">
+  import { formatSensitiveCountValue } from '@/utils/ui'
   import { useMediaQuery } from '@vueuse/core'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import { useUserStore } from '@/store/modules/user'
@@ -167,7 +168,7 @@
           key: field,
           label: ['通过项目', '提醒项目', '阻断项目'][index],
           field,
-          formatter: (value: unknown) => formatProtectedCount(value as Api.Fms.SensitiveNumber)
+          formatter: (value: unknown) => formatSensitiveCountValue(value as Api.Fms.SensitiveNumber)
         }))
       : []),
     ...(canViewField(run.value?.fieldAccess, 'closeAudit')
@@ -215,10 +216,6 @@
       },
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
     })
-  }
-  function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return typeof value === 'string' ? value : value.toLocaleString('zh-CN')
   }
   defineExpose({ handleOpen })
 </script>

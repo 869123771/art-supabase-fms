@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
     <template #header="{ data }">
       <div class="flex min-w-0 items-center gap-3">
         <span
@@ -17,8 +17,6 @@
       </div>
     </template>
     <ArtAsyncState
-      :loading="loading"
-      loading-mode="skeleton"
       :error="loadError?.message"
       :empty="!detail"
       empty-text="暂无资金调拨详情"
@@ -122,7 +120,7 @@
   import { fetchFundTransferActions, fetchFundTransferDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import { canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
 
   defineOptions({ name: 'FinanceFundTransferDetailDrawer' })
@@ -254,8 +252,7 @@
   }
 
   function formatMoney(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, detail.value?.currencyCode)
+    return formatSensitiveCurrencyValue(value, detail.value?.currencyCode)
   }
 
   async function handleOpen(row: Transfer): Promise<void> {

@@ -1,8 +1,11 @@
 <template>
-  <ArtDrawer ref="drawerRef" header-icon="ri:calendar-check-line" :show-footer="false">
+  <ArtDrawer
+    :loading="state.loading"
+    ref="drawerRef"
+    header-icon="ri:calendar-check-line"
+    :show-footer="false"
+  >
     <ArtAsyncState
-      :loading="state.loading"
-      loading-mode="skeleton"
       :error="state.error?.message"
       :empty="!state.accountSet"
       empty-text="暂无账套期间信息"
