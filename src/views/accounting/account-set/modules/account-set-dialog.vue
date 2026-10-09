@@ -31,7 +31,12 @@
   import { saveAccountSet } from '@fms/api'
   import { fetchEnabledTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
-  import { canEditField, getFieldAccess, type FieldAccessLevel } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    getFieldAccess,
+    type FieldAccessLevel
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceAccountSetDialog' })
 
@@ -115,7 +120,7 @@
     isEdit.value ? 'hidden' : 'edit'
   )
   const canShowSensitiveField = (field: Api.Fms.AccountSetFieldKey): boolean =>
-    ['read', 'edit'].includes(
+    isReadableFieldAccess(
       getFieldAccess(form.data.fieldAccess, field, sensitiveFieldFallback.value)
     )
   const canEditSensitiveField = (field: Api.Fms.AccountSetFieldKey): boolean =>
@@ -354,13 +359,13 @@
             status: row.status,
             isDefault: row.isDefault,
             fieldAccess: row.fieldAccess,
-            ...(['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'taxRegistration'))
+            ...(isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'taxRegistration'))
               ? {
                   unifiedSocialCreditCode: row.unifiedSocialCreditCode ?? null,
                   vatTaxpayerType: row.vatTaxpayerType as Api.Fms.VatTaxpayerType
                 }
               : {}),
-            ...(['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'accountingPolicy'))
+            ...(isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'accountingPolicy'))
               ? {
                   accountingStandard: row.accountingStandard as Api.Fms.AccountingStandard,
                   baseCurrencyCode: row.baseCurrencyCode ?? 'CNY',
@@ -369,7 +374,7 @@
                     typeof row.fiscalYearStartMonth === 'number' ? row.fiscalYearStartMonth : 1
                 }
               : {}),
-            ...(['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'administrativeAudit'))
+            ...(isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'administrativeAudit'))
               ? { remark: row.remark ?? null }
               : {})
           }

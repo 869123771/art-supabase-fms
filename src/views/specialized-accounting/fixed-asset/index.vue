@@ -71,6 +71,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
   import {
+    isReadableFieldAccess,
     canEditField,
     canViewField,
     getFieldAccess,
@@ -395,8 +396,7 @@
   function getActionItems(row: Asset): ButtonMoreItem[] {
     if (row.status === 'draft')
       return [
-        ...(getFieldAccess(row.fieldAccess, 'assetValues') === 'read' ||
-        getFieldAccess(row.fieldAccess, 'assetValues') === 'edit'
+        ...(isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'assetValues'))
           ? [
               {
                 auth: 'FinanceFixedAsset:Activate',

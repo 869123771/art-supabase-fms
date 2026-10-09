@@ -26,7 +26,7 @@
       <article
         v-for="line in cashLines"
         :key="line.lineNo"
-        class="cash-flow-allocation-panel__line"
+        class="cash-flow-allocation-panel__line grid-cols-1"
       >
         <header>
           <div class="cash-flow-allocation-panel__identity">
@@ -36,7 +36,13 @@
           </div>
           <div class="cash-flow-allocation-panel__amount">
             <ElTag :type="lineDirection(line) === 'receipt' ? 'success' : 'warning'" effect="plain">
-              {{ dictLabel('fmsCashFlowDirection', lineDirection(line)) }}
+              {{
+                statementOptionLabel(
+                  'fmsCashFlowDirection',
+                  lineDirection(line),
+                  getDictMap.fmsCashFlowDirection
+                )
+              }}
             </ElTag>
             <strong>{{ formatCurrencyValue(lineAmount(line)) }}</strong>
             <small>待归集 {{ formatCurrencyValue(remainingAmount(line)) }}</small>
@@ -49,6 +55,7 @@
           :data="allocationsFor(line.lineNo)"
           :columns="allocationColumns(line)"
           :pagination="false"
+          height="auto"
           table-layout="fixed"
           empty-text="尚未添加归集项目"
           :empty-description="
@@ -168,8 +175,8 @@
     })
   }
 
-  function removeAllocation(row: unknown): void {
-    const index = model.value.indexOf(row as Draft)
+  function removeAllocation(row: Draft): void {
+    const index = model.value.indexOf(row)
     if (index >= 0) model.value.splice(index, 1)
   }
 
@@ -179,7 +186,7 @@
         prop: 'statementItemId',
         label: '现金流量项目',
         minWidth: 280,
-        required: true,
+        required: !props.readonly,
         requiredMessage: ({ rowIndex }) =>
           `分录 ${line.lineNo} 的第 ${rowIndex + 1} 行未选择现金流量项目`,
         formatter: (row) => (
@@ -200,7 +207,7 @@
         prop: 'amount',
         label: '归集金额',
         width: 180,
-        required: true,
+        required: !props.readonly,
         requiredMessage: ({ rowIndex }) =>
           `分录 ${line.lineNo} 的第 ${rowIndex + 1} 行归集金额必须大于 0`,
         rules: [
@@ -256,10 +263,6 @@
             }
           ])
     ]
-  }
-
-  function dictLabel(code: 'fmsCashFlowDirection', value: unknown): string {
-    return statementOptionLabel(code, value, getDictMap.value[code])
   }
 
   async function validate(requireComplete = true): Promise<boolean> {

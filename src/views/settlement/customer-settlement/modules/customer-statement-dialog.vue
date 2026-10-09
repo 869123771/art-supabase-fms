@@ -100,7 +100,11 @@
   } from '@fms/api'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
-  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
 
   defineOptions({ name: 'FinanceCustomerStatementDialog' })
@@ -147,21 +151,17 @@
   const amountAccess = computed(() => getFieldAccess(fieldAccess.value, 'statementAmounts'))
 
   const selectedAmount = computed(() => {
-    if (!['read', 'edit'].includes(amountAccess.value)) return null
+    if (!isReadableFieldAccess(amountAccess.value)) return null
     return selectedWaybills.value.reduce(
       (total, row) => total + Number((row as EligibleWaybill).receivableAmount ?? 0),
       0
     )
   })
 
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const selectedAmountSummary = computed(() => {
     if (amountAccess.value === 'hidden') return ''
     if (amountAccess.value === 'masked') return '，对账金额 ***'
-    return `，对账金额 ${formatMoney(selectedAmount.value)}`
+    return `，对账金额 ${formatSensitiveNumberWithAffix(selectedAmount.value, { prefix: '¥' })}`
   })
 
   const selectionSummary = computed(() =>
@@ -207,7 +207,9 @@
             width: 130,
             align: 'right' as const,
             formatter: (row: DataSelectRecord) =>
-              formatMoney((row as EligibleWaybill).receivableAmount)
+              formatSensitiveNumberWithAffix((row as EligibleWaybill).receivableAmount, {
+                prefix: '¥'
+              })
           }
         ]
       : [])

@@ -193,10 +193,6 @@
     }
   ])
 
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const renderStatusActions = (row: Statement) => {
     if (row.status === 'draft')
       return hasAuth('FinanceCarrierSettlement:Submit') ? (
@@ -305,7 +301,8 @@
             label: '应付金额',
             width: 125,
             align: 'right' as const,
-            formatter: (row: Statement) => formatMoney(row.statementAmount)
+            formatter: (row: Statement) =>
+              formatSensitiveNumberWithAffix(row.statementAmount, { prefix: '¥' })
           }
         ]
       : []),
@@ -319,13 +316,13 @@
             formatter: (row: Statement) => (
               <div
                 class="py-1 text-right leading-5"
-                title={`已付 ${formatMoney(row.settledAmount)} · 未付 ${formatMoney(row.outstandingAmount)}`}
+                title={`已付 ${formatSensitiveNumberWithAffix(row.settledAmount, { prefix: '¥' })} · 未付 ${formatSensitiveNumberWithAffix(row.outstandingAmount, { prefix: '¥' })}`}
               >
                 <small class="block text-xs text-[var(--el-text-color-secondary)]">
-                  已付 {formatMoney(row.settledAmount)}
+                  已付 {formatSensitiveNumberWithAffix(row.settledAmount, { prefix: '¥' })}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未付 {formatMoney(row.outstandingAmount)}
+                  未付 {formatSensitiveNumberWithAffix(row.outstandingAmount, { prefix: '¥' })}
                 </strong>
               </div>
             )

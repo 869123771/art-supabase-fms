@@ -7,27 +7,31 @@
   >
     <div class="collection-advisor">
       <template v-if="state.data">
-        <section :class="['collection-advisor__hero art-card-xs', `is-${assessment.riskLevel}`]">
-          <header class="collection-advisor__hero-header">
-            <div class="collection-advisor__hero-main">
-              <span class="collection-advisor__hero-icon">
-                <ArtSvgIcon icon="ri:funds-line" />
-              </span>
-              <div>
-                <span class="collection-advisor__eyebrow"><i />AI RECEIVABLES CONTROL</span>
-                <div class="collection-advisor__title-row">
-                  <strong>应收回款风险研判</strong>
-                  <ElTag :type="riskTagType" effect="dark" round>{{ riskLabel }}</ElTag>
-                  <ElTag type="info" effect="plain" round>{{ recommendationLabel }}</ElTag>
+        <ArtSectionCard
+          :class="['collection-advisor__hero', `is-${assessment.riskLevel}`]"
+          :show-scrollbar="false"
+        >
+          <template #header>
+            <header class="collection-advisor__hero-header">
+              <div class="collection-advisor__hero-main">
+                <span class="collection-advisor__hero-icon">
+                  <ArtSvgIcon icon="ri:funds-line" />
+                </span>
+                <div>
+                  <span class="collection-advisor__eyebrow"><i />AI RECEIVABLES CONTROL</span>
+                  <div class="collection-advisor__title-row">
+                    <strong>应收回款风险研判</strong>
+                    <ElTag :type="riskTagType" effect="dark" round>{{ riskLabel }}</ElTag>
+                    <ElTag type="info" effect="plain" round>{{ recommendationLabel }}</ElTag>
+                  </div>
+                  <p>分析当前租户 {{ assessment.metrics.openStatementCount }} 笔未关闭客户对账单</p>
                 </div>
-                <p>分析当前租户 {{ assessment.metrics.openStatementCount }} 笔未关闭客户对账单</p>
               </div>
-            </div>
-            <ElButton type="primary" plain :loading="state.loading" @click="loadAssessment">
-              <ArtSvgIcon icon="ri:refresh-line" />重新研判
-            </ElButton>
-          </header>
-
+              <ElButton type="primary" plain :loading="state.loading" @click="loadAssessment">
+                <ArtSvgIcon icon="ri:refresh-line" />重新研判
+              </ElButton>
+            </header>
+          </template>
           <div class="collection-advisor__scores">
             <article>
               <header
@@ -70,14 +74,9 @@
               <p>{{ assessment.summary }}</p>
             </div>
           </div>
-        </section>
+        </ArtSectionCard>
 
-        <section class="collection-advisor__section">
-          <ArtSectionTitle>
-            <span class="collection-advisor__section-label">
-              <ArtSvgIcon icon="ri:dashboard-3-line" />应收健康指标
-            </span>
-          </ArtSectionTitle>
+        <ArtSectionCard title="应收健康指标" class="mt-5.5" :show-scrollbar="false">
           <div class="collection-advisor__metrics">
             <article class="art-card-xs">
               <span class="collection-advisor__metric-icon is-outstanding">
@@ -140,15 +139,18 @@
               >
             </article>
           </div>
-        </section>
+        </ArtSectionCard>
 
-        <section class="collection-advisor__section">
-          <ArtSectionTitle>
-            <span class="collection-advisor__section-label">
-              <ArtSvgIcon icon="ri:radar-line" />优先跟进对账单
-            </span>
-          </ArtSectionTitle>
-          <div v-if="assessment.priorityStatements.length" class="collection-advisor__statements">
+        <ArtSectionCard
+          title="优先跟进对账单"
+          class="mt-5.5"
+          :show-scrollbar="false"
+          :empty="!assessment.priorityStatements.length"
+          empty-title="当前没有需要优先跟进的未结对账单"
+          empty-description="后续出现高关注回款事项时会在此列出。"
+          :empty-visual-size="72"
+        >
+          <div class="collection-advisor__statements">
             <article
               v-for="statement in assessment.priorityStatements"
               :key="statement.id"
@@ -192,23 +194,19 @@
               </footer>
             </article>
           </div>
-          <ArtEmptyState
-            v-else
-            title="当前没有需要优先跟进的未结对账单"
-            description="后续出现高关注回款事项时会在此列出。"
-            :visual-size="72"
-            size="compact"
-          />
-        </section>
+        </ArtSectionCard>
 
         <div class="collection-advisor__decision-grid">
-          <section class="collection-advisor__section">
-            <ArtSectionTitle>
-              <span class="collection-advisor__section-label">
-                <ArtSvgIcon icon="ri:alarm-warning-line" />风险信号
-              </span>
-            </ArtSectionTitle>
-            <div v-if="assessment.signals.length" class="collection-advisor__signals">
+          <ArtSectionCard
+            title="风险信号"
+            class="mt-5.5"
+            :show-scrollbar="false"
+            :empty="!assessment.signals.length"
+            empty-title="当前未识别到明确的回款风险信号"
+            empty-description="仍可按建议处理顺序定期核对未结应收。"
+            :empty-visual-size="72"
+          >
+            <div class="collection-advisor__signals">
               <article
                 v-for="signal in assessment.signals"
                 :key="signal.type"
@@ -229,34 +227,31 @@
                 </div>
               </article>
             </div>
-            <ArtEmptyState
-              v-else
-              title="当前未识别到明确的回款风险信号"
-              description="仍可按建议处理顺序定期核对未结应收。"
-              :visual-size="72"
-              size="compact"
-            />
-          </section>
+          </ArtSectionCard>
 
-          <section class="collection-advisor__section">
-            <ArtSectionTitle>
-              <span class="collection-advisor__section-label">
-                <ArtSvgIcon icon="ri:user-star-line" />高关注客户
-              </span>
-            </ArtSectionTitle>
-            <div
-              v-if="assessment.riskCustomers.length"
-              class="collection-advisor__customers art-card-xs"
-            >
+          <ArtSectionCard
+            title="高关注客户"
+            class="mt-5.5"
+            :show-scrollbar="false"
+            :empty="!assessment.riskCustomers.length"
+            empty-title="暂无高关注客户"
+            empty-description="客户风险升高时会在此列出。"
+            :empty-visual-size="72"
+          >
+            <div class="collection-advisor__customers">
               <article
                 v-for="customer in assessment.riskCustomers"
                 :key="customer.customerId || customer.customerName"
               >
                 <span>{{ customer.riskScore }}</span>
                 <div>
-                  <header
-                    ><strong>{{ customer.customerName }}</strong
-                    ><small>{{ customer.statementCount }} 笔</small></header
+                  <header class="flex items-start justify-between gap-2"
+                    ><strong class="min-w-0 wrap-anywhere text-g-900">{{
+                      customer.customerName
+                    }}</strong
+                    ><small class="shrink-0 whitespace-nowrap"
+                      >{{ customer.statementCount }} 笔</small
+                    ></header
                   >
                   <p
                     >{{ formatMoney(customer.outstandingAmount) }} 未结 · 最长
@@ -265,23 +260,19 @@
                 </div>
               </article>
             </div>
-            <ArtEmptyState
-              v-else
-              title="暂无高关注客户"
-              description="客户风险升高时会在此列出。"
-              :visual-size="72"
-              size="compact"
-            />
-          </section>
+          </ArtSectionCard>
         </div>
 
-        <section class="collection-advisor__section">
-          <ArtSectionTitle>
-            <span class="collection-advisor__section-label">
-              <ArtSvgIcon icon="ri:list-check-3" />建议处理顺序
-            </span>
-          </ArtSectionTitle>
-          <ol class="collection-advisor__actions art-card-xs">
+        <ArtSectionCard
+          title="建议处理顺序"
+          class="mt-5.5"
+          :show-scrollbar="false"
+          :empty="!assessment.recommendedActions.length"
+          empty-title="暂无处理建议"
+          empty-description="可结合回款指标和风险信号进行人工复核。"
+          :empty-visual-size="72"
+        >
+          <ol class="collection-advisor__actions">
             <li v-for="(action, index) in assessment.recommendedActions" :key="action">
               <span>{{ index + 1 }}</span>
               <div
@@ -290,26 +281,35 @@
               >
             </li>
           </ol>
-        </section>
+        </ArtSectionCard>
 
-        <section class="collection-advisor__section">
-          <ArtSectionTitle>
-            <span class="collection-advisor__section-label">
-              <ArtSvgIcon icon="ri:information-2-line" />判断边界
-            </span>
-          </ArtSectionTitle>
-          <div class="collection-advisor__limitations art-card-xs">
+        <ArtSectionCard
+          title="判断边界"
+          class="mt-5.5"
+          :show-scrollbar="false"
+          :empty="!assessment.limitations.length"
+          empty-title="暂无补充说明"
+          empty-description="请结合当前分析范围复核研判结果。"
+          :empty-visual-size="72"
+        >
+          <div class="collection-advisor__limitations">
             <p v-for="item in assessment.limitations" :key="item">
               <ArtSvgIcon icon="ri:checkbox-circle-line" /><span>{{ item }}</span>
             </p>
           </div>
-        </section>
+        </ArtSectionCard>
 
         <ArtAiFeedback :run-id="state.data.runId" context-label="AI 回款风险助手" />
 
-        <footer class="collection-advisor__meta">
+        <footer
+          class="mt-5 flex flex-wrap items-center gap-3.5 border-t border-dashed border-(--el-border-color-lighter) px-0.5 pt-3.5 pb-0.5 text-xs text-g-700 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.25"
+        >
           <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span>
+          <span
+            ><ArtSvgIcon icon="ri:time-line" />{{
+              formatDateTimeValue(state.data.generatedAt)
+            }}</span
+          >
           <span
             ><ArtSvgIcon
               icon="ri:shield-check-line"
@@ -330,12 +330,12 @@
 
 <script setup lang="ts">
   import {
+    formatDateTimeValue,
     formatCnyCurrencyValue as formatMoney,
     formatPercentValue as formatPercent
   } from '@/utils/ui/format'
 
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import { getSettlementStatusPresentation } from '../../modules/settlement-status'
@@ -343,10 +343,9 @@
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { analyzeReceivablesCollectionByAi } from '@fms/api'
   import { financeRouteNames } from '@/router/business-paths'
-  import { formatWithDayjs } from '@/utils/time'
 
   defineOptions({ name: 'FinanceReceivablesCollectionAdvisorDrawer' })
 
@@ -478,10 +477,6 @@
         : 'ri:information-line'
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '--'
-  }
-
   defineExpose({ handleOpen })
 </script>
 
@@ -527,8 +522,7 @@
     &__statement header,
     &__statement header > div,
     &__evidence,
-    &__reasons,
-    &__meta {
+    &__reasons {
       display: flex;
       align-items: center;
     }
@@ -666,17 +660,6 @@
         line-height: 1.65;
         color: var(--art-text-gray-800);
       }
-    }
-
-    &__section {
-      min-width: 0;
-      margin-top: 22px;
-    }
-
-    &__section-label {
-      display: inline-flex;
-      gap: 7px;
-      align-items: center;
     }
 
     &__metrics {
@@ -923,8 +906,6 @@
     }
 
     &__customers {
-      padding: 4px 16px;
-
       article {
         display: grid;
         grid-template-columns: 34px minmax(0, 1fr);
@@ -948,23 +929,9 @@
           border-radius: 50%;
         }
 
-        header {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        strong {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          color: var(--art-text-gray-900);
-          white-space: nowrap;
-        }
-
         small,
         p {
-          color: var(--art-text-gray-500);
+          color: var(--art-gray-700);
         }
 
         p {
@@ -975,7 +942,6 @@
     }
 
     &__actions {
-      padding: 4px 18px;
       margin: 0;
       list-style: none;
 
@@ -1014,8 +980,6 @@
     }
 
     &__limitations {
-      padding: 12px 16px;
-
       p {
         display: flex;
         gap: 8px;
@@ -1033,22 +997,6 @@
           margin-top: 3px;
           color: var(--el-color-primary);
         }
-      }
-    }
-
-    &__meta {
-      flex-wrap: wrap;
-      gap: 14px;
-      padding: 14px 2px 2px;
-      margin-top: 20px;
-      font-size: 12px;
-      color: var(--art-text-gray-400);
-      border-top: 1px dashed var(--el-border-color-lighter);
-
-      span {
-        display: inline-flex;
-        gap: 5px;
-        align-items: center;
       }
     }
 

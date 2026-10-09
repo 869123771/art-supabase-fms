@@ -61,7 +61,12 @@
   import { useUserStore } from '@/store/modules/user'
   import { useAuth } from '@/hooks/core/useAuth'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import {
     deleteVoucherTemplate,
     fetchAccountSetOptions,
@@ -174,7 +179,7 @@
         type: 'input',
         props: {
           clearable: true,
-          placeholder: ['read', 'edit'].includes(
+          placeholder: isReadableFieldAccess(
             getFieldAccess(listFieldAccess.value, 'templateNarrative')
           )
             ? '模板编码、名称或摘要'

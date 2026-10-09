@@ -24,6 +24,7 @@
       :data="modelValue"
       :columns="columns"
       :pagination="false"
+      height="auto"
       table-layout="fixed"
       empty-text="暂无凭证分录"
       empty-description="至少录入两条借贷平衡的会计分录。"
@@ -32,9 +33,9 @@
 
     <div class="voucher-entry-lines__totals" :class="{ 'is-balanced': isBalanced }">
       <span>分录 {{ modelValue.length }} 条</span>
-      <strong>借方 {{ formatMoney(totalDebit) }}</strong>
-      <strong>贷方 {{ formatMoney(totalCredit) }}</strong>
-      <span>差额 {{ formatMoney(difference) }}</span>
+      <strong>借方 {{ formatCnyCurrencyValue(totalDebit || 0) }}</strong>
+      <strong>贷方 {{ formatCnyCurrencyValue(totalCredit || 0) }}</strong>
+      <span>差额 {{ formatCnyCurrencyValue(difference || 0) }}</span>
       <ElTag :type="isBalanced ? 'success' : 'danger'" effect="dark">
         {{ isBalanced ? '借贷平衡' : '借贷不平' }}
       </ElTag>
@@ -44,7 +45,7 @@
 
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { round } from 'lodash-es'
+  import { keyBy, round, sumBy } from 'lodash-es'
   import { useMediaQuery } from '@vueuse/core'
   import { ElInput, ElInputNumber, ElOption, ElSelect, ElTag } from 'element-plus'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
@@ -56,7 +57,7 @@
     type ArtTableValidationResult
   } from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption, TableColumnValidationContext } from '@/types'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatCnyCurrencyValue } from '@/utils/ui'
 
   defineOptions({ name: 'FmsVoucherEntryLines' })
 
@@ -83,14 +84,14 @@
   const emit = defineEmits<{ 'update:modelValue': [value: Line[]] }>()
   const tableRef = ref<ArtTableExpose>()
   const isCompact = useMediaQuery('(max-width: 900px)')
+  const subjectsById = computed(() => keyBy(props.subjects, 'id'))
+  const parentSubjectIds = computed(
+    () => new Set(props.subjects.map((subject) => subject.parentId))
+  )
 
   const subjectOptions = computed(() =>
     props.subjects
-      .filter(
-        (subject) =>
-          subject.isEnabled &&
-          !props.subjects.some((candidate) => candidate.parentId === subject.id)
-      )
+      .filter((subject) => subject.isEnabled && !parentSubjectIds.value.has(subject.id))
       .map((subject) => ({
         label: `${subject.subjectCode} ${subject.subjectName}`,
         value: subject.id
@@ -101,13 +102,13 @@
   )
   const totalDebit = computed(() =>
     round(
-      props.modelValue.reduce((sum, row) => sum + Number(row.debitAmount || 0), 0),
+      sumBy(props.modelValue, (row) => Number(row.debitAmount || 0)),
       2
     )
   )
   const totalCredit = computed(() =>
     round(
-      props.modelValue.reduce((sum, row) => sum + Number(row.creditAmount || 0), 0),
+      sumBy(props.modelValue, (row) => Number(row.creditAmount || 0)),
       2
     )
   )
@@ -134,7 +135,7 @@
   }
 
   function subjectFor(row: Line): Subject | undefined {
-    return props.subjects.find((subject) => subject.id === row.subjectId)
+    return subjectsById.value[row.subjectId]
   }
 
   function updateLine(row: Line, patch: Partial<Line>): void {
@@ -233,7 +234,7 @@
     {
       prop: 'summary',
       label: '摘要',
-      required: true,
+      required: !props.readonly,
       requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录缺少摘要`,
       minWidth: 170,
       formatter: (row) =>
@@ -252,7 +253,7 @@
     {
       prop: 'subjectId',
       label: '会计科目',
-      required: true,
+      required: !props.readonly,
       requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录未选择会计科目`,
       minWidth: 220,
       formatter: (row) => {
@@ -310,7 +311,7 @@
     {
       prop: 'auxiliaryValues',
       label: '辅助核算',
-      required: true,
+      required: !props.readonly,
       rules: [
         {
           validator: ({ row }) =>
@@ -338,13 +339,14 @@
           )
         }
         return (
-          <div class="voucher-entry-lines__auxiliary">
+          <div class="grid gap-1.5">
             {configs.map((config) => (
               <ElSelect
                 key={config.auxiliaryTypeId}
                 v-model={row.auxiliaryValues[config.auxiliaryTypeId]}
                 aria-label={`第 ${row.lineNo} 条分录${config.auxiliaryType?.typeName ?? '核算维度'}`}
                 filterable
+                class="w-full!"
                 clearable={!config.isRequired}
                 placeholder={`${config.auxiliaryType?.typeName ?? '核算维度'}${config.isRequired ? '*' : ''}`}
                 onChange={() =>
@@ -379,7 +381,7 @@
           message: ({ rowIndex }) => `第 ${rowIndex + 1} 条分录原币金额必须大于 0`
         }
       ],
-      minWidth: 180,
+      minWidth: 210,
       formatter: (row) => {
         const subject = subjectFor(row)
         if (!subject?.allowForeignCurrency) return '—'
@@ -389,11 +391,12 @@
             : '—'
         }
         return (
-          <div class="voucher-entry-lines__currency">
+          <div class="grid grid-cols-[72px_minmax(100px,1fr)] gap-1.5">
             <ElSelect
               v-model={row.currencyId}
               aria-label={`第 ${row.lineNo} 条分录币种`}
               clearable
+              class="w-full!"
               placeholder="币种"
               onChange={() =>
                 updateLine(row, {
@@ -414,6 +417,7 @@
               precision={2}
               controls={false}
               disabled={!row.currencyId}
+              class="w-full!"
               placeholder="原币金额"
               onChange={() => handleOriginalAmountChange(row, Number(row.originalAmount ?? 0))}
             />
@@ -482,7 +486,7 @@
             align: 'right' as const,
             formatter: (row: Line) => {
               if (props.readonly) {
-                return formatMoney(
+                return formatCnyCurrencyValue(
                   Math.max(Number(row.debitAmount || 0), Number(row.creditAmount || 0))
                 )
               }
@@ -505,7 +509,7 @@
           {
             prop: 'debitAmount',
             label: '借方金额',
-            required: true,
+            required: !props.readonly,
             rules: [
               {
                 validator: ({ row }: TableColumnValidationContext<Line>) =>
@@ -518,7 +522,7 @@
             align: 'right' as const,
             formatter: (row: Line) =>
               props.readonly ? (
-                formatMoney(row.debitAmount)
+                formatCnyCurrencyValue(row.debitAmount || 0)
               ) : (
                 <ElInputNumber
                   v-model={row.debitAmount}
@@ -543,7 +547,7 @@
             align: 'right' as const,
             formatter: (row: Line) =>
               props.readonly ? (
-                formatMoney(row.creditAmount)
+                formatCnyCurrencyValue(row.creditAmount || 0)
               ) : (
                 <ElInputNumber
                   v-model={row.creditAmount}
@@ -591,10 +595,6 @@
     })
   )
 
-  function formatMoney(value: number): string {
-    return formatCurrencyValue(Number(value || 0))
-  }
-
   const validate = async (): Promise<ArtTableValidationResult> =>
     (await tableRef.value?.validate()) ?? { valid: true, errors: [] }
   const clearValidate = (): void => tableRef.value?.clearValidate()
@@ -606,16 +606,6 @@
   .voucher-entry-lines {
     min-width: 0;
     padding: var(--art-space-4);
-
-    :deep(.el-table__body td:not(:last-child) .art-table__cell-content) {
-      display: flex;
-      width: 100%;
-    }
-
-    :deep(.el-table__body td:not(:last-child) .art-table__cell-value) {
-      display: block;
-      width: 100%;
-    }
 
     :deep(.el-table__body .el-input),
     :deep(.el-table__body .el-select),
@@ -639,16 +629,6 @@
         font-size: 13px;
         color: var(--el-text-color-secondary);
       }
-    }
-
-    &__auxiliary,
-    &__currency {
-      display: grid;
-      gap: 6px;
-    }
-
-    &__currency {
-      grid-template-columns: 72px minmax(100px, 1fr);
     }
 
     &__totals {

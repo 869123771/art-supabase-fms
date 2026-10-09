@@ -209,10 +209,6 @@
     }
   ])
 
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const columnsFactory = (): ColumnOption<CustomerStatement>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
     {
@@ -255,7 +251,8 @@
             label: '对账金额',
             width: 125,
             align: 'right' as const,
-            formatter: (row: CustomerStatement) => formatMoney(row.statementAmount)
+            formatter: (row: CustomerStatement) =>
+              formatSensitiveNumberWithAffix(row.statementAmount, { prefix: '¥' })
           }
         ]
       : []),
@@ -269,13 +266,13 @@
             formatter: (row: CustomerStatement) => (
               <div
                 class="py-1 text-right leading-5"
-                title={`已结 ${formatMoney(row.settledAmount)} · 未结 ${formatMoney(row.outstandingAmount)}`}
+                title={`已结 ${formatSensitiveNumberWithAffix(row.settledAmount, { prefix: '¥' })} · 未结 ${formatSensitiveNumberWithAffix(row.outstandingAmount, { prefix: '¥' })}`}
               >
                 <small class="block text-xs text-[var(--el-text-color-secondary)]">
-                  已结 {formatMoney(row.settledAmount)}
+                  已结 {formatSensitiveNumberWithAffix(row.settledAmount, { prefix: '¥' })}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未结 {formatMoney(row.outstandingAmount)}
+                  未结 {formatSensitiveNumberWithAffix(row.outstandingAmount, { prefix: '¥' })}
                 </strong>
               </div>
             )
@@ -488,7 +485,7 @@
   async function handleApprove(row: CustomerStatement): Promise<void> {
     try {
       const amountHint = canViewRowField(row, 'statementAmounts')
-        ? `对账金额 ${formatMoney(row.statementAmount)}`
+        ? `对账金额 ${formatSensitiveNumberWithAffix(row.statementAmount, { prefix: '¥' })}`
         : '该对账单'
       await confirmAction(`确认${amountHint}无误并审核通过吗？`, '审核通过', {
         type: 'success',

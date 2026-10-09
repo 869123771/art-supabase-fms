@@ -135,13 +135,6 @@
     }
   ])
 
-  const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    return formatSensitiveNumberWithAffix(value, {
-      prefix: '¥',
-      numberFormat: { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-    })
-  }
-
   const columnsFactory = (): ColumnOption<WaybillProfit>[] => [
     { type: 'selection', width: 48, fixed: 'left', reserveSelection: true },
     {
@@ -213,7 +206,9 @@
             width: 120,
             align: 'right' as const,
             formatter: (row: WaybillProfit) => (
-              <strong class="tabular-nums font-medium">{formatMoney(row.receivableAmount)}</strong>
+              <strong class="tabular-nums font-medium">
+                {formatSensitiveNumberWithAffix(row.receivableAmount, { prefix: '¥' })}
+              </strong>
             )
           }
         ]
@@ -230,12 +225,12 @@
               const audited = !masked && Number(row.totalCostAmount) > 0
               const detail = masked
                 ? '成本金额已脱敏'
-                : `承运运费 ${formatMoney(row.carrierPayableAmount)} · 附加成本 ${formatMoney(row.otherCostAmount)}`
+                : `承运运费 ${formatSensitiveNumberWithAffix(row.carrierPayableAmount, { prefix: '¥' })} · 附加成本 ${formatSensitiveNumberWithAffix(row.otherCostAmount, { prefix: '¥' })}`
               return (
                 <ArtTooltip content={detail} placement="top">
                   <div class="flex flex-col items-end gap-1">
                     <strong class="tabular-nums font-medium">
-                      {formatMoney(row.totalCostAmount)}
+                      {formatSensitiveNumberWithAffix(row.totalCostAmount, { prefix: '¥' })}
                     </strong>
                     <ElTag size="small" type={masked ? 'info' : audited ? 'success' : 'warning'}>
                       {masked ? '已脱敏' : audited ? '已核成本' : '未核成本'}
@@ -262,7 +257,7 @@
               return (
                 <div class="flex flex-col items-end gap-1">
                   <strong class="tabular-nums font-semibold text-[var(--el-text-color-primary)]">
-                    {formatMoney(row.grossProfit)}
+                    {formatSensitiveNumberWithAffix(row.grossProfit, { prefix: '¥' })}
                   </strong>
                   <ElTag size="small" type={masked ? 'info' : calculated ? type : 'warning'}>
                     {masked ? '已脱敏' : calculated ? `${margin.toFixed(2)}%` : '待核算'}

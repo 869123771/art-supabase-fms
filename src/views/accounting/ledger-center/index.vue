@@ -165,7 +165,7 @@
     isMaskedValue
   } from '@/utils/field-permission'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue, formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import {
     fetchAccountingPeriodList,
@@ -467,7 +467,12 @@
         {
           key: 'category',
           title: '科目类别',
-          formatter: (value) => dictLabel('fmsSubjectCategory', value)
+          formatter: (value) =>
+            userStore.getDictLabelByValue(
+              'fmsSubjectCategory',
+              String(value ?? ''),
+              String(value ?? '')
+            )
         },
         ...(canViewLedgerAmounts.value
           ? [
@@ -482,7 +487,12 @@
         {
           key: 'endingDirection',
           title: '期末方向',
-          formatter: (value) => dictLabel('fmsBalanceDirection', value)
+          formatter: (value) =>
+            userStore.getDictLabelByValue(
+              'fmsBalanceDirection',
+              String(value ?? ''),
+              String(value ?? '')
+            )
         },
         ...(canViewLedgerAmounts.value ? [{ key: 'endingBalance', title: '期末余额' }] : [])
       ]
@@ -502,7 +512,12 @@
         {
           key: 'openingDirection',
           title: '期初方向',
-          formatter: (value) => dictLabel('fmsBalanceDirection', value)
+          formatter: (value) =>
+            userStore.getDictLabelByValue(
+              'fmsBalanceDirection',
+              String(value ?? ''),
+              String(value ?? '')
+            )
         },
         ...(canViewLedgerAmounts.value
           ? [
@@ -516,7 +531,12 @@
         {
           key: 'endingDirection',
           title: '期末方向',
-          formatter: (value) => dictLabel('fmsBalanceDirection', value)
+          formatter: (value) =>
+            userStore.getDictLabelByValue(
+              'fmsBalanceDirection',
+              String(value ?? ''),
+              String(value ?? '')
+            )
         },
         ...(canViewLedgerAmounts.value ? [{ key: 'endingBalance', title: '期末余额' }] : []),
         ...(canViewVoucherReferences.value
@@ -544,7 +564,12 @@
               {
                 key: 'voucherType',
                 title: '凭证类型',
-                formatter: (value: unknown) => dictLabel('fmsVoucherType', value)
+                formatter: (value: unknown) =>
+                  userStore.getDictLabelByValue(
+                    'fmsVoucherType',
+                    String(value ?? ''),
+                    String(value ?? '')
+                  )
               },
               { key: 'summary', title: '摘要', width: 30 }
             ]
@@ -567,7 +592,12 @@
         {
           key: 'balanceDirection',
           title: '余额方向',
-          formatter: (value) => dictLabel('fmsBalanceDirection', value)
+          formatter: (value) =>
+            userStore.getDictLabelByValue(
+              'fmsBalanceDirection',
+              String(value ?? ''),
+              String(value ?? '')
+            )
         },
         ...(canViewLedgerAmounts.value ? [{ key: 'balanceAmount', title: '余额' }] : [])
       ]
@@ -648,7 +678,11 @@
               'ending',
               '期末余额',
               protectedMoney(numericValue(last?.endingBalance)),
-              dictLabel('fmsBalanceDirection', last?.endingDirection) || '当前末期',
+              userStore.getDictLabelByValue(
+                'fmsBalanceDirection',
+                String(last?.endingDirection ?? ''),
+                String(last?.endingDirection ?? '')
+              ) || '当前末期',
               'ri:wallet-3-line',
               'info'
             )
@@ -691,7 +725,11 @@
               'ending',
               '滚动余额',
               protectedMoney(numericValue(last?.balanceAmount)),
-              dictLabel('fmsBalanceDirection', last?.balanceDirection) || '当前末笔',
+              userStore.getDictLabelByValue(
+                'fmsBalanceDirection',
+                String(last?.balanceDirection ?? ''),
+                String(last?.balanceDirection ?? '')
+              ) || '当前末笔',
               'ri:line-chart-line',
               'info'
             )
@@ -729,19 +767,6 @@
   function protectedMoney(value: number | undefined): string {
     if (ledgerAmountAccess.value === 'masked') return '***'
     return value === undefined ? '--' : formatCurrencyValue(value)
-  }
-
-  function dictLabel(code: string, value: unknown): string {
-    if (value === null || value === undefined || value === '') return ''
-    const option = (getDictMap.value[code] ?? []).find(
-      (item) => String(item.value) === String(value)
-    )
-    return option?.label ?? String(value)
-  }
-
-  function moneyCell(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
   }
 
   function originalAmountCell(row: SubsidiaryRecord): string {
@@ -789,42 +814,42 @@
               label: '期初借方',
               width: 130,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.openingDebit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.openingDebit)
             },
             {
               prop: 'openingCredit',
               label: '期初贷方',
               width: 130,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.openingCredit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.openingCredit)
             },
             {
               prop: 'periodDebit',
               label: '本期借方',
               width: 130,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.periodDebit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.periodDebit)
             },
             {
               prop: 'periodCredit',
               label: '本期贷方',
               width: 130,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.periodCredit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.periodCredit)
             },
             {
               prop: 'yearToDateDebit',
               label: '本年累计借方',
               width: 145,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.yearToDateDebit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.yearToDateDebit)
             },
             {
               prop: 'yearToDateCredit',
               label: '本年累计贷方',
               width: 145,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.yearToDateCredit)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.yearToDateCredit)
             },
             {
               prop: 'endingDirection',
@@ -837,7 +862,7 @@
               label: '期末余额',
               width: 135,
               align: 'right' as const,
-              formatter: (row: BalanceRecord) => moneyCell(row.endingBalance)
+              formatter: (row: BalanceRecord) => formatSensitiveCurrencyValue(row.endingBalance)
             }
           ]
         : []),
@@ -890,35 +915,35 @@
               label: '期初余额',
               width: 135,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.openingBalance)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.openingBalance)
             },
             {
               prop: 'debitAmount',
               label: '本期借方',
               width: 135,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.debitAmount)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.debitAmount)
             },
             {
               prop: 'creditAmount',
               label: '本期贷方',
               width: 135,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.creditAmount)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.creditAmount)
             },
             {
               prop: 'yearToDateDebit',
               label: '本年累计借方',
               width: 145,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.yearToDateDebit)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.yearToDateDebit)
             },
             {
               prop: 'yearToDateCredit',
               label: '本年累计贷方',
               width: 145,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.yearToDateCredit)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.yearToDateCredit)
             },
             {
               prop: 'endingDirection',
@@ -931,7 +956,7 @@
               label: '期末余额',
               width: 135,
               align: 'right' as const,
-              formatter: (row: GeneralRecord) => moneyCell(row.endingBalance)
+              formatter: (row: GeneralRecord) => formatSensitiveCurrencyValue(row.endingBalance)
             }
           ]
         : []),
@@ -1001,7 +1026,13 @@
                 ) : (
                   <div class="ledger-center-page__period">
                     <strong translate="no">{row.voucherNo || '--'}</strong>
-                    <small>{dictLabel('fmsVoucherType', row.voucherType)}</small>
+                    <small>
+                      {userStore.getDictLabelByValue(
+                        'fmsVoucherType',
+                        String(row.voucherType ?? ''),
+                        String(row.voucherType ?? '')
+                      )}
+                    </small>
                   </div>
                 )
             },
@@ -1039,14 +1070,14 @@
               label: '借方金额',
               width: 135,
               align: 'right' as const,
-              formatter: (row: SubsidiaryRecord) => moneyCell(row.debitAmount)
+              formatter: (row: SubsidiaryRecord) => formatSensitiveCurrencyValue(row.debitAmount)
             },
             {
               prop: 'creditAmount',
               label: '贷方金额',
               width: 135,
               align: 'right' as const,
-              formatter: (row: SubsidiaryRecord) => moneyCell(row.creditAmount)
+              formatter: (row: SubsidiaryRecord) => formatSensitiveCurrencyValue(row.creditAmount)
             },
             {
               prop: 'balanceDirection',
@@ -1060,7 +1091,7 @@
               width: 135,
               align: 'right' as const,
               fixed: 'right' as const,
-              formatter: (row: SubsidiaryRecord) => moneyCell(row.balanceAmount)
+              formatter: (row: SubsidiaryRecord) => formatSensitiveCurrencyValue(row.balanceAmount)
             }
           ]
         : []),

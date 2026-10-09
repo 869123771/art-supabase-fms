@@ -52,9 +52,14 @@
   } from '@/components/business/business-workspace-header/index.vue'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue, formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
   import { fetchAccountSetOptions, fetchFundAccountOptions, fetchFundLedgerList } from '@fms/api'
 
@@ -97,7 +102,7 @@
   const canViewListField = (field: Api.Fms.FundLedgerFieldKey): boolean =>
     canViewField(effectiveFieldAccess.value, field)
   const canFilterAccount = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'accountDetails'))
+    isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'accountDetails'))
   )
   const table = reactive<{ search: SearchParams }>({
     search: {
@@ -173,7 +178,7 @@
         placeholder: [
           '资金流水号',
           canFilterAccount.value ? '账户名称' : '',
-          ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'transactionDetails'))
+          isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'transactionDetails'))
             ? '业务单号、摘要、对方或银行参考号'
             : ''
         ]
@@ -190,7 +195,7 @@
       const directionRows = rows.filter((row) => row.direction === direction)
       const values = directionRows.map((row) => normalizeNullableNumber(row.amount) ?? undefined)
       const readable =
-        ['read', 'edit'].includes(amountAccess) &&
+        isReadableFieldAccess(amountAccess) &&
         values.every((value): value is number => value !== undefined)
       return {
         count: directionRows.length,
@@ -296,7 +301,7 @@
               label: '发生金额',
               width: 115,
               align: 'right' as const,
-              formatter: (row: Ledger) => formatLedgerAmount(row.amount, row.currencyCode)
+              formatter: (row: Ledger) => formatSensitiveCurrencyValue(row.amount, row.currencyCode)
             }
           ]
         : []),
@@ -382,14 +387,6 @@
     const { data } = await fetchFundAccountOptions({ accountSetId })
     if (requestId !== accountOptionsRequestId) return
     accountOptions.value = data ?? []
-  }
-
-  function formatLedgerAmount(
-    value: Api.Fms.SensitiveNumber | undefined,
-    currency = 'CNY'
-  ): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
   }
 
   function handleMetricClick(metric: BusinessWorkspaceMetric): void {

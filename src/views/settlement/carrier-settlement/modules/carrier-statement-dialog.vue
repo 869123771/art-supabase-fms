@@ -96,7 +96,11 @@
   } from '@fms/api'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
 
   defineOptions({ name: 'FinanceCarrierStatementDialog' })
@@ -138,19 +142,17 @@
     getFieldAccess(fieldAccess.value, 'allocatedFreight')
   )
   const selectedAmount = computed(() => {
-    if (!['read', 'edit'].includes(amountAccess.value)) return null
+    if (!isReadableFieldAccess(amountAccess.value)) return null
     return selectedCosts.value.reduce(
       (sum, row) => sum + Number((row as EligibleCost).costAmount ?? 0),
       0
     )
   })
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
+
   const selectedAmountSummary = computed(() => {
     if (amountAccess.value === 'hidden') return ''
     if (amountAccess.value === 'masked') return '，应付金额 ***'
-    return `，应付金额 ${formatMoney(selectedAmount.value)}`
+    return `，应付金额 ${formatSensitiveNumberWithAffix(selectedAmount.value, { prefix: '¥' })}`
   })
   const selectionSummary = computed(() =>
     selectedCosts.value.length
@@ -184,7 +186,8 @@
             label: '费用金额',
             width: 130,
             align: 'right' as const,
-            formatter: (row: DataSelectRecord) => formatMoney((row as EligibleCost).costAmount)
+            formatter: (row: DataSelectRecord) =>
+              formatSensitiveNumberWithAffix((row as EligibleCost).costAmount, { prefix: '¥' })
           }
         ]
       : []),
@@ -196,7 +199,9 @@
             width: 175,
             align: 'right' as const,
             formatter: (row: DataSelectRecord) =>
-              formatMoney((row as EligibleCost).allocatedFreightAmount)
+              formatSensitiveNumberWithAffix((row as EligibleCost).allocatedFreightAmount, {
+                prefix: '¥'
+              })
           }
         ]
       : [])

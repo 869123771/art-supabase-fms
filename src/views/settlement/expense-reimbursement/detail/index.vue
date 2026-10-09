@@ -211,7 +211,12 @@
   import { getWaybillCostDetailPath } from '@/router/business-paths'
   import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCurrencyValue } from '@/utils/ui'
-  import { canViewField, getFieldAccess, isMaskedValue } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    isMaskedValue
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceExpenseReimbursementDetail' })
 
@@ -259,12 +264,12 @@
   const canViewEvidence = computed(() =>
     canViewField(detail.data?.fieldAccess, 'reimbursementEvidence')
   )
-  const canReadEvidence = computed(() => ['read', 'edit'].includes(evidenceAccess.value))
+  const canReadEvidence = computed(() => isReadableFieldAccess(evidenceAccess.value))
   const canViewPaymentExecution = computed(() =>
     canViewField(detail.data?.fieldAccess, 'paymentExecution')
   )
   const canReadPaymentExecution = computed(() =>
-    ['read', 'edit'].includes(paymentExecutionAccess.value)
+    isReadableFieldAccess(paymentExecutionAccess.value)
   )
   const basisFiles = computed<FilePreviewTarget[]>(() =>
     canReadEvidence.value ? createFiles(detail.data?.basisUrls, '报销依据') : []
@@ -333,7 +338,7 @@
           key: 'payeeAccount',
           label: '收款账号',
           field: 'payeeAccount',
-          copyable: payeeAccess.value === 'read' || payeeAccess.value === 'edit'
+          copyable: isReadableFieldAccess(payeeAccess.value)
         }
       )
     }
@@ -372,7 +377,7 @@
       { key: 'reviewRemark', label: '审批结果说明', field: 'reviewRemark', span: 2 }
     ]
     if (paymentExecutionAccess.value !== 'hidden') {
-      const copyable = ['read', 'edit'].includes(paymentExecutionAccess.value)
+      const copyable = isReadableFieldAccess(paymentExecutionAccess.value)
       items.push(
         { key: 'paymentNo', label: '付款单号', field: 'paymentNo', copyable },
         {

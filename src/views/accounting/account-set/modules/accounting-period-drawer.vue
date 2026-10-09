@@ -43,7 +43,8 @@
                 v-model="selectedYear"
                 aria-label="会计年度"
                 class="accounting-period-drawer__year-select"
-                :disabled="extending"
+                :placeholder="fiscalYears.length ? '选择会计年度' : '暂无会计年度'"
+                :disabled="extending || !fiscalYears.length"
               >
                 <ElOption
                   v-for="year in fiscalYears"
@@ -123,7 +124,7 @@
     setAccountingPeriodStatus
   } from '@fms/api'
   import { formatWithDayjs } from '@/utils/time'
-  import { getFieldAccess } from '@/utils/field-permission'
+  import { isReadableFieldAccess, getFieldAccess } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
 
   defineOptions({ name: 'FinanceAccountingPeriodDrawer' })
@@ -213,7 +214,7 @@
     const accountSet = state.accountSet
     if (!accountSet) return ''
     const policyAccess = getFieldAccess(accountSet.fieldAccess, 'accountingPolicy')
-    if (!['read', 'edit'].includes(policyAccess)) {
+    if (!isReadableFieldAccess(policyAccess)) {
       return '账套启用月份、会计年度起始月和本位币受字段权限保护；期间状态与操作仍按期间按钮权限执行。'
     }
     const enabledMonth = formatWithDayjs(accountSet.enabledOn, 'YYYY-MM')

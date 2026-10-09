@@ -1,5 +1,11 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl" :show-fullscreen-button="true">
+  <ArtDialog
+    :loading="state.analyzing"
+    loading-text="正在分析银行流水…"
+    ref="dialogRef"
+    size="xl"
+    :show-fullscreen-button="true"
+  >
     <div class="bank-batch">
       <section class="bank-batch__hero">
         <header>
@@ -52,13 +58,7 @@
         普通用户可导入并查看 AI 匹配建议；批量写入财务流水仅允许平台超级管理员执行。
       </ElAlert>
 
-      <ArtAsyncState
-        :loading="state.analyzing"
-        loading-mode="skeleton"
-        :error="state.error"
-        :retryable="false"
-        :min-height="320"
-      >
+      <ArtAsyncState :error="state.error" :retryable="false" :min-height="320">
         <template #error-action>
           <ArtExcelImport
             accept=".xlsx,.xls,.csv"
@@ -226,6 +226,7 @@
   import { analyzeBankStatementBatchByAi, commitBankStatementBatchByAi } from '@fms/api'
   import { useUserStore } from '@/store/modules/user'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCashBankBatchImportDialog' })
   type Row = Api.Fms.BankBatchMatchRow
@@ -341,7 +342,7 @@
       label: '金额',
       width: 110,
       align: 'right',
-      formatter: (row) => money(row.amount)
+      formatter: (row) => formatSensitiveNumberWithAffix(row.amount || 0, { prefix: '¥' })
     },
     {
       prop: 'counterpartyName',
@@ -366,9 +367,6 @@
     }
   ]
 
-  function money(value: number) {
-    return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
   function percent(value: number) {
     return `${Math.round(Number(value || 0) * 100)}%`
   }

@@ -263,9 +263,15 @@
 
         <ArtAiFeedback :run-id="state.data.runId" context-label="AI 运单利润诊断" />
 
-        <footer class="profit-analyst__meta">
+        <footer
+          class="mt-5 flex flex-wrap items-center gap-3.5 border-t border-dashed border-(--el-border-color-lighter) px-0.5 pt-3.5 pb-0.5 text-xs text-g-700 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.25"
+        >
           <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span>
+          <span
+            ><ArtSvgIcon icon="ri:time-line" />{{
+              formatDateTimeValue(state.data.generatedAt)
+            }}</span
+          >
           <span><ArtSvgIcon icon="ri:shield-check-line" />只读诊断，不会自动修改财务数据</span>
         </footer>
       </template>
@@ -282,6 +288,7 @@
 
 <script setup lang="ts">
   import {
+    formatDateTimeValue,
     formatCnyCurrencyValue as formatMoney,
     formatPercentValue as formatPercent
   } from '@/utils/ui/format'
@@ -296,7 +303,6 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import { analyzeWaybillProfitByAi } from '@fms/api'
   import { getWaybillStatusPresentation } from '../../../modules/waybill-status'
-  import { formatWithDayjs } from '@/utils/time'
 
   defineOptions({ name: 'FinanceWaybillProfitAnalysisDrawer' })
 
@@ -420,10 +426,6 @@
         : 'ri:information-line'
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '--'
-  }
-
   defineExpose({ handleOpen })
 </script>
 
@@ -469,8 +471,7 @@
     &__waybill header > div,
     &__waybill-party,
     &__evidence,
-    &__reasons,
-    &__meta {
+    &__reasons {
       display: flex;
       align-items: center;
     }
@@ -917,22 +918,6 @@
           margin-top: 3px;
           color: var(--el-color-primary);
         }
-      }
-    }
-
-    &__meta {
-      flex-wrap: wrap;
-      gap: 14px;
-      padding: 14px 2px 2px;
-      margin-top: 20px;
-      font-size: 11px;
-      color: var(--art-gray-700);
-      border-top: 1px dashed var(--el-border-color-lighter);
-
-      span {
-        display: inline-flex;
-        gap: 5px;
-        align-items: center;
       }
     }
 

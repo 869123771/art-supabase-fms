@@ -46,7 +46,7 @@
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import { executeExpenseReimbursement, fetchFundAccountOptions } from '@fms/api'
   import { formatCurrencyValue } from '@/utils/ui'
-  import { getFieldAccess, isMaskedValue } from '@/utils/field-permission'
+  import { isReadableFieldAccess, getFieldAccess, isMaskedValue } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
 
   defineOptions({ name: 'FinanceWaybillExpensePaymentDialog' })
@@ -252,7 +252,7 @@
 
   async function handleOpen(row: Reimbursement): Promise<void> {
     const canReadPaymentContext = ['reimbursementAmounts', 'payeeDetails'].every((field) =>
-      ['read', 'edit'].includes(
+      isReadableFieldAccess(
         getFieldAccess(row.fieldAccess, field as Api.Fms.ExpenseReimbursementFieldKey)
       )
     )

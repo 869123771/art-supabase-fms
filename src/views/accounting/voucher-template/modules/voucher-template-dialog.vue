@@ -61,7 +61,12 @@
   import { fetchVoucherTemplateDetail, saveVoucherTemplate } from '@fms/api'
   import VoucherEntryLines from '@fms/views/modules/voucher-entry-lines.vue'
   import { useUserStore } from '@/store/modules/user'
-  import { canEditField, getFieldAccess, type FieldAccessLevel } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    getFieldAccess,
+    type FieldAccessLevel
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceVoucherTemplateDialog' })
 
@@ -273,8 +278,8 @@
   const entryAccess = computed(() =>
     getFieldAccess(fieldAccess.value, 'templateEntries', sensitiveFieldFallback.value)
   )
-  const canShowNarrative = computed(() => ['read', 'edit'].includes(narrativeAccess.value))
-  const canShowEntries = computed(() => ['read', 'edit'].includes(entryAccess.value))
+  const canShowNarrative = computed(() => isReadableFieldAccess(narrativeAccess.value))
+  const canShowEntries = computed(() => isReadableFieldAccess(entryAccess.value))
   const canEditNarrative = computed(() =>
     canEditField(fieldAccess.value, 'templateNarrative', sensitiveFieldFallback.value)
   )
@@ -386,10 +391,10 @@
         templateName: data.templateName,
         isEnabled: data.isEnabled,
         sort: data.sort,
-        ...(['read', 'edit'].includes(getFieldAccess(data.fieldAccess, 'templateNarrative'))
+        ...(isReadableFieldAccess(getFieldAccess(data.fieldAccess, 'templateNarrative'))
           ? { summary: data.summary ?? '', remark: data.remark ?? '' }
           : {}),
-        ...(['read', 'edit'].includes(getFieldAccess(data.fieldAccess, 'templateEntries')) &&
+        ...(isReadableFieldAccess(getFieldAccess(data.fieldAccess, 'templateEntries')) &&
         data.voucherType !== '***'
           ? {
               voucherType:

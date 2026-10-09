@@ -52,7 +52,11 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import { executeCarrierPaymentApplication, fetchFundAccountOptions } from '@fms/api'
-  import { getFieldAccess, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    getFieldAccess,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
 
@@ -178,12 +182,8 @@
 
   const noticeTitle = computed(() => {
     if (!application.value) return '确认实际付款信息'
-    return `${application.value.carrierName} · ${formatMoney(application.value.amount)} · ${application.value.statementCount} 份对账单`
+    return `${application.value.carrierName} · ${formatSensitiveNumberWithAffix(application.value.amount, { prefix: '¥' })} · ${application.value.statementCount} 份对账单`
   })
-
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
 
   async function handleSubmit(): Promise<boolean> {
     if (!application.value) return false
@@ -218,7 +218,7 @@
   }
 
   async function handleOpen(row: Application): Promise<void> {
-    if (!['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
+    if (!isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
       ElMessage.warning('当前字段权限不允许读取付款申请金额，无法登记付款')
       return
     }

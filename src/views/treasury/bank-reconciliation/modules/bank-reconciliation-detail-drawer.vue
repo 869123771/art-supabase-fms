@@ -130,12 +130,14 @@
               >
                 <div
                   ><dt class="text-g-600">银行金额</dt
-                  ><dd class="m-0 font-medium text-g-900">{{ formatMoney(line.amount) }}</dd></div
+                  ><dd class="m-0 font-medium text-g-900">{{
+                    formatSensitiveCurrencyValue(line.amount, detail?.currencyCode)
+                  }}</dd></div
                 >
                 <div
                   ><dt class="text-g-600">已匹配金额</dt
                   ><dd class="m-0 font-medium text-g-900">{{
-                    formatMoney(line.matchedAmount)
+                    formatSensitiveCurrencyValue(line.matchedAmount, detail?.currencyCode)
                   }}</dd></div
                 >
               </dl>
@@ -211,7 +213,7 @@
                   display="tag"
                 />
                 <strong v-if="canViewDetailField('statementAmounts')" class="text-sm text-g-900">{{
-                  formatMoney(match.matchedAmount)
+                  formatSensitiveCurrencyValue(match.matchedAmount, detail?.currencyCode)
                 }}</strong>
               </div>
               <p class="m-0 break-words text-xs text-g-600"
@@ -253,7 +255,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, getFieldAccess } from '@/utils/field-permission'
+  import { isReadableFieldAccess, canViewField, getFieldAccess } from '@/utils/field-permission'
   import BankLineMatchDialog from './bank-line-match-dialog.vue'
 
   defineOptions({ name: 'FinanceBankReconciliationDetailDrawer' })
@@ -287,7 +289,7 @@
   const canViewDetailField = (field: Api.Fms.BankReconciliationFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)
   const canUsePlainAmounts = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(detail.value?.fieldAccess, 'statementAmounts'))
+    isReadableFieldAccess(getFieldAccess(detail.value?.fieldAccess, 'statementAmounts'))
   )
   const canAdjustMatches = computed(() =>
     Boolean(detail.value && ['draft', 'reconciling'].includes(detail.value.status))
@@ -299,7 +301,7 @@
     }
     return {
       type: Number(value) === 0 ? 'success' : 'danger',
-      text: `余额差 ${formatMoney(value)}`
+      text: `余额差 ${formatSensitiveCurrencyValue(value, detail.value?.currencyCode)}`
     }
   })
 
@@ -382,8 +384,13 @@
             align: 'right',
             formatter: (row: Line) => (
               <div class="grid gap-1">
-                <strong class="font-medium">{formatMoney(row.amount)}</strong>
-                <span class="text-xs text-g-600">已匹配 {formatMoney(row.matchedAmount)}</span>
+                <strong class="font-medium">
+                  {formatSensitiveCurrencyValue(row.amount, detail.value?.currencyCode)}
+                </strong>
+                <span class="text-xs text-g-600">
+                  已匹配{' '}
+                  {formatSensitiveCurrencyValue(row.matchedAmount, detail.value?.currencyCode)}
+                </span>
               </div>
             )
           }
@@ -451,7 +458,8 @@
             label: '匹配金额',
             width: 125,
             align: 'right',
-            formatter: (row: Match) => formatMoney(row.matchedAmount)
+            formatter: (row: Match) =>
+              formatSensitiveCurrencyValue(row.matchedAmount, detail.value?.currencyCode)
           } satisfies ColumnOption<Match>
         ]
       : []),
@@ -475,10 +483,6 @@
         ]
       : [])
   ])
-
-  function formatMoney(value: unknown): string {
-    return formatSensitiveCurrencyValue(value, detail.value?.currencyCode)
-  }
 
   async function loadDetail(): Promise<void> {
     const batchId = activeBatchId.value

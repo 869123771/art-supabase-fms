@@ -84,7 +84,7 @@
               <span>未来 {{ item.days }} 天</span>
               <ArtSvgIcon icon="ri:calendar-schedule-line" />
             </div>
-            <strong>{{ formatMoney(item.projectedBalance) }}</strong>
+            <strong>{{ formatSensitiveCurrencyValue(item.projectedBalance) }}</strong>
             <p class="mt-1 mb-0 text-xs text-g-600">预计可用余额</p>
             <dl>
               <div>
@@ -126,12 +126,12 @@
         <div v-if="forecast" class="cash-forecast-page__explain-grid">
           <div>
             <span><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
-            <strong>{{ formatMoney(forecast.receivableOutstanding) }}</strong>
+            <strong>{{ formatSensitiveCurrencyValue(forecast.receivableOutstanding) }}</strong>
             <p>来自待复核、已确认和部分核销客户对账单的未结金额。</p>
           </div>
           <div>
             <span><ArtSvgIcon icon="ri:arrow-right-up-line" />支出侧</span>
-            <strong>{{ formatMoney(forecast.payableOutstanding) }}</strong>
+            <strong>{{ formatSensitiveCurrencyValue(forecast.payableOutstanding) }}</strong>
             <p>来自待复核、已确认和部分结算承运商对账单的未结金额。</p>
           </div>
           <div>
@@ -152,7 +152,7 @@
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue, formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { fetchCashForecastOverview } from '@fms/api'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
@@ -207,9 +207,9 @@
   const generatedAt = computed(() =>
     forecast.value ? formatWithDayjs(forecast.value.generatedAt) : '--'
   )
-  const formatMoney = (value?: number) => (value === undefined ? '--' : formatCurrencyValue(value))
+
   const formatFlowMoney = (value: number | undefined, prefix: '+' | '-') =>
-    value === undefined ? '--' : `${prefix}${formatMoney(value)}`
+    value === undefined ? '--' : `${prefix}${formatSensitiveCurrencyValue(value)}`
   const formatSignedMoney = (value?: number) => {
     if (value === undefined) return '--'
     const prefix = value > 0 ? '+' : ''
@@ -219,7 +219,7 @@
     {
       key: 'available',
       label: '可用资金',
-      value: formatMoney(forecast.value?.availableBalance),
+      value: formatSensitiveCurrencyValue(forecast.value?.availableBalance),
       description: '本位币可用余额',
       icon: 'ri:bank-card-line',
       tone: 'primary',
@@ -228,7 +228,7 @@
     {
       key: 'receivable',
       label: '预计流入',
-      value: formatMoney(forecast.value?.receivableOutstanding),
+      value: formatSensitiveCurrencyValue(forecast.value?.receivableOutstanding),
       description: '未结客户应收',
       icon: 'ri:arrow-left-down-line',
       tone: 'success',
@@ -237,7 +237,7 @@
     {
       key: 'payable',
       label: '预计流出',
-      value: formatMoney(forecast.value?.payableOutstanding),
+      value: formatSensitiveCurrencyValue(forecast.value?.payableOutstanding),
       description: '未结承运商应付',
       icon: 'ri:arrow-right-up-line',
       tone: 'warning',
@@ -246,7 +246,7 @@
     {
       key: 'projected',
       label: '30 天预测余额',
-      value: formatMoney(forecast.value?.projectedBalance30d),
+      value: formatSensitiveCurrencyValue(forecast.value?.projectedBalance30d),
       description: pressureMeta[forecast.value?.pressureLevel ?? 'unavailable'].label,
       icon: 'ri:funds-line',
       tone:

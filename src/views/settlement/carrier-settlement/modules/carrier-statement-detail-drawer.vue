@@ -79,9 +79,7 @@
       fetchCarrierStatementDetail,
       '承运商对账详情加载失败，请重试或返回列表重新选择。'
     )
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
+
   const canView = (field: Api.Fms.CarrierStatementFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)
   const formatDateTime = (v?: string | null) =>
@@ -112,7 +110,10 @@
             key: 'statementAmount',
             label: '应付金额',
             field: 'statementAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           }
         ]
       : []),
@@ -122,13 +123,19 @@
             key: 'settledAmount',
             label: '已付金额',
             field: 'settledAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           },
           {
             key: 'outstandingAmount',
             label: '未付金额',
             field: 'outstandingAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           }
         ]
       : []),
@@ -180,9 +187,10 @@
             align: 'right' as const,
             formatter: (row: Item) => (
               <span class="statement-detail__amount">
-                <strong>{formatMoney(row.lineAmount)}</strong>
+                <strong>{formatSensitiveNumberWithAffix(row.lineAmount, { prefix: '¥' })}</strong>
                 <small>
-                  费用 {formatMoney(row.costAmount)} · 调整 {formatMoney(row.adjustmentAmount)}
+                  费用 {formatSensitiveNumberWithAffix(row.costAmount, { prefix: '¥' })} · 调整{' '}
+                  {formatSensitiveNumberWithAffix(row.adjustmentAmount, { prefix: '¥' })}
                 </small>
               </span>
             )

@@ -163,6 +163,7 @@
   import { formatWithDayjs } from '@/utils/time'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
+    isReadableFieldAccess,
     canViewField,
     getFieldAccess,
     isMaskedValue,
@@ -506,9 +507,7 @@
         }
       ]
       if (
-        ['read', 'edit'].includes(
-          getFieldAccess(reimbursementBaseFieldAccess.value, 'payeeDetails')
-        )
+        isReadableFieldAccess(getFieldAccess(reimbursementBaseFieldAccess.value, 'payeeDetails'))
       ) {
         items.push({
           label: '付款方式',
@@ -536,7 +535,7 @@
           type: 'input',
           props: {
             clearable: true,
-            placeholder: ['read', 'edit'].includes(
+            placeholder: isReadableFieldAccess(
               getFieldAccess(reimbursementBaseFieldAccess.value, 'payeeDetails')
             )
               ? '报销单、申请人、收款人或运单'
@@ -860,7 +859,7 @@
   function canConvert(row: Expense): boolean {
     return (
       Boolean(row.id) &&
-      ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'costAmounts')) &&
+      isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'costAmounts')) &&
       row.auditStatus === 'approved' &&
       row.settlementStatus === 'unsettled' &&
       row.expenseItem?.reimbursementAllowed !== false
@@ -967,9 +966,7 @@
       }
     ]
     const canReadAiEvidence = ['costAmounts', 'paymentDetails', 'expenseEvidence'].every((field) =>
-      ['read', 'edit'].includes(
-        getFieldAccess(row.fieldAccess, field as Api.Fms.WaybillCostFieldKey)
-      )
+      isReadableFieldAccess(getFieldAccess(row.fieldAccess, field as Api.Fms.WaybillCostFieldKey))
     )
     if (canReadAiEvidence) {
       actions.splice(1, 0, {
@@ -981,7 +978,7 @@
     }
     if (
       canEditExpense(row) &&
-      ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'costAmounts'))
+      isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'costAmounts'))
     ) {
       actions.push({
         auth: 'FinanceWaybillCost:Submit',
@@ -1045,7 +1042,7 @@
 
   function canSubmitReimbursement(row: Reimbursement): boolean {
     return ['reimbursementAmounts', 'payeeDetails'].every((field) =>
-      ['read', 'edit'].includes(
+      isReadableFieldAccess(
         getFieldAccess(row.fieldAccess, field as Api.Fms.ExpenseReimbursementFieldKey)
       )
     )

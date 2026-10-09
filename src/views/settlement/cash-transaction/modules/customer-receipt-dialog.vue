@@ -137,10 +137,10 @@
 <script setup lang="tsx">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import { ElInputNumber, type FormRules } from 'element-plus'
-  import { round, toNumber } from 'lodash-es'
+  import { round } from 'lodash-es'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -171,7 +171,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import CashVoucherOcrPanel from './cash-voucher-ocr-panel.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import { canEditField } from '@/utils/field-permission'
+  import { canEditField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCustomerReceiptDialog' })
 
@@ -286,7 +286,9 @@
         { required: true, message: '请输入收款金额', trigger: 'blur' },
         {
           validator: (_rule, value, callback) =>
-            numericValue(value) > 0 ? callback() : callback(new Error('收款金额必须大于 0')),
+            (normalizeNullableNumber(value) ?? 0) > 0
+              ? callback()
+              : callback(new Error('收款金额必须大于 0')),
           trigger: 'blur'
         }
       ],
@@ -390,8 +392,8 @@
   const allocationLimit = computed(() =>
     round(
       dialog.mode === 'allocate'
-        ? numericValue(dialog.transaction?.unallocatedAmount)
-        : numericValue(form.data.amount),
+        ? (normalizeNullableNumber(dialog.transaction?.unallocatedAmount) ?? 0)
+        : (normalizeNullableNumber(form.data.amount) ?? 0),
       2
     )
   )
@@ -403,13 +405,16 @@
   const allocationRows = computed<AllocationRow[]>(() =>
     selectedStatements.value.map((item) => ({
       ...item,
-      allocationAmount: numericValue(selection.allocationAmounts[item.id])
+      allocationAmount: normalizeNullableNumber(selection.allocationAmounts[item.id]) ?? 0
     }))
   )
 
   const allocationSummary = computed(() => {
     const allocated = round(
-      allocationRows.value.reduce((total, row) => total + numericValue(row.allocationAmount), 0),
+      allocationRows.value.reduce(
+        (total, row) => total + (normalizeNullableNumber(row.allocationAmount) ?? 0),
+        0
+      ),
       2
     )
     return {
@@ -426,7 +431,7 @@
       : dialog.mode === 'allocate'
         ? '请选择对账单并填写核销金额'
         : '本次可以暂不选择对账单'
-    return `${prefix}，可核销 ${formatMoney(limit)}，本次核销 ${formatMoney(allocated)}，剩余 ${formatMoney(remaining)}`
+    return `${prefix}，可核销 ${formatSensitiveNumberWithAffix(limit, { prefix: '¥' })}，本次核销 ${formatSensitiveNumberWithAffix(allocated, { prefix: '¥' })}，剩余 ${formatSensitiveNumberWithAffix(remaining, { prefix: '¥' })}`
   })
 
   const customerColumns: DataSelectColumn[] = [
@@ -460,7 +465,11 @@
       label: '对账金额',
       width: 125,
       align: 'right',
-      formatter: (row) => formatMoney((row as AllocatableStatement).statementAmount)
+      formatter: (row) =>
+        formatSensitiveNumberWithAffix(
+          normalizeNullableNumber((row as AllocatableStatement).statementAmount) ?? 0,
+          { prefix: '¥' }
+        )
     },
     {
       prop: 'outstandingAmount',
@@ -472,10 +481,22 @@
         return (
           <div class="py-1">
             <small class="block text-xs text-[var(--el-text-color-secondary)]">
-              已结 {formatMoney(statement.settledAmount)}
+              已结{' '}
+              {formatSensitiveNumberWithAffix(
+                normalizeNullableNumber(statement.settledAmount) ?? 0,
+                {
+                  prefix: '¥'
+                }
+              )}
             </small>
             <strong class="block text-sm font-semibold">
-              未结 {formatMoney(statement.outstandingAmount)}
+              未结{' '}
+              {formatSensitiveNumberWithAffix(
+                normalizeNullableNumber(statement.outstandingAmount) ?? 0,
+                {
+                  prefix: '¥'
+                }
+              )}
             </strong>
           </div>
         )
@@ -496,7 +517,10 @@
       label: '未结金额',
       width: 130,
       align: 'right',
-      formatter: (row) => formatMoney(row.outstandingAmount)
+      formatter: (row) =>
+        formatSensitiveNumberWithAffix(normalizeNullableNumber(row.outstandingAmount) ?? 0, {
+          prefix: '¥'
+        })
     },
     {
       prop: 'allocationAmount',
@@ -506,7 +530,7 @@
         <ElInputNumber
           v-model={selection.allocationAmounts[row.id]}
           min={0}
-          max={Math.min(numericValue(row.outstandingAmount), allocationLimit.value)}
+          max={Math.min(normalizeNullableNumber(row.outstandingAmount) ?? 0, allocationLimit.value)}
           precision={2}
           controlsPosition="right"
           class="w-full!"
@@ -514,18 +538,6 @@
       )
     }
   ]
-
-  function numericValue(value?: number | string | null): number {
-    const result = toNumber(value)
-    return Number.isFinite(result) ? result : 0
-  }
-
-  function formatMoney(value?: number | string | null): string {
-    return `¥${numericValue(value).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
 
   async function fetchCustomerSelectorData(params: DataSelectFetchParams) {
     const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
@@ -592,11 +604,14 @@
     customerId: string
   ): void {
     clearStatementSelection()
-    let remaining = numericValue(form.data.amount)
+    let remaining = normalizeNullableNumber(form.data.amount) ?? 0
     const selected: DataSelectRecord[] = []
     for (const match of matches) {
       if (remaining <= 0 || match.counterpartyId !== customerId || match.score < 60) continue
-      const allocation = round(Math.min(remaining, numericValue(match.outstandingAmount)), 2)
+      const allocation = round(
+        Math.min(remaining, normalizeNullableNumber(match.outstandingAmount) ?? 0),
+        2
+      )
       if (allocation <= 0) continue
       remaining = round(remaining - allocation, 2)
       selection.allocationAmounts[match.statementId] = allocation
@@ -634,7 +649,10 @@
   function autoAllocate(): void {
     let remaining = allocationLimit.value
     selectedStatements.value.forEach((statement) => {
-      const amount = round(Math.min(remaining, numericValue(statement.outstandingAmount)), 2)
+      const amount = round(
+        Math.min(remaining, normalizeNullableNumber(statement.outstandingAmount) ?? 0),
+        2
+      )
       selection.allocationAmounts[statement.id] = Math.max(amount, 0)
       remaining = round(remaining - amount, 2)
     })
@@ -644,7 +662,7 @@
     return allocationRows.value
       .map((row) => ({
         statementId: row.id,
-        amount: round(numericValue(selection.allocationAmounts[row.id]), 2)
+        amount: round(normalizeNullableNumber(selection.allocationAmounts[row.id]) ?? 0, 2)
       }))
       .filter((item) => item.amount > 0)
   }
@@ -655,7 +673,9 @@
       return false
     }
     const invalidRow = allocationRows.value.find(
-      (row) => numericValue(row.allocationAmount) > numericValue(row.outstandingAmount)
+      (row) =>
+        (normalizeNullableNumber(row.allocationAmount) ?? 0) >
+        (normalizeNullableNumber(row.outstandingAmount) ?? 0)
     )
     if (invalidRow) {
       ElMessage.warning(`对账单 ${invalidRow.statementNo} 的核销金额超过未结金额`)
@@ -689,7 +709,7 @@
           customerId: form.data.customerId,
           fundAccountId: form.data.fundAccountId,
           transactionDate: form.data.transactionDate,
-          amount: numericValue(form.data.amount),
+          amount: normalizeNullableNumber(form.data.amount) ?? 0,
           paymentMethod: form.data.paymentMethod,
           bankReference: normalizeNullableText(form.data.bankReference),
           voucherUrls: [...form.data.voucherUrls],
@@ -733,7 +753,7 @@
         transactionNo: transaction.transactionNo,
         customerId: transaction.customerId ?? '',
         transactionDate: transaction.transactionDate,
-        amount: numericValue(transaction.amount),
+        amount: normalizeNullableNumber(transaction.amount) ?? 0,
         paymentMethod: transaction.paymentMethod,
         bankReference: transaction.bankReference ?? '',
         voucherUrls: [...(transaction.voucherUrls ?? [])]
@@ -751,7 +771,7 @@
       size: 'lg',
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记客户收款',
       subtitle: transaction
-        ? `本笔收款尚有 ${formatMoney(transaction.unallocatedAmount)} 未核销`
+        ? `本笔收款尚有 ${formatSensitiveNumberWithAffix(normalizeNullableNumber(transaction.unallocatedAmount) ?? 0, { prefix: '¥' })} 未核销`
         : '登记客户实际到账流水，可同时核销一份或多份已确认对账单',
       confirmText: transaction ? '确认核销' : '登记收款',
       contentMaxHeight: '76vh',
@@ -793,7 +813,7 @@
           payerName: selection.customers[0]?.customerName ?? null,
           payeeName: ocrResult.value.voucher.payeeName,
           transactionDate: form.data.transactionDate,
-          amount: numericValue(form.data.amount),
+          amount: normalizeNullableNumber(form.data.amount) ?? 0,
           bankReference: normalizeNullableText(form.data.bankReference),
           paymentMethod: form.data.paymentMethod,
           statementIds: [...form.data.statementIds]

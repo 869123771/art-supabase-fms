@@ -61,15 +61,33 @@
             <dl class="statement-config-drawer__mobile-details">
               <div>
                 <dt>计算方式</dt>
-                <dd>{{ dictLabel('fmsStatementCalculationMethod', item.calculationMethod) }}</dd>
+                <dd>{{
+                  statementOptionLabel(
+                    'fmsStatementCalculationMethod',
+                    item.calculationMethod,
+                    getDictMap.fmsStatementCalculationMethod
+                  )
+                }}</dd>
               </div>
               <div>
                 <dt>行样式</dt>
-                <dd>{{ dictLabel('fmsStatementDisplayStyle', item.displayStyle) }}</dd>
+                <dd>{{
+                  statementOptionLabel(
+                    'fmsStatementDisplayStyle',
+                    item.displayStyle,
+                    getDictMap.fmsStatementDisplayStyle
+                  )
+                }}</dd>
               </div>
               <div v-if="statementType === 'cash_flow_statement'">
                 <dt>流量方向</dt>
-                <dd>{{ dictLabel('fmsCashFlowDirection', item.cashFlowDirection) || '--' }}</dd>
+                <dd>{{
+                  statementOptionLabel(
+                    'fmsCashFlowDirection',
+                    item.cashFlowDirection,
+                    getDictMap.fmsCashFlowDirection
+                  ) || '--'
+                }}</dd>
               </div>
               <div v-if="canViewRules">
                 <dt>规则数</dt>
@@ -106,79 +124,14 @@
           v-else-if="!isNarrow"
           :border="false"
           :data="items"
+          :columns="columns"
           :pagination="false"
           height="auto"
           :show-table-header="false"
           row-key="id"
           table-layout="fixed"
           max-height="calc(100vh - 320px)"
-        >
-          <ElTableColumn label="项目" min-width="170">
-            <template #default="{ row }">
-              <div
-                class="statement-config-drawer__item"
-                :style="{ paddingLeft: `${Math.max(row.itemLevel - 1, 0) * 14}px` }"
-              >
-                <strong>{{ row.itemName }}</strong>
-                <small translate="no">{{ row.itemCode }} · 行次 {{ row.lineNo }}</small>
-              </div>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="计算方式" width="92">
-            <template #default="{ row }">
-              <ElTag :type="calculationTag(row.calculationMethod)" effect="plain">
-                {{ dictLabel('fmsStatementCalculationMethod', row.calculationMethod) }}
-              </ElTag>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="行样式" width="76">
-            <template #default="{ row }">
-              {{ dictLabel('fmsStatementDisplayStyle', row.displayStyle) }}
-            </template>
-          </ElTableColumn>
-          <ElTableColumn v-if="statementType === 'cash_flow_statement'" label="流量方向" width="90">
-            <template #default="{ row }">
-              {{ dictLabel('fmsCashFlowDirection', row.cashFlowDirection) || '--' }}
-            </template>
-          </ElTableColumn>
-          <ElTableColumn v-if="canViewRules" label="规则数" width="76" align="right">
-            <template #default="{ row }">
-              {{ row.calculationMethod === 'label' ? '--' : (row.ruleCount ?? '--') }}
-            </template>
-          </ElTableColumn>
-          <ElTableColumn label="状态" width="66" align="center">
-            <template #default="{ row }">
-              <ElTag :type="row.isEnabled ? 'success' : 'info'" effect="plain">
-                {{ row.isEnabled ? '启用' : '停用' }}
-              </ElTag>
-            </template>
-          </ElTableColumn>
-          <ElTableColumn v-if="canViewRules" label="操作" width="108" align="center">
-            <template #default="{ row }">
-              <BusinessTableRowActions>
-                <ArtButtonTable
-                  v-if="canEditRowRules(row)"
-                  type="edit"
-                  label="编辑报表项目"
-                  permission="FinanceFinancialReports:EditConfig"
-                  @click="openItemDialog(row)"
-                />
-                <ArtButtonTable
-                  v-if="canConfigureRule(row) && canReadRowRules(row)"
-                  :type="canEditRowRules(row) ? 'edit' : 'view'"
-                  :icon="canEditRowRules(row) ? 'ri:function-line' : undefined"
-                  :label="ruleActionLabel(row)"
-                  :permission="
-                    canEditRowRules(row)
-                      ? 'FinanceFinancialReports:EditConfig'
-                      : 'FinanceFinancialReports:ViewConfig'
-                  "
-                  @click="openRuleDialog(row)"
-                />
-              </BusinessTableRowActions>
-            </template>
-          </ElTableColumn>
-        </ArtTable>
+        />
       </ArtSectionCard>
     </div>
 
@@ -187,7 +140,9 @@
   </ArtDrawer>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
+  import { ElTag } from 'element-plus'
+  import type { ColumnOption } from '@/types'
   import { useMediaQuery } from '@vueuse/core'
   import { storeToRefs } from 'pinia'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
@@ -209,11 +164,13 @@
   import { useUserStore } from '@/store/modules/user'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { canEditField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
   import {
-    statementOptionLabel,
-    type FinancialStatementOptionCode
-  } from '../../../modules/financial-statement-options'
+    isReadableFieldAccess,
+    canEditField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
+  import { statementOptionLabel } from '../../../modules/financial-statement-options'
 
   defineOptions({ name: 'FinanceStatementConfigDrawer' })
 
@@ -238,7 +195,11 @@
   const isNarrow = useMediaQuery('(max-width: 640px)')
 
   const statementTypeLabel = computed(() =>
-    dictLabel('fmsFinancialStatementType', statementType.value)
+    statementOptionLabel(
+      'fmsFinancialStatementType',
+      statementType.value,
+      getDictMap.value.fmsFinancialStatementType
+    )
   )
   const mappingItemCount = computed(
     () => items.value.filter((item) => item.calculationMethod === 'mapping').length
@@ -276,9 +237,119 @@
     () => canEditConfigButton.value && canEditField(listFieldAccess.value, 'reportRules')
   )
 
-  function dictLabel(code: FinancialStatementOptionCode, value: unknown): string {
-    return statementOptionLabel(code, value, getDictMap.value[code])
-  }
+  const columns = computed<ColumnOption<Item>[]>(() => {
+    const definitions: ColumnOption<Item>[] = [
+      {
+        prop: 'itemName',
+        label: '项目',
+        minWidth: 170,
+        formatter: (row) => (
+          <div
+            class="flex min-w-0 flex-col gap-[3px]"
+            style={{ paddingLeft: `${Math.max(row.itemLevel - 1, 0) * 14}px` }}
+          >
+            <strong class="truncate text-[var(--art-text-gray-900)]">{row.itemName}</strong>
+            <small class="truncate text-[11px] text-[var(--art-text-gray-600)]" translate="no">
+              {row.itemCode} · 行次 {row.lineNo}
+            </small>
+          </div>
+        )
+      },
+      {
+        prop: 'calculationMethod',
+        label: '计算方式',
+        width: 92,
+        showOverflowTooltip: true,
+        formatter: (row) => (
+          <ElTag type={calculationTag(row.calculationMethod)} effect="plain">
+            {statementOptionLabel(
+              'fmsStatementCalculationMethod',
+              row.calculationMethod,
+              getDictMap.value.fmsStatementCalculationMethod
+            )}
+          </ElTag>
+        )
+      },
+      {
+        prop: 'displayStyle',
+        label: '行样式',
+        width: 76,
+        showOverflowTooltip: true,
+        formatter: (row) =>
+          statementOptionLabel(
+            'fmsStatementDisplayStyle',
+            row.displayStyle,
+            getDictMap.value.fmsStatementDisplayStyle
+          )
+      },
+      {
+        prop: 'cashFlowDirection',
+        label: '流量方向',
+        width: 90,
+        showOverflowTooltip: true,
+        formatter: (row) =>
+          statementOptionLabel(
+            'fmsCashFlowDirection',
+            row.cashFlowDirection,
+            getDictMap.value.fmsCashFlowDirection
+          ) || '--'
+      },
+      {
+        prop: 'ruleCount',
+        label: '规则数',
+        width: 76,
+        align: 'right',
+        formatter: (row) => (row.calculationMethod === 'label' ? '--' : (row.ruleCount ?? '--'))
+      },
+      {
+        prop: 'isEnabled',
+        label: '状态',
+        width: 66,
+        align: 'center',
+        formatter: (row) => (
+          <ElTag type={row.isEnabled ? 'success' : 'info'} effect="plain">
+            {row.isEnabled ? '启用' : '停用'}
+          </ElTag>
+        )
+      },
+      {
+        prop: 'operation',
+        label: '操作',
+        width: 108,
+        align: 'center',
+        formatter: (row) => (
+          <>
+            {canEditRowRules(row) && (
+              <ArtButtonTable
+                type="edit"
+                label="编辑报表项目"
+                permission="FinanceFinancialReports:EditConfig"
+                onClick={() => openItemDialog(row)}
+              />
+            )}
+            {canConfigureRule(row) && canReadRowRules(row) && (
+              <ArtButtonTable
+                type={canEditRowRules(row) ? 'edit' : 'view'}
+                icon={canEditRowRules(row) ? 'ri:function-line' : undefined}
+                label={ruleActionLabel(row)}
+                permission={
+                  canEditRowRules(row)
+                    ? 'FinanceFinancialReports:EditConfig'
+                    : 'FinanceFinancialReports:ViewConfig'
+                }
+                onClick={() => openRuleDialog(row)}
+              />
+            )}
+          </>
+        )
+      }
+    ]
+    return definitions.filter((column) => {
+      if (column.prop === 'cashFlowDirection') return statementType.value === 'cash_flow_statement'
+      if (column.prop === 'ruleCount' || column.prop === 'operation') return canViewRules.value
+      return true
+    })
+  })
 
   function calculationTag(method: Api.Fms.FinancialStatementCalculationMethod) {
     if (method === 'formula') return 'success'
@@ -286,24 +357,20 @@
     return 'primary'
   }
 
-  function canConfigureRule(row: unknown): boolean {
-    const item = row as Item
+  function canConfigureRule(item: Item): boolean {
     if (item.calculationMethod === 'formula') return true
     return item.calculationMethod === 'mapping' && item.statementType !== 'cash_flow_statement'
   }
 
-  function canReadRowRules(row: unknown): boolean {
-    const item = row as Item
-    return ['read', 'edit'].includes(getFieldAccess(item.fieldAccess, 'reportRules'))
+  function canReadRowRules(item: Item): boolean {
+    return isReadableFieldAccess(getFieldAccess(item.fieldAccess, 'reportRules'))
   }
 
-  function canEditRowRules(row: unknown): boolean {
-    const item = row as Item
+  function canEditRowRules(item: Item): boolean {
     return canEditConfigButton.value && canEditField(item.fieldAccess, 'reportRules')
   }
 
-  function ruleActionLabel(row: unknown): string {
-    const item = row as Item
+  function ruleActionLabel(item: Item): string {
     const action = item.calculationMethod === 'formula' ? '公式' : '科目映射'
     return `${canEditRowRules(item) ? '配置' : '查看'}${action}`
   }
@@ -342,14 +409,12 @@
     await handleConfigurationSaved()
   }
 
-  function openItemDialog(row?: unknown): void {
-    const item = row as Item | undefined
+  function openItemDialog(item?: Item): void {
     if (!(item ? canEditRowRules(item) : canEditBaseRules.value)) return
     void itemDialogRef.value?.handleOpen(accountSetId.value, statementType.value, items.value, item)
   }
 
-  function openRuleDialog(row: unknown): void {
-    const item = row as Item
+  function openRuleDialog(item: Item): void {
     if (!canReadRowRules(item)) return
     void ruleDialogRef.value?.handleOpen(item, items.value, subjects.value, canEditRowRules(item))
   }

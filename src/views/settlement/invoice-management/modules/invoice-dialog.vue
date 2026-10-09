@@ -651,7 +651,7 @@
     const status = effectiveDuplicateInvoice.value?.status
     if (!status) return ''
     return (
-      getDictMap.value.tmsInvoiceStatus?.find((item) => item.value === status)?.label ??
+      userStore.getDictItemByValue('tmsInvoiceStatus', status)?.label ??
       {
         draft: '草稿',
         pending_review: '待审核',

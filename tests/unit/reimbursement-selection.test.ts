@@ -24,6 +24,21 @@ test('allows one eligible expense', () => {
   assert.equal(validateReimbursementSelection([approvedExpense()]).valid, true)
 })
 
+test('reimbursement selection requires readable amounts when field grants are supplied', () => {
+  for (const level of ['read', 'edit'] as const) {
+    assert.equal(
+      validateReimbursementSelection([approvedExpense({ fieldAccess: { costAmounts: level } })])
+        .valid,
+      true
+    )
+  }
+  for (const fieldAccess of [{ costAmounts: 'hidden' }, { costAmounts: 'masked' }, {}] as const) {
+    const result = validateReimbursementSelection([approvedExpense({ fieldAccess })])
+    assert.equal(result.valid, false)
+    assert.match(result.message, /字段权限不足/)
+  }
+})
+
 test('allows multiple eligible expenses from the same waybill', () => {
   const result = validateReimbursementSelection([
     approvedExpense(),

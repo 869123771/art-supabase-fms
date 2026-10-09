@@ -52,7 +52,7 @@
             </article>
             <article>
               <span>价税合计</span>
-              <strong>{{ formatMoney(assessment.metrics.totalAmount) }}</strong>
+              <strong>{{ formatCurrencyValue(assessment.metrics.totalAmount) }}</strong>
               <div class="invoice-auditor__amount-line"><i /></div>
               <small>当前待复核发票金额</small>
             </article>
@@ -80,7 +80,7 @@
               </span>
               <div>
                 <span>公式计算合计</span>
-                <strong>{{ formatMoney(assessment.metrics.calculatedTotalAmount) }}</strong>
+                <strong>{{ formatCurrencyValue(assessment.metrics.calculatedTotalAmount) }}</strong>
                 <small>不含税金额 + 税额</small>
               </div>
             </article>
@@ -91,7 +91,7 @@
               <div>
                 <span>对账覆盖率</span>
                 <strong>{{ coveragePercent }}%</strong>
-                <small>已关联 {{ formatMoney(assessment.metrics.linkedAmount) }}</small>
+                <small>已关联 {{ formatCurrencyValue(assessment.metrics.linkedAmount) }}</small>
               </div>
             </article>
             <article
@@ -102,7 +102,7 @@
               </span>
               <div>
                 <span>未关联金额</span>
-                <strong>{{ formatMoney(assessment.metrics.unlinkedAmount) }}</strong>
+                <strong>{{ formatCurrencyValue(assessment.metrics.unlinkedAmount) }}</strong>
                 <small>需确认业务归属</small>
               </div>
             </article>
@@ -362,10 +362,6 @@
 
   function signalIcon(severity: SignalSeverity): string {
     return severity === 'critical' ? 'ri:alarm-warning-line' : 'ri:error-warning-line'
-  }
-
-  function formatMoney(value: number): string {
-    return formatCurrencyValue(value)
   }
 
   const formatTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm:ss', emptyText: '-' })

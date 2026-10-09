@@ -159,7 +159,8 @@
             key: 'amountExcludingTax',
             label: '不含税金额',
             field: 'amountExcludingTax' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'taxRate',
@@ -171,25 +172,29 @@
             key: 'taxAmount',
             label: '税额',
             field: 'taxAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'totalAmount',
             label: '价税合计',
             field: 'totalAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'linkedAmount',
             label: '已关联金额',
             field: 'linkedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'unlinkedAmount',
             label: '未关联金额',
             field: 'unlinkedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           }
         ]
       : []),
@@ -227,15 +232,11 @@
         label: '关联金额',
         width: 135,
         align: 'right',
-        formatter: (row) => formatMoney(row.linkedAmount)
+        formatter: (row) => formatSensitiveNumberWithAffix(row.linkedAmount, { prefix: '¥' })
       })
     }
     return columns
   })
-
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
 
   function formatPercent(value: unknown): string {
     return formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { suffix: '%' })

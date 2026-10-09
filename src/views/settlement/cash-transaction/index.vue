@@ -274,10 +274,6 @@
     ])
   })
 
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const columnsFactory = (): ColumnOption<CashTransaction>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
     {
@@ -322,7 +318,8 @@
             label: '收付金额',
             width: 125,
             align: 'right' as const,
-            formatter: (row: CashTransaction) => formatMoney(row.amount)
+            formatter: (row: CashTransaction) =>
+              formatSensitiveNumberWithAffix(row.amount, { prefix: '¥' })
           },
           {
             prop: 'unallocatedAmount',
@@ -332,10 +329,10 @@
             formatter: (row: CashTransaction) => (
               <div class="py-1">
                 <small class="block text-xs text-[var(--el-text-color-secondary)]">
-                  已核销 {formatMoney(row.allocatedAmount)}
+                  已核销 {formatSensitiveNumberWithAffix(row.allocatedAmount, { prefix: '¥' })}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未核销 {formatMoney(row.unallocatedAmount)}
+                  未核销 {formatSensitiveNumberWithAffix(row.unallocatedAmount, { prefix: '¥' })}
                 </strong>
               </div>
             )

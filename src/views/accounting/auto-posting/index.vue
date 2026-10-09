@@ -117,6 +117,7 @@
   import { formatWithDayjs } from '@/utils/time'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import {
+    isReadableFieldAccess,
     canEditField,
     canViewField,
     formatSensitiveNumber,
@@ -235,10 +236,10 @@
     mergeFieldAccessMaps(eventFieldAccess.value, ...eventRows.value.map((row) => row.fieldAccess))
   )
   const canSearchEventSource = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(eventFieldAccess.value, 'eventSourceReferences'))
+    isReadableFieldAccess(getFieldAccess(eventFieldAccess.value, 'eventSourceReferences'))
   )
   const canSearchDiagnostics = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(eventFieldAccess.value, 'processingDiagnostics'))
+    isReadableFieldAccess(getFieldAccess(eventFieldAccess.value, 'processingDiagnostics'))
   )
 
   const commonAccountSetSearchItem = (onChange?: () => void): SearchFormItem => ({
@@ -492,9 +493,7 @@
             minWidth: 190,
             formatter: (row: Event) =>
               hasAuth('FinanceAutoPosting:View') &&
-              ['read', 'edit'].includes(
-                getFieldAccess(row.fieldAccess, 'eventSourceReferences')
-              ) ? (
+              isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'eventSourceReferences')) ? (
                 <ElButton
                   link
                   type="primary"
@@ -552,9 +551,7 @@
             formatter: (row: Event) =>
               row.voucherId &&
               hasAuth('FinanceAutoPosting:View') &&
-              ['read', 'edit'].includes(
-                getFieldAccess(row.fieldAccess, 'eventSourceReferences')
-              ) ? (
+              isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'eventSourceReferences')) ? (
                 <ElButton link type="primary" onClick={() => void openVoucherById(row.voucherId!)}>
                   {row.voucher?.voucherNo || '查看凭证'}
                 </ElButton>

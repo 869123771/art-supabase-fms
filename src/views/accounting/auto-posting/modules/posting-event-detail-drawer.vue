@@ -102,7 +102,6 @@
 
 <script setup lang="tsx">
   import { ElButton } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useUserStore } from '@/store/modules/user'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -115,7 +114,12 @@
   import type { ColumnOption } from '@/types'
   import { fetchPostingEventDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
-  import { canViewField, formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    formatSensitiveNumber,
+    getFieldAccess
+  } from '@/utils/field-permission'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
 
   defineOptions({ name: 'FinancePostingEventDetailDrawer' })
@@ -130,7 +134,6 @@
 
   const emit = defineEmits<{ 'view-voucher': [voucherId: string] }>()
   const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Event>>()
   const showReferences = ref(false)
   const { detail, loading, loadError, loadDetail, openDetail, retryLoad } = useDetailRecord<Event>(
@@ -198,7 +201,7 @@
   const canOpenVoucher = computed(
     () =>
       Boolean(detail.value?.voucherId) &&
-      ['read', 'edit'].includes(getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences'))
+      isReadableFieldAccess(getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences'))
   )
   const friendlyProcessingError = computed(() =>
     getFriendlySupabaseErrorMessage(
@@ -245,7 +248,7 @@
           key: 'sourceNo',
           label: '来源单号',
           field: 'sourceNo',
-          copyable: ['read', 'edit'].includes(
+          copyable: isReadableFieldAccess(
             getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences')
           )
         }
@@ -318,8 +321,8 @@
       if (key === 'billType') dictCode = 'fmsBillType'
       if (key === 'direction') dictCode = 'fmsBillDirection'
     }
-    if (dictCode) {
-      const label = getDictMap.value[dictCode]?.find((item) => item.value === value)?.label
+    if (dictCode && (typeof value === 'string' || typeof value === 'number')) {
+      const label = userStore.getDictItemByValue(dictCode, value)?.label
       if (label) return label
     }
     return typeof value === 'object' ? JSON.stringify(value) : String(value)

@@ -194,6 +194,7 @@
   import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
+    isReadableFieldAccess,
     canViewField,
     formatSensitiveNumber,
     getFieldAccess,
@@ -242,7 +243,7 @@
     canViewField(detail.data?.fieldAccess, 'expenseEvidence')
   )
   const canReadExpenseEvidence = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(detail.data?.fieldAccess, 'expenseEvidence'))
+    isReadableFieldAccess(getFieldAccess(detail.data?.fieldAccess, 'expenseEvidence'))
   )
 
   const waybillNo = computed(

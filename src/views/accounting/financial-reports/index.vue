@@ -91,10 +91,7 @@
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import { ACCOUNTING_SELECT_EMPTY_TEXT } from '../../modules/accounting-select-text'
-  import {
-    statementOptionLabel,
-    type FinancialStatementOptionCode
-  } from '../../modules/financial-statement-options'
+  import { statementOptionLabel } from '../../modules/financial-statement-options'
   import { useFinanceAccountSetPrerequisite } from '../../modules/use-finance-account-set-prerequisite'
   import StatementConfigDrawer from './modules/statement-config-drawer.vue'
   import type { ColumnOption } from '@/types'
@@ -107,7 +104,7 @@
     mergeFieldAccessMaps
   } from '@/utils/field-permission'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import {
     fetchAccountingPeriodList,
     fetchAccountSetOptions,
@@ -150,8 +147,8 @@
     statementTypes.map((option) => ({
       ...option,
       label:
-        getDictMap.value.fmsFinancialStatementType?.find((item) => item.value === option.value)
-          ?.label ?? option.label
+        userStore.getDictItemByValue('fmsFinancialStatementType', option.value)?.label ??
+        option.label
     }))
   )
 
@@ -262,7 +259,12 @@
         {
           key: 'calculationMethod',
           title: '计算方式',
-          formatter: (value) => dictLabel('fmsStatementCalculationMethod', value)
+          formatter: (value) =>
+            statementOptionLabel(
+              'fmsStatementCalculationMethod',
+              value,
+              getDictMap.value.fmsStatementCalculationMethod
+            )
         },
         ...(canViewReportRules.value
           ? [
@@ -328,7 +330,7 @@
               metric(
                 'assets',
                 '资产总计',
-                money(asset),
+                formatSensitiveCurrencyValue(asset),
                 '期末口径',
                 'ri:building-2-line',
                 'success'
@@ -340,7 +342,7 @@
               metric(
                 'liabilities',
                 '负债与权益',
-                money(liabilities),
+                formatSensitiveCurrencyValue(liabilities),
                 '期末口径',
                 'ri:scales-3-line',
                 'warning'
@@ -353,7 +355,9 @@
                 'balance',
                 '报表平衡',
                 difference === undefined ? '***' : difference < 0.005 ? '平衡' : '待核对',
-                difference === undefined ? '金额已脱敏' : `差额 ${money(difference)}`,
+                difference === undefined
+                  ? '金额已脱敏'
+                  : `差额 ${formatSensitiveCurrencyValue(difference)}`,
                 'ri:checkbox-circle-line',
                 difference === undefined ? 'info' : difference < 0.005 ? 'success' : 'danger'
               )
@@ -390,7 +394,7 @@
             metric(
               'period',
               activeType.value === 'income_statement' ? '本期净利润' : '本期净增加额',
-              money(totalRow?.primaryAmount),
+              formatSensitiveCurrencyValue(totalRow?.primaryAmount),
               '当前期间范围',
               'ri:line-chart-line',
               'success'
@@ -398,7 +402,7 @@
             metric(
               'year',
               activeType.value === 'income_statement' ? '本年净利润' : '本年净增加额',
-              money(totalRow?.secondaryAmount),
+              formatSensitiveCurrencyValue(totalRow?.secondaryAmount),
               '年初至截止期间',
               'ri:bar-chart-box-line',
               'warning'
@@ -419,18 +423,9 @@
     return { key, label, value, description, icon, tone }
   }
 
-  function money(value: Api.Fms.SensitiveNumber | null | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value)
-  }
-
   function numericValue(value: Api.Fms.SensitiveNumber | undefined): number | undefined {
     const result = Number(value)
     return Number.isFinite(result) ? result : undefined
-  }
-
-  function dictLabel(code: FinancialStatementOptionCode, value: unknown): string {
-    return statementOptionLabel(code, value, getDictMap.value[code])
   }
 
   function statementIcon(value: unknown): string {
@@ -466,7 +461,11 @@
                   type={row.displayStyle === 'total' ? 'success' : 'primary'}
                   effect="plain"
                 >
-                  {dictLabel('fmsStatementDisplayStyle', row.displayStyle)}
+                  {statementOptionLabel(
+                    'fmsStatementDisplayStyle',
+                    row.displayStyle,
+                    getDictMap.value.fmsStatementDisplayStyle
+                  )}
                 </ElTag>
               ) : null}
             </div>
@@ -484,7 +483,9 @@
               width: 170,
               align: 'right' as const,
               formatter: (row: ReportRow) =>
-                row.calculationMethod === 'label' ? '--' : money(row.primaryAmount)
+                row.calculationMethod === 'label'
+                  ? '--'
+                  : formatSensitiveCurrencyValue(row.primaryAmount)
             },
             {
               prop: 'secondaryAmount',
@@ -492,7 +493,9 @@
               width: 170,
               align: 'right' as const,
               formatter: (row: ReportRow) =>
-                row.calculationMethod === 'label' ? '--' : money(row.secondaryAmount)
+                row.calculationMethod === 'label'
+                  ? '--'
+                  : formatSensitiveCurrencyValue(row.secondaryAmount)
             }
           ]
         : []),

@@ -140,7 +140,8 @@
             key: 'amount',
             label: '申请金额',
             field: 'amount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           }
         ]
       : []),
@@ -182,29 +183,28 @@
             label: '对账金额',
             width: 135,
             align: 'right' as const,
-            formatter: (row: ApplicationItem) => formatMoney(row.statementAmountSnapshot)
+            formatter: (row: ApplicationItem) =>
+              formatSensitiveNumberWithAffix(row.statementAmountSnapshot, { prefix: '¥' })
           },
           {
             prop: 'outstandingAmountSnapshot' as const,
             label: '申请时未付',
             width: 135,
             align: 'right' as const,
-            formatter: (row: ApplicationItem) => formatMoney(row.outstandingAmountSnapshot)
+            formatter: (row: ApplicationItem) =>
+              formatSensitiveNumberWithAffix(row.outstandingAmountSnapshot, { prefix: '¥' })
           },
           {
             prop: 'appliedAmount' as const,
             label: '本次付款',
             width: 135,
             align: 'right' as const,
-            formatter: (row: ApplicationItem) => formatMoney(row.appliedAmount)
+            formatter: (row: ApplicationItem) =>
+              formatSensitiveNumberWithAffix(row.appliedAmount, { prefix: '¥' })
           }
         ]
       : [])
   ])
-
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
 
   async function handleOpen(row: Application): Promise<void> {
     openDetail(row.id)

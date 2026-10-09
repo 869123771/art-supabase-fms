@@ -52,7 +52,10 @@
                 :type="event.eventType === 'cancelled' ? 'danger' : 'primary'"
               >
                 <div class="commercial-bill-detail__event-card">
-                  <strong>{{ dictLabel('fmsBillEventType', event.eventType) }}</strong>
+                  <strong>{{
+                    userStore.getDictItemByValue('fmsBillEventType', event.eventType)?.label ??
+                    event.eventType
+                  }}</strong>
                   <ArtDescriptions
                     :data="event"
                     :items="eventItems(event)"
@@ -70,7 +73,6 @@
 </template>
 
 <script setup lang="ts">
-  import { storeToRefs } from 'pinia'
   import { ElButton } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -82,7 +84,7 @@
   import { fetchCommercialBillDetail, fetchCommercialBillEvents } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import { canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
 
@@ -97,7 +99,6 @@
 
   const userStore = useUserStore()
 
-  const { getDictMap } = storeToRefs(userStore)
   const drawerRef = ref<ArtDrawerExpose<Bill>>()
   const {
     detail: loadedDetail,
@@ -137,7 +138,8 @@
             {
               key: 'amount',
               label: '发生金额',
-              formatter: (_value: unknown, row: Event) => formatProtectedAmount(row.amount)
+              formatter: (_value: unknown, row: Event) =>
+                formatSensitiveCurrencyValue(row.amount, bill.value?.currencyCode)
             }
           ]
         : []),
@@ -153,10 +155,6 @@
 
   const canView = (field: Api.Fms.CommercialBillFieldKey): boolean =>
     canViewField(bill.value?.fieldAccess, field)
-
-  function dictLabel(code: keyof typeof getDictMap.value, value: string): string {
-    return getDictMap.value[code]?.find((item) => item.value === value)?.label ?? value
-  }
 
   const detailItems = computed<ArtDescriptionItem<Bill>[]>(() => {
     if (!bill.value) return []
@@ -197,13 +195,15 @@
           key: 'faceAmount',
           label: '票面金额',
           field: 'faceAmount',
-          formatter: (_value, row) => formatProtectedAmount(row.faceAmount)
+          formatter: (_value, row) =>
+            formatSensitiveCurrencyValue(row.faceAmount, bill.value?.currencyCode)
         },
         {
           key: 'settledAmount',
           label: '已结金额',
           field: 'settledAmount',
-          formatter: (_value, row) => formatProtectedAmount(row.settledAmount)
+          formatter: (_value, row) =>
+            formatSensitiveCurrencyValue(row.settledAmount, bill.value?.currencyCode)
         }
       )
     }
@@ -216,11 +216,6 @@
     items.push({ key: 'remark', label: '备注', field: 'remark', span: 2 })
     return items
   })
-
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, bill.value?.currencyCode)
-  }
 
   async function handleOpen(row: Bill): Promise<void> {
     openDetail(row.id)

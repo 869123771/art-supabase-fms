@@ -73,6 +73,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
+    isReadableFieldAccess,
     canViewField,
     formatSensitiveNumber,
     getFieldAccess,
@@ -265,7 +266,7 @@
   })
 
   const canFilterSourceReference = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'sourceReferences'))
+    isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'sourceReferences'))
   )
 
   const metrics = computed<BusinessWorkspaceMetric[]>(() => [
@@ -576,7 +577,7 @@
   }
 
   function canOpenEdit(row: Voucher): boolean {
-    return ['read', 'edit'].includes(getFieldAccess(row.fieldAccess, 'voucherAmounts'))
+    return isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'voucherAmounts'))
   }
 
   async function runSimpleAction(

@@ -118,8 +118,8 @@
     if (!row.isSelectable) return '分组'
     if (!row.businessCategory) return '待设置'
     return (
-      getDictMap.value.tmsWaybillCostType?.find((item) => item.value === row.businessCategory)
-        ?.label ?? costTypeFallback[row.businessCategory]
+      userStore.getDictItemByValue('tmsWaybillCostType', row.businessCategory)?.label ??
+      costTypeFallback[row.businessCategory]
     )
   }
 

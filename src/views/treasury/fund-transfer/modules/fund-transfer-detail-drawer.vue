@@ -55,9 +55,11 @@
           </div>
           <div class="fund-transfer-detail__arrow">
             <ArtSvgIcon icon="ri:arrow-right-line" />
-            <strong v-if="canViewAmounts">{{ formatMoney(detail.amount) }}</strong>
+            <strong v-if="canViewAmounts">{{
+              formatSensitiveCurrencyValue(detail.amount, detail?.currencyCode)
+            }}</strong>
             <small v-if="canViewAmounts && hasFeeAmount">
-              手续费 {{ formatMoney(detail.feeAmount) }}
+              手续费 {{ formatSensitiveCurrencyValue(detail.feeAmount, detail?.currencyCode) }}
             </small>
           </div>
           <div v-if="canViewAccounts">
@@ -249,10 +251,6 @@
     reject: '驳回调拨',
     execute: '执行入账',
     reverse: '冲销调拨'
-  }
-
-  function formatMoney(value: Api.Fms.SensitiveNumber | undefined): string {
-    return formatSensitiveCurrencyValue(value, detail.value?.currencyCode)
   }
 
   async function handleOpen(row: Transfer): Promise<void> {

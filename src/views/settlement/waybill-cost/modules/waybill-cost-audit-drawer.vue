@@ -74,7 +74,11 @@
             <article class="is-amount">
               <header>
                 <span><ArtSvgIcon icon="ri:money-cny-circle-line" />本笔金额</span>
-                <strong>{{ formatMoney(state.data.assessment.metrics.amount) }}</strong>
+                <strong>{{
+                  formatSensitiveNumberWithAffix(state.data.assessment.metrics.amount, {
+                    prefix: '¥'
+                  })
+                }}</strong>
               </header>
               <div class="cost-auditor__amount-line"><i /></div>
               <small>本次待审费用金额</small>
@@ -103,7 +107,11 @@
               </span>
               <div>
                 <span>预计总成本</span>
-                <strong>{{ formatMoney(state.data.assessment.metrics.projectedTotalCost) }}</strong>
+                <strong>{{
+                  formatSensitiveNumberWithAffix(state.data.assessment.metrics.projectedTotalCost, {
+                    prefix: '¥'
+                  })
+                }}</strong>
                 <small>计入本笔费用后</small>
               </div>
             </article>
@@ -114,7 +122,10 @@
               <div>
                 <span>运单应收</span>
                 <strong>{{
-                  formatOptionalMoney(state.data.assessment.metrics.receivableAmount)
+                  formatSensitiveNumberWithAffix(state.data.assessment.metrics.receivableAmount, {
+                    prefix: '¥',
+                    emptyText: '数据不足'
+                  })
                 }}</strong>
                 <small>客户侧应收基线</small>
               </div>
@@ -148,7 +159,10 @@
               <div>
                 <span>历史中位数</span>
                 <strong>{{
-                  formatOptionalMoney(state.data.assessment.metrics.benchmarkMedian)
+                  formatSensitiveNumberWithAffix(state.data.assessment.metrics.benchmarkMedian, {
+                    prefix: '¥',
+                    emptyText: '数据不足'
+                  })
                 }}</strong>
                 <small>参考样本 {{ state.data.assessment.metrics.benchmarkSampleSize }} 条</small>
               </div>
@@ -256,6 +270,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { createDateTimeFormatter } from '@/utils/ui/format'
 
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
@@ -404,17 +419,6 @@
 
   function signalIcon(severity: SignalSeverity): string {
     return severity === 'critical' ? 'ri:alarm-warning-line' : 'ri:error-warning-line'
-  }
-
-  function formatMoney(value: number): string {
-    return `¥${Number(value).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
-
-  function formatOptionalMoney(value: number | null): string {
-    return value === null ? '数据不足' : formatMoney(value)
   }
 
   function formatMargin(value: number | null): string {

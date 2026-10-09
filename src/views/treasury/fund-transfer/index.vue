@@ -83,9 +83,14 @@
   } from '../../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue, formatCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
@@ -160,7 +165,7 @@
   const canViewListField = (field: Api.Fms.FundTransferFieldKey): boolean =>
     canViewField(effectiveFieldAccess.value, field)
   const canFilterAccount = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'transferAccounts'))
+    isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'transferAccounts'))
   )
   const table = reactive<{ search: SearchParams }>({
     search: { keyword: '', accountSetId: undefined, status: undefined }
@@ -219,7 +224,7 @@
         placeholder: [
           '调拨单号、用途',
           canFilterAccount.value ? '账户名称' : '',
-          ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'bankReference'))
+          isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'bankReference'))
             ? '银行参考号'
             : ''
         ]
@@ -260,7 +265,7 @@
       (row) => normalizeNullableNumber(row.amount) ?? undefined
     )
     const canAggregateAmount =
-      ['read', 'edit'].includes(amountAccess) &&
+      isReadableFieldAccess(amountAccess) &&
       completedAmounts.every((value): value is number => value !== undefined)
     const completedAmount = canAggregateAmount
       ? completedAmounts.reduce((sum, value) => sum + value, 0)
@@ -373,14 +378,16 @@
               label: '调拨金额',
               minWidth: 120,
               align: 'right' as const,
-              formatter: (row: Transfer) => formatTransferAmount(row.amount, row.currencyCode)
+              formatter: (row: Transfer) =>
+                formatSensitiveCurrencyValue(row.amount, row.currencyCode)
             },
             {
               prop: 'feeAmount',
               label: '手续费',
               width: 95,
               align: 'right' as const,
-              formatter: (row: Transfer) => formatTransferAmount(row.feeAmount, row.currencyCode)
+              formatter: (row: Transfer) =>
+                formatSensitiveCurrencyValue(row.feeAmount, row.currencyCode)
             }
           ]
         : []),
@@ -597,14 +604,6 @@
     } finally {
       transitionBusy.value = false
     }
-  }
-
-  function formatTransferAmount(
-    value: Api.Fms.SensitiveNumber | undefined,
-    currency = 'CNY'
-  ): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
   }
 
   function buildExecuteConfirmMessage(row: Transfer): string {

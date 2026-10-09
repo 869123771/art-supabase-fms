@@ -152,10 +152,6 @@
   const detail = reactive({ data: detailData, loading })
   const directionLabel = computed(() => (detail.data?.direction === 'payment' ? '付款' : '收款'))
 
-  function formatMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm', emptyText: '-' })
 
   const descriptionItems = computed<ArtDescriptionItem<CashTransaction>[]>(() => [
@@ -189,19 +185,22 @@
             key: 'amount',
             label: `${directionLabel.value}金额`,
             field: 'amount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'allocatedAmount',
             label: '已核销金额',
             field: 'allocatedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           },
           {
             key: 'unallocatedAmount',
             label: '未核销金额',
             field: 'unallocatedAmount' as const,
-            formatter: (value: unknown) => formatMoney(value as Api.Fms.SensitiveNumber)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           }
         ]
       : []),
@@ -266,7 +265,8 @@
             label: '核销金额',
             width: 130,
             align: 'right' as const,
-            formatter: (row: DetailAllocation) => formatMoney(row.allocatedAmount)
+            formatter: (row: DetailAllocation) =>
+              formatSensitiveNumberWithAffix(row.allocatedAmount, { prefix: '¥' })
           }
         ]
       : []),
@@ -323,7 +323,7 @@
   async function handleReverse(row: DetailAllocation): Promise<void> {
     try {
       const reason = await promptReason(
-        `撤销后将释放 ${formatMoney(row.allocatedAmount)}，并自动回退收款及对账单状态。`,
+        `撤销后将释放 ${formatSensitiveNumberWithAffix(row.allocatedAmount, { prefix: '¥' })}，并自动回退收款及对账单状态。`,
         '撤销核销',
         {
           confirmButtonText: '确认撤销',

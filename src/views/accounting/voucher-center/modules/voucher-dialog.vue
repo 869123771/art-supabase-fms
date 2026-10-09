@@ -140,7 +140,12 @@
   } from '@fms/api'
   import { attachmentTableLink } from '@/components/core/media/art-file-viewer/table-link'
   import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
-  import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    canViewField,
+    getFieldAccess
+  } from '@/utils/field-permission'
   import VoucherEntryLines from '@fms/views/modules/voucher-entry-lines.vue'
   import CashFlowAllocationPanel from './cash-flow-allocation-panel.vue'
   import { useUserStore } from '@/store/modules/user'
@@ -288,7 +293,7 @@
             .filter(
               (item) =>
                 item.isEnabled &&
-                ['read', 'edit'].includes(getFieldAccess(item.fieldAccess, 'templateEntries'))
+                isReadableFieldAccess(getFieldAccess(item.fieldAccess, 'templateEntries'))
             )
             .map((item) => ({
               label: `${item.templateCode} ${item.templateName}`,
@@ -511,7 +516,7 @@
       if (!data) throw new Error('凭证模板不存在或无权查看，请重新选择')
       const entriesAccess = getFieldAccess(data.fieldAccess, 'templateEntries')
       if (
-        !['read', 'edit'].includes(entriesAccess) ||
+        !isReadableFieldAccess(entriesAccess) ||
         !data.voucherType ||
         data.voucherType === '***' ||
         !Array.isArray(data.lines)
@@ -521,7 +526,7 @@
         return
       }
       form.data.voucherType = data.voucherType
-      if (['read', 'edit'].includes(getFieldAccess(data.fieldAccess, 'templateNarrative'))) {
+      if (isReadableFieldAccess(getFieldAccess(data.fieldAccess, 'templateNarrative'))) {
         form.data.summary = data.summary || form.data.summary
       }
       form.data.lines = data.lines.map((line, index) => ({
@@ -630,7 +635,7 @@
         ])
         if (!data) return false
         fieldAccess.value = data.fieldAccess ?? {}
-        if (!['read', 'edit'].includes(getFieldAccess(fieldAccess.value, 'voucherAmounts'))) {
+        if (!isReadableFieldAccess(getFieldAccess(fieldAccess.value, 'voucherAmounts'))) {
           ElMessage.warning('当前字段权限不足，无法编辑凭证分录')
           return false
         }

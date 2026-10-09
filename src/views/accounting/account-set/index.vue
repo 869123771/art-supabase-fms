@@ -73,6 +73,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
+    isReadableFieldAccess,
     canViewField,
     getFieldAccess,
     isMaskedValue,
@@ -174,9 +175,7 @@
       type: 'input',
       props: {
         clearable: true,
-        placeholder: ['read', 'edit'].includes(
-          getFieldAccess(listFieldAccess.value, 'taxRegistration')
-        )
+        placeholder: isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'taxRegistration'))
           ? '编码、名称、主体或信用代码'
           : '编码、名称或主体'
       }

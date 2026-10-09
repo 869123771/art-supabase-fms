@@ -1,3 +1,4 @@
+import { isReadableFieldAccess } from '@/utils/field-permission'
 import { cloneDeep, uniq } from 'lodash-es'
 import { toRaw } from 'vue'
 
@@ -38,8 +39,7 @@ export function validateReimbursementSelection(
 
   if (
     expenses.some(
-      (item) =>
-        item.fieldAccess && !['read', 'edit'].includes(item.fieldAccess.costAmounts ?? 'hidden')
+      (item) => item.fieldAccess && !isReadableFieldAccess(item.fieldAccess.costAmounts ?? 'hidden')
     )
   ) {
     return invalid('当前字段权限不足，无法读取所选费用金额并转报销')

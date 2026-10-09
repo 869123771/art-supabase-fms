@@ -155,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatSensitiveNumberWithAffix, isMaskedValue } from '@/utils/field-permission'
   import { normalizeNullableNumber } from '@/utils/form/normalize'
   import type { AlertProps, TagProps } from 'element-plus'
   import type { ColumnOption } from '@/types'
@@ -336,7 +337,8 @@
         label: '涉及金额',
         minWidth: 135,
         align: 'right',
-        formatter: (row) => formatMoney(row.amount)
+        formatter: (row) =>
+          formatSensitiveNumberWithAffix(row.amount, { prefix: '¥', emptyText: '—' })
       })
     }
     columns.push(
@@ -354,7 +356,11 @@
         item: {
           key: 'revenue',
           label: '运输收入',
-          value: () => formatMoney(overview.stats.monthRevenueAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.monthRevenueAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -362,7 +368,11 @@
         item: {
           key: 'cost',
           label: '运输成本',
-          value: () => formatMoney(overview.stats.monthCostAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.monthCostAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -370,7 +380,11 @@
         item: {
           key: 'profit',
           label: '运输毛利',
-          value: () => formatMoney(overview.stats.monthGrossProfit)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.monthGrossProfit, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -386,7 +400,11 @@
         item: {
           key: 'receipt',
           label: '客户回款',
-          value: () => formatMoney(overview.stats.monthReceiptAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.monthReceiptAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -394,7 +412,11 @@
         item: {
           key: 'payment',
           label: '承运商付款',
-          value: () => formatMoney(overview.stats.monthPaymentAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.monthPaymentAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -402,7 +424,11 @@
         item: {
           key: 'unallocatedReceipt',
           label: '未核销收款',
-          value: () => formatMoney(overview.stats.unallocatedReceiptAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.unallocatedReceiptAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       },
       {
@@ -410,7 +436,11 @@
         item: {
           key: 'unallocatedPayment',
           label: '未核销付款',
-          value: () => formatMoney(overview.stats.unallocatedPaymentAmount)
+          value: () =>
+            formatSensitiveNumberWithAffix(overview.stats.unallocatedPaymentAmount, {
+              prefix: '¥',
+              emptyText: '—'
+            })
         }
       }
     ]
@@ -435,20 +465,6 @@
     return overview.stats.fieldAccess?.[field] ?? 'hidden'
   }
 
-  function isMaskedValue(value: unknown): value is string {
-    return value === '***'
-  }
-
-  function formatMoney(value?: SensitiveNumber): string {
-    if (isMaskedValue(value)) return '***'
-    const numberValue = normalizeNullableNumber(value) ?? undefined
-    if (numberValue === undefined) return '—'
-    return `¥${numberValue.toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
-
   function formatPercent(value?: SensitiveNumber): string {
     if (isMaskedValue(value)) return '***'
     const numberValue = normalizeNullableNumber(value) ?? undefined
@@ -461,7 +477,9 @@
   }
 
   function withOptionalAmount(label: string, value?: SensitiveNumber): string {
-    return value === undefined || value === null ? label : `${label}，金额 ${formatMoney(value)}`
+    return value === undefined || value === null
+      ? label
+      : `${label}，金额 ${formatSensitiveNumberWithAffix(value, { prefix: '¥', emptyText: '—' })}`
   }
 
   function buildMetrics(stats: Stats): BusinessWorkspaceMetric[] {
@@ -472,11 +490,14 @@
         metric: {
           key: 'customer-receivable',
           label: '客户应收余额',
-          value: formatMoney(stats.customerReceivableBalance),
+          value: formatSensitiveNumberWithAffix(stats.customerReceivableBalance, {
+            prefix: '¥',
+            emptyText: '—'
+          }),
           description:
             fieldAccessLevel('cashFlowAmounts') === 'hidden'
               ? '本月回款金额受限'
-              : `本月已回款 ${formatMoney(stats.monthReceiptAmount)}`,
+              : `本月已回款 ${formatSensitiveNumberWithAffix(stats.monthReceiptAmount, { prefix: '¥', emptyText: '—' })}`,
           icon: 'ri:funds-line',
           tone: 'primary',
           interactive: true
@@ -487,11 +508,14 @@
         metric: {
           key: 'carrier-payable',
           label: '承运商应付余额',
-          value: formatMoney(stats.carrierPayableBalance),
+          value: formatSensitiveNumberWithAffix(stats.carrierPayableBalance, {
+            prefix: '¥',
+            emptyText: '—'
+          }),
           description:
             fieldAccessLevel('cashFlowAmounts') === 'hidden'
               ? '本月付款金额受限'
-              : `本月已付款 ${formatMoney(stats.monthPaymentAmount)}`,
+              : `本月已付款 ${formatSensitiveNumberWithAffix(stats.monthPaymentAmount, { prefix: '¥', emptyText: '—' })}`,
           icon: 'ri:bank-card-line',
           tone: 'warning',
           interactive: true
@@ -502,7 +526,10 @@
         metric: {
           key: 'month-receipt',
           label: '本月回款',
-          value: formatMoney(stats.monthReceiptAmount),
+          value: formatSensitiveNumberWithAffix(stats.monthReceiptAmount, {
+            prefix: '¥',
+            emptyText: '—'
+          }),
           description:
             fieldAccessLevel('customerSettlementAmounts') === 'hidden'
               ? '回款完成率受限'
@@ -517,7 +544,10 @@
         metric: {
           key: 'month-gross-profit',
           label: '本月运输毛利',
-          value: formatMoney(stats.monthGrossProfit),
+          value: formatSensitiveNumberWithAffix(stats.monthGrossProfit, {
+            prefix: '¥',
+            emptyText: '—'
+          }),
           description: `综合毛利率 ${formatPercent(grossMargin.value)}`,
           icon: 'ri:line-chart-line',
           tone: profit === undefined || profit >= 0 ? 'primary' : 'danger',

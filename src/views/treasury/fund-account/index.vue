@@ -65,9 +65,14 @@
   import { useFinanceAccountSetPrerequisite } from '../../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
   import {
     deleteFundAccount,
@@ -160,9 +165,7 @@
       type: 'input',
       props: {
         clearable: true,
-        placeholder: ['read', 'edit'].includes(
-          getFieldAccess(listFieldAccess.value, 'accountDetails')
-        )
+        placeholder: isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'accountDetails'))
           ? '账户编码、名称、开户行或账号尾号'
           : '账户编码或名称'
       }
@@ -215,7 +218,7 @@
         {
           key: 'balance',
           label: '本位币余额',
-          value: formatFundAmount(value?.baseCurrencyCurrentBalance),
+          value: formatSensitiveCurrencyValue(value?.baseCurrencyCurrentBalance),
           description: '不跨币种直接相加',
           icon: 'ri:money-cny-circle-line',
           tone: 'primary'
@@ -223,7 +226,7 @@
         {
           key: 'available',
           label: '本位币可用',
-          value: formatFundAmount(value?.baseCurrencyAvailableBalance),
+          value: formatSensitiveCurrencyValue(value?.baseCurrencyAvailableBalance),
           description: `外币账户 ${value?.foreignCurrencyAccountCount ?? 0} 个`,
           icon: 'ri:safe-2-line',
           tone: 'warning'
@@ -293,10 +296,11 @@
               formatter: (row: Account) => (
                 <div class="fund-account-balance">
                   <strong>
-                    {formatFundAmount(row.currentBalance, row.currency?.currencyCode)}
+                    {formatSensitiveCurrencyValue(row.currentBalance, row.currency?.currencyCode)}
                   </strong>
                   <small>
-                    可用 {formatFundAmount(row.availableBalance, row.currency?.currencyCode)}
+                    可用{' '}
+                    {formatSensitiveCurrencyValue(row.availableBalance, row.currency?.currencyCode)}
                     {row.latestBalanceDate
                       ? ` · ${formatWithDayjs(row.latestBalanceDate, 'YYYY-MM-DD')}`
                       : ''}
@@ -347,11 +351,6 @@
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []
     return result
-  }
-
-  function formatFundAmount(value: unknown, currency = 'CNY'): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
   }
 
   async function loadOverview(): Promise<void> {

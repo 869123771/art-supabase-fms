@@ -124,6 +124,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { ElMessage } from 'element-plus'
@@ -199,11 +200,24 @@
       fieldView(
         'amountExcludingTax',
         '不含税金额',
-        formatMoney(invoice.amountExcludingTax),
+        formatSensitiveNumberWithAffix(invoice.amountExcludingTax, {
+          prefix: '¥',
+          emptyText: '未识别'
+        }),
         confidence
       ),
-      fieldView('taxAmount', '税额', formatMoney(invoice.taxAmount), confidence),
-      fieldView('totalAmount', '价税合计', formatMoney(invoice.totalAmount), confidence),
+      fieldView(
+        'taxAmount',
+        '税额',
+        formatSensitiveNumberWithAffix(invoice.taxAmount, { prefix: '¥', emptyText: '未识别' }),
+        confidence
+      ),
+      fieldView(
+        'totalAmount',
+        '价税合计',
+        formatSensitiveNumberWithAffix(invoice.totalAmount, { prefix: '¥', emptyText: '未识别' }),
+        confidence
+      ),
       fieldView(
         'taxRate',
         '税率',
@@ -220,14 +234,6 @@
     confidence: Partial<Record<OcrField, number>>
   ): FieldView {
     return { key, label, value: value || '未识别', confidence: confidence[key] }
-  }
-
-  function formatMoney(value?: number | null): string | null {
-    if (value === null || value === undefined) return null
-    return `¥${Number(value).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
   }
 
   function confidenceClass(confidence?: number): string {

@@ -75,7 +75,7 @@
               ><span>{{ bucketMeta[bucket.key].label }}</span
               ><small>{{ bucket.statementCount }} 笔</small></div
             >
-            <strong>{{ formatMoney(bucket.amount) }}</strong>
+            <strong>{{ formatSensitiveCurrencyValue(bucket.amount) }}</strong>
             <span class="receivable-aging-page__bar">
               <i :style="{ width: `${bucketWidth(bucket.amount)}%` }"></i>
             </span>
@@ -120,7 +120,7 @@
                 >{{ customer.statementCount }} 笔 · 最长 {{ customer.oldestAgingDays }} 天</small
               ></div
             >
-            <strong>{{ formatMoney(customer.amount) }}</strong>
+            <strong>{{ formatSensitiveCurrencyValue(customer.amount) }}</strong>
             <ElTag
               :type="
                 customer.oldestAgingDays > 90
@@ -153,7 +153,7 @@
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { fetchReceivableAgingOverview } from '@fms/api'
@@ -176,7 +176,7 @@
   const maxBucketAmount = computed(() =>
     Math.max(...(overview.value?.buckets.map((item) => item.amount ?? 0) ?? [0]), 0)
   )
-  const formatMoney = (value?: number) => (value === undefined ? '--' : formatCurrencyValue(value))
+
   const bucketWidth = (value?: number) =>
     value === undefined || !maxBucketAmount.value
       ? 0
@@ -185,7 +185,7 @@
     {
       key: 'total',
       label: '未结应收',
-      value: formatMoney(overview.value?.totalOutstanding),
+      value: formatSensitiveCurrencyValue(overview.value?.totalOutstanding),
       description: `${overview.value?.statementCount ?? 0} 笔对账单`,
       icon: 'ri:money-cny-circle-line',
       tone: 'primary',

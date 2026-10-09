@@ -32,7 +32,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchAccountSetOptions, fetchCommercialBillDetail, saveCommercialBill } from '@fms/api'
   import { canEditField, canViewField } from '@/utils/field-permission'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { useUserStore } from '@/store/modules/user'
 
   defineOptions({ name: 'FinanceCommercialBillDialog' })
@@ -229,7 +229,10 @@
               key: '__faceAmountDisplay',
               type: 'input',
               props: {
-                modelValue: formatProtectedAmount(currentRecord.value?.faceAmount),
+                modelValue: formatSensitiveCurrencyValue(
+                  currentRecord.value?.faceAmount,
+                  currentRecord.value?.currencyCode
+                ),
                 disabled: true
               }
             }
@@ -413,11 +416,6 @@
       },
       dialogProps: { closeOnClickModal: false, destroyOnClose: true }
     })
-  }
-
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currentRecord.value?.currencyCode)
   }
 
   defineExpose({ handleOpen, ...prerequisiteOverlay })

@@ -70,6 +70,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
+    isReadableFieldAccess,
     canViewField,
     getFieldAccess,
     mergeFieldAccessMaps,
@@ -264,10 +265,6 @@
     carrierOptions: []
   })
 
-  const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const renderStatusActions = (row: Invoice) => {
     if (row.status === 'draft')
       return hasAuth('FinanceInvoiceManagement:Submit') ? (
@@ -399,7 +396,8 @@
             label: '价税合计',
             width: 125,
             align: 'right' as const,
-            formatter: (row: Invoice) => formatMoney(row.totalAmount)
+            formatter: (row: Invoice) =>
+              formatSensitiveNumberWithAffix(row.totalAmount, { prefix: '¥' })
           },
           {
             prop: 'unlinkedAmount',
@@ -409,13 +407,13 @@
             formatter: (row: Invoice) => (
               <div
                 class="py-1 text-right leading-5"
-                title={`已关联 ${formatMoney(row.linkedAmount)} · 未关联 ${formatMoney(row.unlinkedAmount)}`}
+                title={`已关联 ${formatSensitiveNumberWithAffix(row.linkedAmount, { prefix: '¥' })} · 未关联 ${formatSensitiveNumberWithAffix(row.unlinkedAmount, { prefix: '¥' })}`}
               >
                 <small class="block text-xs text-[var(--el-text-color-secondary)]">
-                  已关联 {formatMoney(row.linkedAmount)}
+                  已关联 {formatSensitiveNumberWithAffix(row.linkedAmount, { prefix: '¥' })}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未关联 {formatMoney(row.unlinkedAmount)}
+                  未关联 {formatSensitiveNumberWithAffix(row.unlinkedAmount, { prefix: '¥' })}
                 </strong>
               </div>
             )
@@ -514,12 +512,9 @@
     `${canViewListField('invoiceAmounts')}:${canViewListField('taxIdentity')}`
 
   const canAuditInvoice = (row: Invoice): boolean =>
-    isReadableAccess(getFieldAccess(row.fieldAccess, 'invoiceAmounts')) &&
-    isReadableAccess(getFieldAccess(row.fieldAccess, 'taxIdentity')) &&
-    isReadableAccess(getFieldAccess(row.fieldAccess, 'invoiceAttachments'))
-
-  const isReadableAccess = (access: Api.Common.FieldAccessLevel): boolean =>
-    access === 'read' || access === 'edit'
+    isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'invoiceAmounts')) &&
+    isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'taxIdentity')) &&
+    isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'invoiceAttachments'))
 
   async function handleStatusAction(row: Invoice, statusAction: Api.Fms.InvoiceStatusAction) {
     const label = statusAction === 'submit' ? '提交复核' : '审核通过'

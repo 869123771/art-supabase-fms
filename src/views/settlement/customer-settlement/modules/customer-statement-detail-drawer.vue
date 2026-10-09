@@ -92,10 +92,6 @@
     )
   const isCompact = useMediaQuery('(max-width: 900px)')
 
-  const formatMoney = (value?: number | string | null): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const canView = (field: Api.Fms.CustomerStatementFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)
 
@@ -131,7 +127,10 @@
             key: 'statementAmount',
             label: '对账金额',
             field: 'statementAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           }
         ]
       : []),
@@ -141,13 +140,19 @@
             key: 'settledAmount',
             label: '已结金额',
             field: 'settledAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           },
           {
             key: 'outstandingAmount',
             label: '未结金额',
             field: 'outstandingAmount',
-            formatter: (value: unknown) => formatMoney(value as number | string | null | undefined)
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+                prefix: '¥'
+              })
           }
         ]
       : []),
@@ -210,14 +215,16 @@
                   label: '应收金额',
                   width: 102,
                   align: 'right' as const,
-                  formatter: (row: CustomerStatementItem) => formatMoney(row.receivableAmount)
+                  formatter: (row: CustomerStatementItem) =>
+                    formatSensitiveNumberWithAffix(row.receivableAmount, { prefix: '¥' })
                 },
                 {
                   prop: 'adjustmentAmount',
                   label: '调整金额',
                   width: 102,
                   align: 'right' as const,
-                  formatter: (row: CustomerStatementItem) => formatMoney(row.adjustmentAmount)
+                  formatter: (row: CustomerStatementItem) =>
+                    formatSensitiveNumberWithAffix(row.adjustmentAmount, { prefix: '¥' })
                 }
               ]
             : []),
@@ -229,14 +236,14 @@
             formatter: (row: CustomerStatementItem) =>
               isCompact.value ? (
                 <span class="statement-detail__amount">
-                  <strong>{formatMoney(row.lineAmount)}</strong>
+                  <strong>{formatSensitiveNumberWithAffix(row.lineAmount, { prefix: '¥' })}</strong>
                   <small>
-                    应收 {formatMoney(row.receivableAmount)} · 调整{' '}
-                    {formatMoney(row.adjustmentAmount)}
+                    应收 {formatSensitiveNumberWithAffix(row.receivableAmount, { prefix: '¥' })} ·
+                    调整 {formatSensitiveNumberWithAffix(row.adjustmentAmount, { prefix: '¥' })}
                   </small>
                 </span>
               ) : (
-                formatMoney(row.lineAmount)
+                formatSensitiveNumberWithAffix(row.lineAmount, { prefix: '¥' })
               )
           }
         ]

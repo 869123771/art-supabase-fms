@@ -1,0 +1,1 @@
+import"./clipboard-DnVCETpu.js";import{B as e,C as t}from"./index-Cpib9usC.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=e();new t({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});

@@ -71,6 +71,7 @@
   import { formatWithDayjs } from '@/utils/time'
   import { financeRouteNames } from '@/router/business-paths'
   import {
+    isReadableFieldAccess,
     canViewField,
     getFieldAccess,
     mergeFieldAccessMaps,
@@ -248,10 +249,6 @@
     ])
   })
 
-  const formatMoney = (value?: Api.Fms.SensitiveNumber): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   const columnsFactory = (): ColumnOption<Application>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
     {
@@ -299,7 +296,8 @@
             label: '申请金额',
             width: 135,
             align: 'right' as const,
-            formatter: (row: Application) => formatMoney(row.amount)
+            formatter: (row: Application) =>
+              formatSensitiveNumberWithAffix(row.amount, { prefix: '¥' })
           }
         ]
       : []),
@@ -454,17 +452,14 @@
 
   const getSensitiveColumnVisibility = (): string => `${canViewListField('applicationAmounts')}`
 
-  const isReadableAccess = (access: Api.Common.FieldAccessLevel): boolean =>
-    access === 'read' || access === 'edit'
-
   async function handleSubmit(row: Application): Promise<void> {
-    if (!isReadableAccess(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
+    if (!isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
       ElMessage.warning('当前字段权限不允许读取付款申请金额，无法提交审批')
       return
     }
     try {
       await confirmAction(
-        `提交后将占用 ${formatMoney(row.amount)} 可付款额度，并进入审批流程。`,
+        `提交后将占用 ${formatSensitiveNumberWithAffix(row.amount, { prefix: '¥' })} 可付款额度，并进入审批流程。`,
         '提交付款审批',
         { confirmButtonText: '提交审批', type: 'warning' }
       )
@@ -476,7 +471,7 @@
   }
 
   function handleExecute(row: Application): void {
-    if (!isReadableAccess(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
+    if (!isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'applicationAmounts'))) {
       ElMessage.warning('当前字段权限不允许读取付款申请金额，无法登记付款')
       return
     }

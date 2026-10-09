@@ -87,7 +87,7 @@
   } from '../../modules/fund-execution-dialog.vue'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -260,7 +260,7 @@
     {
       key: 'receivable',
       label: '应收未结',
-      value: formatProtectedAmount(summary.value.receivableOutstanding),
+      value: formatSensitiveCurrencyValue(summary.value.receivableOutstanding),
       description: '持有中应收票据',
       icon: 'ri:arrow-down-circle-line',
       tone: 'success',
@@ -270,7 +270,7 @@
     {
       key: 'payable',
       label: '应付未结',
-      value: formatProtectedAmount(summary.value.payableOutstanding),
+      value: formatSensitiveCurrencyValue(summary.value.payableOutstanding),
       description: '持有中应付票据',
       icon: 'ri:arrow-up-circle-line',
       tone: 'warning',
@@ -346,7 +346,8 @@
               label: '票面金额',
               minWidth: 145,
               align: 'right' as const,
-              formatter: (row: Bill) => formatProtectedAmount(row.faceAmount, row.currencyCode)
+              formatter: (row: Bill) =>
+                formatSensitiveCurrencyValue(row.faceAmount, row.currencyCode)
             }
           ]
         : []),
@@ -490,14 +491,6 @@
       : faceAmount - settledAmount
   }
 
-  function formatProtectedAmount(
-    value: Api.Fms.SensitiveNumber | undefined | null,
-    currency = 'CNY'
-  ): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
-  }
-
   function handleMetricClick(metric: BusinessWorkspaceMetric): void {
     if (metric.key === 'all') {
       table.search.direction = undefined
@@ -538,8 +531,8 @@
           }
           return result.data.map((event) => {
             const eventLabel =
-              getDictMap.value.fmsBillEventType?.find((item) => item.value === event.eventType)
-                ?.label ?? '票据业务事件'
+              userStore.getDictItemByValue('fmsBillEventType', event.eventType)?.label ??
+              '票据业务事件'
             return {
               resourceId: ids[index],
               dependencyCode: 'fms_commercial_bill_event',

@@ -76,8 +76,13 @@
   } from '../../modules/use-finance-account-set-prerequisite'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
   import {
     fetchAccountSetOptions,
@@ -195,10 +200,10 @@
         clearable: true,
         placeholder: [
           '批次号、账户名称',
-          ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'accountDetails'))
+          isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'accountDetails'))
             ? '账号尾号'
             : '',
-          ['read', 'edit'].includes(getFieldAccess(listFieldAccess.value, 'bankReferences'))
+          isReadableFieldAccess(getFieldAccess(listFieldAccess.value, 'bankReferences'))
             ? '文件名'
             : ''
         ]
@@ -333,7 +338,8 @@
               label: '期末余额',
               width: 110,
               align: 'right',
-              formatter: (row: Batch) => formatBankAmount(row.closingBalance, row.currencyCode)
+              formatter: (row: Batch) =>
+                formatSensitiveCurrencyValue(row.closingBalance, row.currencyCode)
             }
           ] as ColumnOption<Batch>[])
         : []),
@@ -352,7 +358,7 @@
               width: 110,
               align: 'right',
               formatter: (row: Batch) =>
-                formatBankAmount(row.statementBalanceDifference, row.currencyCode)
+                formatSensitiveCurrencyValue(row.statementBalanceDifference, row.currencyCode)
             }
           ] as ColumnOption<Batch>[])
         : []),
@@ -385,11 +391,6 @@
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data ?? []
     return result
-  }
-
-  function formatBankAmount(value: unknown, currency = 'CNY'): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
   }
 
   async function loadOverview(): Promise<void> {

@@ -129,7 +129,7 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import CashVoucherOcrPanel from './cash-voucher-ocr-panel.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import { canEditField } from '@/utils/field-permission'
+  import { canEditField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCarrierPaymentDialog' })
   type CashTransaction = Api.Fms.CashTransactionRecord
@@ -212,11 +212,9 @@
   })
   const summaryText = computed(
     () =>
-      `可核销 ${money(allocationSummary.value.limit)}，本次核销 ${money(allocationSummary.value.allocated)}，剩余 ${money(allocationSummary.value.remaining)}`
+      `可核销 ${formatSensitiveNumberWithAffix(allocationSummary.value.limit, { prefix: '¥' })}，本次核销 ${formatSensitiveNumberWithAffix(allocationSummary.value.allocated, { prefix: '¥' })}，剩余 ${formatSensitiveNumberWithAffix(allocationSummary.value.remaining, { prefix: '¥' })}`
   )
   const round = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
-  const money = (value: number) =>
-    `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const carrierColumns: DataSelectColumn[] = [
     { prop: 'carrierCode', label: '承运商编码', width: 150 },
@@ -233,21 +231,28 @@
       label: '应付金额',
       width: 130,
       align: 'right',
-      formatter: (r) => money(Number((r as Statement).statementAmount))
+      formatter: (r) =>
+        formatSensitiveNumberWithAffix(Number((r as Statement).statementAmount) || 0, {
+          prefix: '¥'
+        })
     },
     {
       prop: 'settledAmount',
       label: '已付金额',
       width: 130,
       align: 'right',
-      formatter: (r) => money(Number((r as Statement).settledAmount))
+      formatter: (r) =>
+        formatSensitiveNumberWithAffix(Number((r as Statement).settledAmount) || 0, { prefix: '¥' })
     },
     {
       prop: 'outstandingAmount',
       label: '未付金额',
       width: 130,
       align: 'right',
-      formatter: (r) => money(Number((r as Statement).outstandingAmount))
+      formatter: (r) =>
+        formatSensitiveNumberWithAffix(Number((r as Statement).outstandingAmount) || 0, {
+          prefix: '¥'
+        })
     }
   ]
   const allocationColumns: ColumnOption<AllocationRow>[] = [
@@ -263,7 +268,7 @@
       label: '未付金额',
       width: 130,
       align: 'right',
-      formatter: (r) => money(r.outstandingAmount)
+      formatter: (r) => formatSensitiveNumberWithAffix(r.outstandingAmount || 0, { prefix: '¥' })
     },
     {
       prop: 'allocationAmount',
@@ -584,7 +589,7 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记承运商付款',
       subtitle: transaction
-        ? `本笔付款尚有 ${money(normalizeNullableNumber(transaction.unallocatedAmount) ?? 0)} 未核销`
+        ? `本笔付款尚有 ${formatSensitiveNumberWithAffix(normalizeNullableNumber(transaction.unallocatedAmount) ?? 0, { prefix: '¥' })} 未核销`
         : '登记实际付款流水，可同时核销一份或多份已确认承运商对账单',
       confirmText: transaction ? '确认核销' : '登记付款',
       contentMaxHeight: '76vh',

@@ -28,7 +28,7 @@
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import { canEditField, getFieldAccess } from '@/utils/field-permission'
+  import { isReadableFieldAccess, canEditField, getFieldAccess } from '@/utils/field-permission'
   import { saveOpeningBalance } from '@fms/api'
 
   defineOptions({ name: 'FinanceOpeningBalanceDialog' })
@@ -111,8 +111,8 @@
   const subjectAuxiliaryConfigs = computed(() => selectedSubject.value?.auxiliaryConfigs ?? [])
   const amountAccess = computed(() => getFieldAccess(fieldAccess.value, 'balanceAmounts'))
   const auxiliaryAccess = computed(() => getFieldAccess(fieldAccess.value, 'auxiliaryDetails'))
-  const canReadAmounts = computed(() => ['read', 'edit'].includes(amountAccess.value))
-  const canReadAuxiliary = computed(() => ['read', 'edit'].includes(auxiliaryAccess.value))
+  const canReadAmounts = computed(() => isReadableFieldAccess(amountAccess.value))
+  const canReadAuxiliary = computed(() => isReadableFieldAccess(auxiliaryAccess.value))
   const canEditAmounts = computed(() => canEditField(fieldAccess.value, 'balanceAmounts'))
   const canEditAuxiliary = computed(() => canEditField(fieldAccess.value, 'auxiliaryDetails'))
 

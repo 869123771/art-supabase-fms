@@ -32,7 +32,7 @@
     fetchFundTransferDetail,
     saveFundTransfer
   } from '@fms/api'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
   import { canEditField, canViewField } from '@/utils/field-permission'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
 
@@ -171,7 +171,7 @@
             props: {
               formatter: () =>
                 sourceOption.value
-                  ? formatAvailableBalance(
+                  ? formatSensitiveCurrencyValue(
                       sourceOption.value.availableBalance,
                       sourceOption.value.currencyCode
                     )
@@ -247,7 +247,11 @@
             key: '__amountDisplay',
             type: 'text',
             props: {
-              formatter: () => formatProtectedAmount(currentRecord.value?.amount)
+              formatter: () =>
+                formatSensitiveCurrencyValue(
+                  currentRecord.value?.amount,
+                  currentRecord.value?.currencyCode
+                )
             }
           },
           {
@@ -255,7 +259,11 @@
             key: '__feeAmountDisplay',
             type: 'text',
             props: {
-              formatter: () => formatProtectedAmount(currentRecord.value?.feeAmount)
+              formatter: () =>
+                formatSensitiveCurrencyValue(
+                  currentRecord.value?.feeAmount,
+                  currentRecord.value?.currencyCode
+                )
             }
           }
         )
@@ -345,16 +353,6 @@
       }
       return false
     }
-  }
-
-  function formatAvailableBalance(value: unknown, currency = 'CNY'): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currency)
-  }
-
-  function formatProtectedAmount(value: Api.Fms.SensitiveNumber | undefined): string {
-    if (value === null || value === undefined || value === '') return '--'
-    return formatCurrencyValue(value, currentRecord.value?.currencyCode)
   }
 
   function formatAccountDisplay(name?: string, accountNo?: string): string {

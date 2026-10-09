@@ -449,17 +449,8 @@
     }
 
     &.is-compact {
-      :deep(.art-section-card__header) {
-        display: block;
-      }
-
-      :deep(.art-section-card__actions) {
-        justify-content: flex-start;
-        margin-top: 10px;
-      }
-
       .accounting-readiness-panel__account-set {
-        width: min(100%, 360px);
+        width: 280px;
         max-width: 100%;
       }
 
@@ -530,7 +521,8 @@
 
   @media (width <= 640px) {
     .accounting-readiness-panel__account-set {
-      width: 100%;
+      width: 280px;
+      max-width: 100%;
     }
   }
 </style>
