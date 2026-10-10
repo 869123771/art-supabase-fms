@@ -684,14 +684,6 @@
   }
 
   watch(
-    () => [canViewListField('billParties'), canViewListField('billAmounts')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
-
-  watch(
     () => table.search.accountSetId,
     async () => {
       await loadSummary()

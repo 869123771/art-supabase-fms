@@ -62,7 +62,7 @@
   import { useRouteDocumentDrawer } from '@/hooks/core/useRouteDocumentDrawer'
   import { useAuth } from '@/hooks/core/useAuth'
   import dayjs from 'dayjs'
-  import { storeToRefs } from 'pinia'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -127,7 +127,7 @@
   const transitionBusy = ref(false)
   const { runWithAccountSet } = useFinanceAccountSetPrerequisite()
   const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
+  const transferStatusOptions = useDictionaryOptions('fmsFundTransferStatus')
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
   const drawerRef = ref<DrawerExpose>()
@@ -204,7 +204,7 @@
       key: 'status',
       type: 'select',
       props: {
-        options: getDictMap.value.fmsFundTransferStatus ?? [],
+        options: transferStatusOptions,
         clearable: true,
         placeholder: '全部状态'
       }
@@ -637,14 +637,6 @@
   watch(canFilterAccount, (allowed) => {
     if (!allowed) table.search.sourceAccountId = undefined
   })
-
-  watch(
-    () => [canViewListField('transferAccounts'), canViewListField('transferAmounts')],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
 
   onMounted(async () => {
     const [{ data }] = await Promise.all([

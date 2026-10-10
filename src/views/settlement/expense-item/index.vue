@@ -1,6 +1,6 @@
 <template>
   <div class="business-workspace-page art-full-height">
-    <MasterDeleteProcessingNotice />
+    <MasterDeleteProcessingNotice :table="tableRef" />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="EXPENSE TAXONOMY"

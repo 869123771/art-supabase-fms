@@ -57,7 +57,7 @@
     type ArtTableValidationResult
   } from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption, TableColumnValidationContext } from '@/types'
-  import { formatCnyCurrencyValue } from '@/utils/ui'
+  import { formatCnyCurrencyValue, formatNumberValue } from '@/utils/ui'
 
   defineOptions({ name: 'FmsVoucherEntryLines' })
 
@@ -387,7 +387,7 @@
         if (!subject?.allowForeignCurrency) return '—'
         if (props.readonly) {
           return row.currencyCodeSnapshot
-            ? `${row.currencyCodeSnapshot} ${Number(row.originalAmount).toLocaleString('zh-CN')}`
+            ? `${row.currencyCodeSnapshot} ${formatNumberValue(Number(row.originalAmount))}`
             : '—'
         }
         return (
@@ -463,7 +463,7 @@
         const subject = subjectFor(row)
         if (!subject?.allowQuantity) return '—'
         return props.readonly ? (
-          `${Number(row.quantity).toLocaleString('zh-CN')} ${subject.unitName ?? ''}`
+          `${formatNumberValue(Number(row.quantity))} ${subject.unitName ?? ''}`
         ) : (
           <ElInputNumber
             v-model={row.quantity}

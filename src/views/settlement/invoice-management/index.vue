@@ -18,10 +18,11 @@
     </BusinessWorkspaceHeader>
 
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="customerDeleteContext.active"
       :customer-id="customerDeleteContext.customerId"
       :customer-name="customerDeleteContext.customerName"
-      action-hint="已定位到关联发票。草稿可直接删除；已复核、已开具或已作废发票属于财务历史，应保留并停用客户。"
+      action-hint="请核对关联发票。草稿可直接删除；已复核、已开具或已作废发票属于财务历史，应保留并停用客户。"
     />
 
     <ArtTableQuery
@@ -491,14 +492,11 @@
   async function fetchTableData(params: TableParams) {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchInvoiceList({ ...params, from, to })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     fieldAccess.value = result.fieldAccess
     currentRows.value = result.data
     totalCount.value = result.total
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -507,9 +505,6 @@
       mergeFieldAccessMaps(fieldAccess.value, ...currentRows.value.map((row) => row.fieldAccess)),
       field
     )
-
-  const getSensitiveColumnVisibility = (): string =>
-    `${canViewListField('invoiceAmounts')}:${canViewListField('taxIdentity')}`
 
   const canAuditInvoice = (row: Invoice): boolean =>
     isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'invoiceAmounts')) &&

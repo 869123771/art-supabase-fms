@@ -18,6 +18,7 @@
     </BusinessWorkspaceHeader>
 
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="customerDeleteContext.active"
       :customer-id="customerDeleteContext.customerId"
       :customer-name="customerDeleteContext.customerName"
@@ -456,14 +457,11 @@
   async function fetchTableData(params: TableParams) {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCashTransactionList({ ...params, from, to })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     fieldAccess.value = result.fieldAccess
     currentRows.value = result.data
     totalCount.value = result.total
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -472,9 +470,6 @@
       mergeFieldAccessMaps(fieldAccess.value, ...currentRows.value.map((row) => row.fieldAccess)),
       field
     )
-
-  const getSensitiveColumnVisibility = (): string =>
-    `${canViewListField('transactionAmounts')}:${canViewListField('bankDetails')}`
 
   async function loadCustomerOptions(): Promise<void> {
     const { data } = await fetchCustomerOptions()

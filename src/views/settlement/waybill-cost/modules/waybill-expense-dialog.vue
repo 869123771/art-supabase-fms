@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { normalizeCoordinatePair } from '@/utils/geo'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
@@ -459,28 +460,9 @@
       form.data.expenseLocation = value
     }
   })
-  const hasValidExpenseCoordinate = computed(() => {
-    if (
-      form.data.expenseLongitude === null ||
-      form.data.expenseLongitude === undefined ||
-      form.data.expenseLongitude === '' ||
-      form.data.expenseLatitude === null ||
-      form.data.expenseLatitude === undefined ||
-      form.data.expenseLatitude === ''
-    ) {
-      return false
-    }
-    const longitude = Number(form.data.expenseLongitude)
-    const latitude = Number(form.data.expenseLatitude)
-    return (
-      Number.isFinite(longitude) &&
-      Number.isFinite(latitude) &&
-      longitude >= -180 &&
-      longitude <= 180 &&
-      latitude >= -90 &&
-      latitude <= 90
-    )
-  })
+  const hasValidExpenseCoordinate = computed(
+    () => normalizeCoordinatePair(form.data.expenseLongitude, form.data.expenseLatitude) !== null
+  )
   const waybillSummary = computed(() => {
     const waybill = selectedWaybill.value
     if (!waybill) return ''

@@ -18,10 +18,11 @@
     </BusinessWorkspaceHeader>
 
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="customerDeleteContext.active"
       :customer-id="customerDeleteContext.customerId"
       :customer-name="customerDeleteContext.customerName"
-      action-hint="已定位到关联对账单。草稿可直接删除；其他状态请先按现有审核、驳回或作废规则处理。"
+      action-hint="请核对关联对账单。草稿可直接删除；其他状态请先按现有审核、驳回或作废规则处理。"
     />
 
     <ArtTableQuery
@@ -423,14 +424,11 @@
   const fetchTableData = async (params: TableParams) => {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCustomerStatementList({ ...params, from, to })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     fieldAccess.value = result.fieldAccess
     currentRows.value = result.data
     totalCount.value = result.total
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -442,9 +440,6 @@
 
   const canViewRowField = (row: CustomerStatement, field: CustomerStatementFieldKey): boolean =>
     canViewField(row.fieldAccess ?? fieldAccess.value, field)
-
-  const getSensitiveColumnVisibility = (): string =>
-    `${canViewListField('statementAmounts')}:${canViewListField('settlementAmounts')}`
 
   async function loadCustomerOptions(): Promise<void> {
     const { data } = await fetchCustomerOptions()

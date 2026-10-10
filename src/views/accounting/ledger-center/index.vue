@@ -212,19 +212,6 @@
   })
   const activeFieldAccess = computed(() => ledgerFieldAccess[activeTab.value])
 
-  watch(
-    () => ledgerFieldAccess.balance,
-    () => void nextTick(() => balanceTableRef.value?.resetColumns())
-  )
-  watch(
-    () => ledgerFieldAccess.general,
-    () => void nextTick(() => generalTableRef.value?.resetColumns())
-  )
-  watch(
-    () => ledgerFieldAccess.subsidiary,
-    () => void nextTick(() => subsidiaryTableRef.value?.resetColumns())
-  )
-
   const ledgerAmountAccess = computed(() =>
     getFieldAccess(activeFieldAccess.value, 'ledgerAmounts')
   )

@@ -1,5 +1,5 @@
 import { groupBy } from 'lodash-es'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import { parseReadableSensitiveNumber } from '@/utils/field-permission'
 
 const { supabase, responseHandle } = useSupabase()

@@ -520,17 +520,6 @@
     () => void loadOverview()
   )
 
-  watch(
-    () => [
-      canViewListField('accountingPolicy'),
-      canViewListField('taxRegistration'),
-      canViewListField('administrativeAudit')
-    ],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
   onMounted(() => {
     void Promise.allSettled([
       userStore.ensureDictLoaded('fmsAccountSetStatus'),

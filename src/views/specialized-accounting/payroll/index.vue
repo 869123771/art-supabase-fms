@@ -68,7 +68,10 @@
   } from '../../modules/fund-execution-dialog.vue'
   import type { ColumnOption } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatSensitiveCurrencyValue as formatProtectedAmount } from '@/utils/ui'
+  import {
+    formatSensitiveCountValue,
+    formatSensitiveCurrencyValue as formatProtectedAmount
+  } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
   import { canEditField, canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -139,7 +142,7 @@
           {
             key: 'employee',
             label: '核算人次',
-            value: formatProtectedCount(summary.value.employeeCount),
+            value: formatSensitiveCountValue(summary.value.employeeCount),
             loading: summaryLoading.value,
             description: '批次员工快照合计',
             icon: 'ri:user-follow-line',
@@ -238,7 +241,7 @@
               label: '员工数',
               width: 90,
               align: 'right' as const,
-              formatter: (row: Run) => formatProtectedCount(row.employeeCount)
+              formatter: (row: Run) => formatSensitiveCountValue(row.employeeCount)
             }
           ]
         : []),
@@ -435,19 +438,8 @@
   async function refreshAll(): Promise<void> {
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
   }
-  function formatProtectedCount(value: Api.Fms.SensitiveNumber | undefined | null): string {
-    if (value === null || value === undefined || value === '') return '--'
-    if (typeof value === 'string') return value
-    return value.toLocaleString('zh-CN')
-  }
   watch(() => table.search.accountSetId, loadSummary)
-  watch(
-    () => [canViewListField('employeeIdentity'), canViewListField('salaryAmounts')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
+
   onMounted(async () => {
     await userStore.ensureDictLoaded('fmsPayrollRunStatus').catch(() => undefined)
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })

@@ -673,11 +673,6 @@
       }
     }
 
-    :deep(.art-descriptions .el-descriptions__label) {
-      width: 132px;
-      font-weight: 600;
-    }
-
     @media (width <= 1100px) {
       &__overview {
         grid-template-columns: repeat(2, minmax(0, 1fr));

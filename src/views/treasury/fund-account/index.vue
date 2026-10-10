@@ -389,14 +389,6 @@
     () => void loadOverview()
   )
 
-  watch(
-    () => [canViewListField('accountDetails'), canViewListField('accountBalances')],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
-
   onMounted(async () => {
     await Promise.allSettled([
       userStore.ensureDictLoaded('fmsFundAccountType'),

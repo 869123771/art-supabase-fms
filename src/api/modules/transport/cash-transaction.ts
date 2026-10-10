@@ -1,6 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import type { QueryResult } from '@/types/api/response'
 import { readTenantScopeId, TENANT_SCOPE_HEADER } from '@/utils/tenant-scope-context'
 

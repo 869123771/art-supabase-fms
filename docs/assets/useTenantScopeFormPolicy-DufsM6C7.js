@@ -1,1 +1,0 @@
-import{r as e}from"./clipboard-DnVCETpu.js";import{Gn as t,da as n,n as r}from"./index-Cpib9usC.js";function i(){let{isAllTenants:i,effectiveTenantId:a}=t(e()),o=r();return{effectiveTenantId:n(()=>a.value??null),defaultWriteTenantId:n(()=>a.value??o.getUserInfo.tenantId??null),shouldExposeTenantField:n(()=>i.value),isTenantScopeItem:e=>e.key===`tenantId`}}export{i as t};

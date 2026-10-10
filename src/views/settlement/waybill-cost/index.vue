@@ -5,7 +5,8 @@
   >
     <div class="waybill-cost__page-content">
       <MasterDeleteProcessingNotice
-        action-hint="当前费用已自动定位；请按审核、报销或支付状态完成处理。"
+        :table="activeTableRef"
+        action-hint="请核对关联费用；请按审核、报销或支付状态完成处理。"
       />
       <BusinessWorkspaceHeader
         density="compact"
@@ -267,27 +268,7 @@
   )
   const expenseTableRef = ref<ArtTableQueryExpose>()
   const reimbursementTableRef = ref<ArtTableQueryExpose>()
-  watch(
-    () => [
-      canViewField(expenseFieldAccess.value, 'costAmounts'),
-      canViewField(expenseFieldAccess.value, 'paymentDetails')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => expenseTableRef.value?.resetColumns())
-    }
-  )
-  watch(
-    () => [
-      canViewField(reimbursementFieldAccess.value, 'reimbursementAmounts'),
-      canViewField(reimbursementFieldAccess.value, 'payeeDetails'),
-      canViewField(reimbursementFieldAccess.value, 'paymentExecution')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => reimbursementTableRef.value?.resetColumns())
-    }
-  )
+
   const activeTableRef = computed(() =>
     activeTab.value === 'expense' ? expenseTableRef.value : reimbursementTableRef.value
   )

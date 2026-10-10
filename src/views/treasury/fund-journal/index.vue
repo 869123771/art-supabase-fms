@@ -13,7 +13,11 @@
       ]"
       :metrics="metrics"
       @metric-click="handleMetricClick"
-    />
+    >
+      <template #actions>
+        <BusinessTableWorkspaceActions :table="tableRef" />
+      </template>
+    </BusinessWorkspaceHeader>
 
     <ElAlert
       type="info"
@@ -44,9 +48,10 @@
 <script setup lang="tsx">
   import { normalizeNullableNumber } from '@/utils/form/normalize'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
-  import { storeToRefs } from 'pinia'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type { ArtTableQueryExpose } from '@/components/core/tables/art-table-query/index.vue'
+  import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
@@ -70,7 +75,8 @@
   type TableParams = SearchParams & { current: number; size: number }
 
   const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
+  const directionOptions = useDictionaryOptions('fmsFundLedgerDirection')
+  const sourceTypeOptions = useDictionaryOptions('fmsFundLedgerSourceType')
   const tableRef = ref<ArtTableQueryExpose>()
   const route = useRoute()
   const linkedRecordNo = computed(() =>
@@ -148,7 +154,7 @@
       key: 'direction',
       type: 'select',
       props: {
-        options: getDictMap.value.fmsFundLedgerDirection ?? [],
+        options: directionOptions,
         clearable: true,
         placeholder: '全部方向'
       }
@@ -158,7 +164,7 @@
       key: 'sourceType',
       type: 'select',
       props: {
-        options: getDictMap.value.fmsFundLedgerSourceType ?? [],
+        options: sourceTypeOptions,
         clearable: true,
         placeholder: '全部来源'
       }
@@ -404,18 +410,6 @@
       void loadAccountOptions(table.search.accountSetId)
     }
   })
-
-  watch(
-    () => [
-      canViewListField('accountDetails'),
-      canViewListField('ledgerAmounts'),
-      canViewListField('transactionDetails')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
 
   onMounted(async () => {
     watch(linkedRecordNo, (recordNo, previousRecordNo) => {

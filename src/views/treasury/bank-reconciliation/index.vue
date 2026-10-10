@@ -59,7 +59,7 @@
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { useRouteDocumentDrawer } from '@/hooks/core/useRouteDocumentDrawer'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { storeToRefs } from 'pinia'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -106,7 +106,7 @@
     handleOpen: (row: Batch) => Promise<void>
   }
 
-  const { getDictMap } = storeToRefs(useUserStore())
+  const reconciliationStatusOptions = useDictionaryOptions('fmsBankReconciliationStatus')
   const tableRef = ref<ArtTableQueryExpose>()
   const importDialogRef = ref<ImportDialogExpose>()
   const drawerRef = ref<DrawerExpose>()
@@ -181,7 +181,7 @@
       key: 'status',
       type: 'select',
       props: {
-        options: getDictMap.value.fmsBankReconciliationStatus ?? [],
+        options: reconciliationStatusOptions,
         clearable: true,
         placeholder: '全部状态'
       }
@@ -439,18 +439,6 @@
   watch(
     () => [table.search.accountSetId, table.search.fundAccountId],
     () => void loadOverview()
-  )
-
-  watch(
-    () => [
-      canViewListField('accountDetails'),
-      canViewListField('statementAmounts'),
-      canViewListField('bankReferences')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
   )
 
   async function loadAccountSetOptions(): Promise<void> {

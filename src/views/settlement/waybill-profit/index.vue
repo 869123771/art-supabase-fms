@@ -80,17 +80,7 @@
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const profitAnalysisDrawerRef = ref<ProfitAnalysisDrawerExpose>()
   const profitFieldAccess = ref<Api.Fms.WaybillProfitFieldAccessMap>({})
-  watch(
-    () => [
-      canViewField(profitFieldAccess.value, 'receivableAmounts'),
-      canViewField(profitFieldAccess.value, 'costAmounts'),
-      canViewField(profitFieldAccess.value, 'profitAmounts')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableQueryRef.value?.resetColumns())
-    }
-  )
+
   const searchQuery = reactive<SearchParams>({
     keyword: '',
     waybillStatus: '',

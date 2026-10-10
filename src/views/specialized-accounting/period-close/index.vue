@@ -413,13 +413,7 @@
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
   }
   watch(() => table.search.accountSetId, loadSummary)
-  watch(
-    () => [canViewListField('closeDiagnostics'), canViewListField('closeAudit')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
+
   onMounted(async () => {
     await userStore.ensureDictLoaded('fmsPeriodCloseRunStatus').catch(() => undefined)
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })

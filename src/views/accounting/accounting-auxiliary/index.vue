@@ -6,13 +6,15 @@
   >
     <MasterDeleteProcessingNotice
       v-if="deleteContext.active"
-      :location-ready="!workspace.loading && !workspace.error"
+      :record-rows="referencedItemId ? filteredItems : workspace.types"
+      :record-loading="workspace.loading || workspace.itemLoading"
+      :record-error="Boolean(workspace.error || workspace.itemError)"
       :action-hint="
         workspace.error
           ? '关联定位未完成，请重新加载或清除定位后返回检查。'
           : workspace.loading
             ? '正在读取关联目标，请稍候。'
-            : '当前列表已按关联记录自动定位。请处理完成后返回原页面继续删除。'
+            : '请核对关联辅助核算资料，处理完成后返回原页面继续删除。'
       "
     />
     <BusinessWorkspaceHeader

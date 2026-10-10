@@ -155,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+  import { clamp } from 'lodash-es'
   import { formatSensitiveNumberWithAffix, isMaskedValue } from '@/utils/field-permission'
   import { normalizeNullableNumber } from '@/utils/form/normalize'
   import type { AlertProps, TagProps } from 'element-plus'
@@ -212,6 +213,12 @@
 
   interface CollectionAdvisorExpose {
     handleOpen: () => Promise<void>
+  }
+
+  const rateDisplayOptions = {
+    suffix: '%',
+    emptyText: '—',
+    numberFormat: { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }
   }
 
   const router = useRouter()
@@ -392,7 +399,7 @@
         item: {
           key: 'margin',
           label: '综合毛利率',
-          value: () => formatPercent(grossMargin.value)
+          value: () => formatSensitiveNumberWithAffix(grossMargin.value, rateDisplayOptions)
         }
       },
       {
@@ -465,17 +472,6 @@
     return overview.stats.fieldAccess?.[field] ?? 'hidden'
   }
 
-  function formatPercent(value?: SensitiveNumber): string {
-    if (isMaskedValue(value)) return '***'
-    const numberValue = normalizeNullableNumber(value) ?? undefined
-    return numberValue === undefined ? '—' : `${numberValue.toFixed(2)}%`
-  }
-
-  function clampRate(value?: SensitiveNumber): number {
-    const numberValue = normalizeNullableNumber(value) ?? undefined
-    return numberValue === undefined ? 0 : Math.min(100, Math.max(0, numberValue))
-  }
-
   function withOptionalAmount(label: string, value?: SensitiveNumber): string {
     return value === undefined || value === null
       ? label
@@ -533,7 +529,7 @@
           description:
             fieldAccessLevel('customerSettlementAmounts') === 'hidden'
               ? '回款完成率受限'
-              : `回款完成率 ${formatPercent(stats.receiptCompletionRate)}`,
+              : `回款完成率 ${formatSensitiveNumberWithAffix(stats.receiptCompletionRate, rateDisplayOptions)}`,
           icon: 'ri:money-cny-circle-line',
           tone: 'success',
           interactive: true
@@ -548,7 +544,7 @@
             prefix: '¥',
             emptyText: '—'
           }),
-          description: `综合毛利率 ${formatPercent(grossMargin.value)}`,
+          description: `综合毛利率 ${formatSensitiveNumberWithAffix(grossMargin.value, rateDisplayOptions)}`,
           icon: 'ri:line-chart-line',
           tone: profit === undefined || profit >= 0 ? 'primary' : 'danger',
           interactive: true
@@ -733,8 +729,8 @@
         access: 'customerSettlementAmounts',
         item: {
           label: '客户回款完成率',
-          value: formatPercent(stats.receiptCompletionRate),
-          percent: clampRate(stats.receiptCompletionRate),
+          value: formatSensitiveNumberWithAffix(stats.receiptCompletionRate, rateDisplayOptions),
+          percent: clamp(normalizeNullableNumber(stats.receiptCompletionRate) ?? 0, 0, 100),
           color:
             (normalizeNullableNumber(stats.receiptCompletionRate) ?? undefined) !== undefined
               ? 'var(--el-color-success)'
@@ -745,8 +741,8 @@
         access: 'carrierSettlementAmounts',
         item: {
           label: '承运商付款完成率',
-          value: formatPercent(stats.paymentCompletionRate),
-          percent: clampRate(stats.paymentCompletionRate),
+          value: formatSensitiveNumberWithAffix(stats.paymentCompletionRate, rateDisplayOptions),
+          percent: clamp(normalizeNullableNumber(stats.paymentCompletionRate) ?? 0, 0, 100),
           color:
             (normalizeNullableNumber(stats.paymentCompletionRate) ?? undefined) !== undefined
               ? 'var(--el-color-warning)'
@@ -757,8 +753,8 @@
         access: 'invoiceAmounts',
         item: {
           label: '发票匹配完成率',
-          value: formatPercent(stats.invoiceMatchRate),
-          percent: clampRate(stats.invoiceMatchRate),
+          value: formatSensitiveNumberWithAffix(stats.invoiceMatchRate, rateDisplayOptions),
+          percent: clamp(normalizeNullableNumber(stats.invoiceMatchRate) ?? 0, 0, 100),
           color:
             (normalizeNullableNumber(stats.invoiceMatchRate) ?? undefined) !== undefined
               ? 'var(--el-color-primary)'
@@ -769,8 +765,8 @@
         access: 'operatingAmounts',
         item: {
           label: '费用审核完成率',
-          value: formatPercent(stats.costApprovalRate),
-          percent: clampRate(stats.costApprovalRate),
+          value: formatSensitiveNumberWithAffix(stats.costApprovalRate, rateDisplayOptions),
+          percent: clamp(normalizeNullableNumber(stats.costApprovalRate) ?? 0, 0, 100),
           color:
             (normalizeNullableNumber(stats.costApprovalRate) ?? undefined) !== undefined
               ? 'var(--el-color-success)'
@@ -826,7 +822,7 @@
       const invoiceRateLabel =
         fieldAccessLevel('invoiceAmounts') === 'hidden'
           ? ''
-          : `当前发票匹配完成率 ${formatPercent(stats.invoiceMatchRate)}，`
+          : `当前发票匹配完成率 ${formatSensitiveNumberWithAffix(stats.invoiceMatchRate, rateDisplayOptions)}，`
       if (invoiceRate !== undefined && invoiceRate >= 100) return reminders
       reminders.push({
         title: `${invoiceRateLabel}请及时关联对账单并完成复核`,

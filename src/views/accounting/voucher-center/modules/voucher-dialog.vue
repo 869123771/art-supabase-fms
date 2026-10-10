@@ -110,6 +110,7 @@
 </template>
 
 <script setup lang="tsx">
+  import BusinessAttachmentRowActions from '@/components/business/business-attachment-row-actions/index.vue'
   import { voucherSourceOptions } from '../../../modules/voucher-summary'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
@@ -127,7 +128,6 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
-  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import type { ColumnOption } from '@/types'
   import {
     fetchCashFlowAllocations,
@@ -139,7 +139,7 @@
     transitionVoucher
   } from '@fms/api'
   import { attachmentTableLink } from '@/components/core/media/art-file-viewer/table-link'
-  import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
+  import { getFileExtension } from '@/utils/file'
   import {
     isReadableFieldAccess,
     canEditField,
@@ -366,24 +366,15 @@
     {
       prop: 'operation',
       label: '操作',
-      width: canEditAttachments.value ? 120 : 80,
+      width: canEditAttachments.value ? 144 : 104,
+      fixed: 'right',
       formatter: (row: Api.Fms.VoucherAttachment) => (
-        <div class="flex items-center">
-          <ArtIconButton icon="ri:eye-line" label="查看附件" onClick={() => viewAttachment(row)} />
-          <ArtIconButton
-            icon="ri:download-2-line"
-            label="下载附件"
-            onClick={() => downloadAttachment(row)}
-          />
-          {canEditAttachments.value ? (
-            <ArtIconButton
-              icon="ri:delete-bin-5-line"
-              label="移除附件"
-              tone="danger"
-              onClick={() => removeAttachment(row)}
-            />
-          ) : null}
-        </div>
+        <BusinessAttachmentRowActions
+          file={row}
+          removable={canEditAttachments.value}
+          removeLabel="移除附件"
+          onRemove={() => void removeAttachment(row)}
+        />
       )
     }
   ])

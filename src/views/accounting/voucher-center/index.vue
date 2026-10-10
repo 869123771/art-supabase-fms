@@ -634,13 +634,6 @@
     }
   }
 
-  watch(
-    () => [canViewListField('sourceReferences'), canViewListField('voucherAmounts')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableQueryRef.value?.resetColumns())
-    }
-  )
   onMounted(() => {
     void Promise.allSettled([
       userStore.ensureDictLoaded('fmsVoucherStatus'),

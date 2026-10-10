@@ -1,7 +1,7 @@
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { uniq } from 'lodash-es'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import type { ApiFeedbackOptions } from '@/types/api/request'
 import { fetchAccountSetIdentities } from '@fms/api/modules/accounting/foundation'
 

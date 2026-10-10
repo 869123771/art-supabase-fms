@@ -1,4 +1,4 @@
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 
 type Subject = Api.Fms.SubjectRecord
 type Currency = Api.Fms.CurrencyRecord

@@ -157,10 +157,8 @@
     letter-spacing: -0.01em;
   }
 
-  :deep(.art-section-card__identity p) {
+  :deep(.art-section-card__subtitle) {
     max-width: 760px;
-    margin-top: 4px;
-    line-height: 20px;
   }
 
   :deep(.accounting-workspace-scope-section.art-section-card.art-card-xs) {

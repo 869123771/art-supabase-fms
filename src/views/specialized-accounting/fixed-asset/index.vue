@@ -1,6 +1,6 @@
 <template>
   <FinanceAccountingWorkspaceShell class="fixed-asset-page" hide-master-delete-notice>
-    <MasterDeleteProcessingNotice v-if="deleteContext.active" />
+    <MasterDeleteProcessingNotice :table="tableRef" v-if="deleteContext.active" />
     <BusinessWorkspaceHeader
       density="compact"
       eyebrow="FIXED ASSET LEDGER"
@@ -595,13 +595,6 @@
     }
   )
 
-  watch(
-    () => [canViewListField('assetValues'), canViewListField('assetCustody')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
   onMounted(async () => {
     await userStore.ensureDictLoaded('fmsAssetStatus').catch(() => undefined)
     const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })

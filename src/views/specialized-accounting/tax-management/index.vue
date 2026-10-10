@@ -443,13 +443,7 @@
     await Promise.all([tableRef.value?.refreshUpdate(), loadSummary()])
   }
   watch(() => table.search.accountSetId, loadSummary)
-  watch(
-    () => [canViewListField('taxAmounts'), canViewListField('filingReferences')],
-    (visibility, previousVisibility) => {
-      if (visibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableRef.value?.resetColumns())
-    }
-  )
+
   onMounted(async () => {
     await Promise.allSettled([
       userStore.ensureDictLoaded('fmsTaxType'),

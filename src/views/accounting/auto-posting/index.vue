@@ -113,7 +113,8 @@
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatCurrencyValue } from '@/utils/ui'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui'
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
   import { formatWithDayjs } from '@/utils/time'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import {
@@ -402,12 +403,6 @@
     return result
   }
 
-  function formatProtectedCurrency(value: unknown): string {
-    const formatted = formatSensitiveNumber(value as number | string | null | undefined)
-    if (isMaskedValue(formatted) || formatted === '--') return formatted
-    return formatCurrencyValue(Number(value))
-  }
-
   const ruleColumnsFactory = (): ColumnOption<Rule>[] => [
     { type: 'globalIndex', label: '序号', width: 72 },
     {
@@ -568,7 +563,12 @@
             label: '业务金额',
             width: 130,
             align: 'right' as const,
-            formatter: (row: Event) => formatProtectedCurrency(row.payload.gross_amount)
+            formatter: (row: Event) =>
+              formatSensitiveCurrencyValue(
+                isMaskedValue(row.payload.grossAmount)
+                  ? '***'
+                  : normalizeNullableNumber(row.payload.grossAmount)
+              )
           }
         ]
       : []),

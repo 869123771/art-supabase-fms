@@ -179,6 +179,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCoordinateValue } from '@/utils/ui/coordinates'
   import { useMediaQuery } from '@vueuse/core'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -386,7 +387,7 @@
     {
       key: 'coordinates',
       label: '经纬度',
-      value: (data: Expense) => formatCoordinates(data.expenseLongitude, data.expenseLatitude),
+      value: (data: Expense) => formatCoordinateValue(data.expenseLongitude, data.expenseLatitude),
       span: 2
     },
     { key: 'coordinateSource', label: '定位来源', field: 'expenseCoordinateSource' },
@@ -506,22 +507,6 @@
     if (value === null || value === undefined || value === '') return '--'
     const numericValue = Number(value)
     return Number.isFinite(numericValue) ? formatCurrencyValue(numericValue) : '--'
-  }
-
-  function formatCoordinates(
-    longitude?: number | string | null,
-    latitude?: number | string | null
-  ): string {
-    if (
-      longitude === null ||
-      longitude === undefined ||
-      latitude === null ||
-      latitude === undefined
-    ) {
-      return '--'
-    }
-    if (isMaskedValue(longitude) || isMaskedValue(latitude)) return '***'
-    return `${longitude}, ${latitude}`
   }
 </script>
 
@@ -657,11 +642,6 @@
         outline-offset: 2px;
         border-radius: var(--el-border-radius-small);
       }
-    }
-
-    :deep(.art-descriptions .el-descriptions__label) {
-      width: 132px;
-      font-weight: 600;
     }
 
     @media (width <= 1100px) {

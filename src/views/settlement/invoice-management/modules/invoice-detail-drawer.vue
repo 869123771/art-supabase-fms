@@ -159,42 +159,43 @@
             key: 'amountExcludingTax',
             label: '不含税金额',
             field: 'amountExcludingTax' as const,
-            formatter: (value: unknown) =>
-              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.amountExcludingTax, { prefix: '¥' })
           },
           {
             key: 'taxRate',
             label: '税率',
             field: 'taxRate' as const,
-            formatter: (value: unknown) => formatPercent(value)
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.taxRate, { suffix: '%' })
           },
           {
             key: 'taxAmount',
             label: '税额',
             field: 'taxAmount' as const,
-            formatter: (value: unknown) =>
-              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.taxAmount, { prefix: '¥' })
           },
           {
             key: 'totalAmount',
             label: '价税合计',
             field: 'totalAmount' as const,
-            formatter: (value: unknown) =>
-              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.totalAmount, { prefix: '¥' })
           },
           {
             key: 'linkedAmount',
             label: '已关联金额',
             field: 'linkedAmount' as const,
-            formatter: (value: unknown) =>
-              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.linkedAmount, { prefix: '¥' })
           },
           {
             key: 'unlinkedAmount',
             label: '未关联金额',
             field: 'unlinkedAmount' as const,
-            formatter: (value: unknown) =>
-              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+            formatter: (_value: unknown, data: Invoice) =>
+              formatSensitiveNumberWithAffix(data.unlinkedAmount, { prefix: '¥' })
           }
         ]
       : []),
@@ -223,7 +224,7 @@
         label: '对账金额',
         width: 135,
         align: 'right',
-        formatter: (row) => formatStatementMoney(row.statementAmount)
+        formatter: (row) => formatSensitiveNumberWithAffix(row.statementAmount, { prefix: '¥' })
       })
     }
     if (canViewField(detail.value?.fieldAccess, 'invoiceAmounts')) {
@@ -237,14 +238,6 @@
     }
     return columns
   })
-
-  function formatPercent(value: unknown): string {
-    return formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { suffix: '%' })
-  }
-
-  function formatStatementMoney(value?: Api.Fms.SensitiveNumber): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
 
   async function handleOpen(row: Invoice): Promise<void> {
     openDetail(row.id)

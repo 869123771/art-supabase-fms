@@ -241,7 +241,13 @@
             <p v-if="canViewRowField(row, 'auxiliaryDetails') && row.currency" class="mt-3 text-sm">
               {{ row.currency.currencyCode
               }}<template v-if="canViewRowField(row, 'balanceAmounts')">
-                · 原币金额 {{ formatSensitiveNumber(row.originalCurrencyAmount) }}</template
+                · 原币金额
+                {{
+                  formatSensitiveNumberWithAffix(row.originalCurrencyAmount, {
+                    emptyText: '—',
+                    numberFormat: {}
+                  })
+                }}</template
               >
             </p>
           </article>
@@ -281,6 +287,7 @@
     canEditField,
     canViewField,
     getFieldAccess,
+    formatSensitiveNumberWithAffix,
     isMaskedValue,
     mergeFieldAccessMaps
   } from '@/utils/field-permission'
@@ -578,7 +585,10 @@
               canViewRowField(row, 'balanceAmounts') &&
               canViewRowField(row, 'auxiliaryDetails') &&
               row.currency
-                ? formatSensitiveNumber(row.originalCurrencyAmount)
+                ? formatSensitiveNumberWithAffix(row.originalCurrencyAmount, {
+                    emptyText: '—',
+                    numberFormat: {}
+                  })
                 : '—'
           }
         ]
@@ -611,13 +621,6 @@
   function resetBalanceFilters(): void {
     balanceFilterForm.value = createDefaultBalanceFilter()
     Object.assign(appliedBalanceFilter, createDefaultBalanceFilter())
-  }
-
-  function formatSensitiveNumber(value: number | string | null | undefined): string {
-    if (value === null || value === undefined) return '—'
-    if (isMaskedValue(value)) return '***'
-    const numericValue = Number(value)
-    return Number.isFinite(numericValue) ? numericValue.toLocaleString('zh-CN') : '—'
   }
 
   function formatMoney(value: number | string | null | undefined): string {

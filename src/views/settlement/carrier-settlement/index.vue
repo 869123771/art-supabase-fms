@@ -1,10 +1,11 @@
 <template>
   <div class="business-workspace-page art-full-height">
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="deleteContext.active"
       :customer-id="deleteContext.customerId"
       :customer-name="deleteContext.customerName"
-      action-hint="已自动定位关联对账单；财务历史不可随主数据级联删除。"
+      action-hint="请核对关联对账单；财务历史不可随主数据级联删除。"
     />
     <BusinessWorkspaceHeader
       density="compact"
@@ -407,14 +408,11 @@
   async function fetchTableData(params: TableParams) {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCarrierStatementList({ ...params, from, to })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     fieldAccess.value = result.fieldAccess
     currentRows.value = result.data
     totalCount.value = result.total
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -423,9 +421,6 @@
       mergeFieldAccessMaps(fieldAccess.value, ...currentRows.value.map((row) => row.fieldAccess)),
       field
     )
-
-  const getSensitiveColumnVisibility = (): string =>
-    `${canViewListField('statementAmounts')}:${canViewListField('settlementAmounts')}`
 
   async function changeStatus(row: Statement, status: Api.Fms.CustomerStatementStatus) {
     const label = status === 'pending_review' ? '提交审核' : '审核通过'

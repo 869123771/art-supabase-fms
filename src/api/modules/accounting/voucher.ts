@@ -1,7 +1,7 @@
 import type { ApiFeedbackOptions } from '@/types/api/request'
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 type Voucher = Api.Fms.SecureVoucherRecord
 type VoucherSearchParams = Api.Fms.VoucherSearchParams
 type VoucherTemplate = Api.Fms.VoucherTemplateRecord
