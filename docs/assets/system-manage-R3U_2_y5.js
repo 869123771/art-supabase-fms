@@ -1,0 +1,1 @@
+import{T as e,pt as t}from"./sys-C_hZuHMf.js";import"./tenant-scope-Ox9sDmMj.js";import"./index-C8nEWJwz.js";var{supabase:n,keysToSnakeDeep:r,responseHandle:i}=t();new e({idKey:`id`,parentKey:`parentId`,childrenKey:`children`});
