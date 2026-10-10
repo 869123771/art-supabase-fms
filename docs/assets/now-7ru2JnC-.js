@@ -1,1 +1,0 @@
-import{ot as e}from"./_baseUniq-CwQ7JJ7L.js";var t=function(){return e.Date.now()};export{t};

@@ -1,1 +1,0 @@
-import{Gi as e,Ii as t,ua as n}from"./sys-GRTcLZYn.js";import{t as r}from"./waybill-cost-NYe1VvQ4.js";var i=e({name:`FinanceExpenseReimbursement`,__name:`index`,setup(e){return(e,i)=>(n(),t(r))}});export{i as default};

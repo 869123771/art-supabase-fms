@@ -75,7 +75,7 @@
   import type { ColumnOption } from '@/types'
   import { fetchCustomerStatementDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { getSettlementStatusPresentation } from '../../../modules/settlement-status'
 
@@ -95,8 +95,7 @@
   const canView = (field: Api.Fms.CustomerStatementFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)
 
-  const formatDateTime = (value?: string | null): string =>
-    value ? (formatWithDayjs(value, 'YYYY-MM-DD HH:mm') ?? '-') : '-'
+  const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm', emptyText: '-' })
 
   const descriptionItems = computed<ArtDescriptionItem<CustomerStatement>[]>(() => [
     { key: 'statementNo', label: '对账单号', field: 'statementNo', copyable: true },

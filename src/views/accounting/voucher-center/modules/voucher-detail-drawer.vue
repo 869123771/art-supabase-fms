@@ -141,7 +141,7 @@
   import { fetchVoucherDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import type { ColumnOption } from '@/types'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { downloadAttachment } from '@/utils/file'
   import { canViewField, formatSensitiveNumber, getFieldAccess } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
@@ -327,9 +327,7 @@
     }[action]
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '—'
-  }
+  const formatTime = createDateTimeFormatter({ emptyText: '—' })
 
   async function handleOpen(row: Voucher | string): Promise<void> {
     const initialRow = typeof row === 'string' ? undefined : row

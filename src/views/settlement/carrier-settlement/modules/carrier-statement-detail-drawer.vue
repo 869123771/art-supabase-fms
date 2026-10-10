@@ -67,7 +67,7 @@
   import type { ColumnOption } from '@/types'
   import { fetchCarrierStatementDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceCarrierStatementDetailDrawer' })
@@ -82,8 +82,7 @@
 
   const canView = (field: Api.Fms.CarrierStatementFieldKey): boolean =>
     canViewField(detail.value?.fieldAccess, field)
-  const formatDateTime = (v?: string | null) =>
-    v ? (formatWithDayjs(v, 'YYYY-MM-DD HH:mm') ?? '-') : '-'
+  const formatDateTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm', emptyText: '-' })
   const descriptionItems = computed<ArtDescriptionItem<Statement>[]>(() => [
     { key: 'statementNo', label: '对账单号', field: 'statementNo', copyable: true },
     {
