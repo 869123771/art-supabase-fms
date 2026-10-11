@@ -107,7 +107,7 @@
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<{ handleOpen: () => Promise<void> }>()
   const drawerRef = ref<{ handleOpen: (row: Statement) => Promise<void> }>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard(
     'tms_carrier_statement',
     '承运商对账单'
   )
@@ -481,16 +481,15 @@
   }
 
   async function handleDelete(row: Statement) {
-    try {
-      if (await inspectDeleteReferences([{ id: row.id, label: row.statementNo }])) return
-      await confirmAction('仅草稿可删除，删除后无法恢复。', '删除对账单', {
-        type: 'warning'
-      })
-      await deleteCarrierStatement(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      /* 用户取消 */
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: row.statementNo },
+      permission: 'FinanceCarrierSettlement:Delete',
+      confirmMessage: `确认删除承运商对账单 ${row.statementNo}？仅草稿可删除，删除后无法恢复。`,
+      remove: () => deleteCarrierStatement(row.id),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
 
   async function loadCarrierOptions() {

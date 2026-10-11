@@ -41,12 +41,11 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
-  import { storeToRefs } from 'pinia'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchAccountSetOptions, fetchCurrencyList, saveFundAccount } from '@fms/api'
-  import { useUserStore } from '@/store/modules/user'
   import { canEditField, canViewField } from '@/utils/field-permission'
 
   defineOptions({ name: 'FinanceFundAccountDialog' })
@@ -59,8 +58,9 @@
   type Account = Api.Fms.FundAccountRecord
 
   const emit = defineEmits<{ success: [type: 'add' | 'edit'] }>()
-  const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
+  const accountTypeOptions = useDictionaryOptions('fmsFundAccountType')
+  const accountStatusOptions = useDictionaryOptions('fmsFundAccountStatus')
+  const booleanOptions = useDictionaryOptions('commonBoolean', (value) => value === 'true')
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
@@ -149,12 +149,6 @@
     }
   })
 
-  const booleanOptions = computed(() =>
-    (getDictMap.value.commonBoolean ?? []).map((item) => ({
-      ...item,
-      value: item.value === 'true'
-    }))
-  )
   const isBank = computed(() => form.data.accountType === 'bank')
 
   const formItems = computed<FormItem[]>(() => [
@@ -207,8 +201,8 @@
     {
       label: '账户类型',
       key: 'accountType',
-      type: 'select',
-      props: { options: getDictMap.value.fmsFundAccountType ?? [] }
+      type: 'segment',
+      props: { options: accountTypeOptions }
     },
     {
       label: '开户信息',
@@ -300,26 +294,26 @@
     {
       label: '账户状态',
       key: 'status',
-      type: 'select',
-      props: { options: getDictMap.value.fmsFundAccountStatus ?? [] }
+      type: 'segment',
+      props: { options: accountStatusOptions }
     },
     {
       label: '默认账户',
       key: 'isDefault',
       type: 'segment',
-      props: { options: booleanOptions.value }
+      props: { options: booleanOptions }
     },
     {
       label: '银企直联',
       key: 'onlineBankingEnabled',
       type: 'segment',
-      props: { options: booleanOptions.value, disabled: !isBank.value }
+      props: { options: booleanOptions, disabled: !isBank.value }
     },
     {
       label: '银行对账',
       key: 'reconciliationEnabled',
       type: 'segment',
-      props: { options: booleanOptions.value, disabled: form.data.accountType === 'cash' }
+      props: { options: booleanOptions, disabled: form.data.accountType === 'cash' }
     },
     {
       label: '备注',
@@ -441,11 +435,6 @@
       onOpen: async (_openData, api) => {
         formRef.value?.clearValidate()
         try {
-          await Promise.all([
-            userStore.ensureDictLoaded('commonBoolean'),
-            userStore.ensureDictLoaded('fmsFundAccountStatus'),
-            userStore.ensureDictLoaded('fmsFundAccountType')
-          ])
           const { data, error } = await fetchAccountSetOptions({
             status: 'active',
             from: 0,

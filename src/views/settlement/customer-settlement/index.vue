@@ -117,7 +117,7 @@
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
   const drawerRef = ref<DrawerExpose>()
-  const { deleteGuardRef, inspectDeleteReferences } = useRecordDeleteGuard(
+  const { deleteGuardRef, deleteRecord } = useRecordDeleteGuard(
     'tms_customer_statement',
     '客户对账单'
   )
@@ -541,19 +541,15 @@
   }
 
   async function handleDelete(row: CustomerStatement): Promise<void> {
-    try {
-      if (await inspectDeleteReferences([{ id: row.id, label: row.statementNo }])) return
-      await confirmAction('仅草稿对账单可删除，删除后无法恢复。', '删除对账单', {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonType: 'danger'
-      })
-      await deleteCustomerStatement(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消时无需提示。
-    }
+    await deleteRecord({
+      resource: { id: row.id, label: row.statementNo },
+      permission: 'FinanceCustomerSettlement:Delete',
+      confirmMessage: `确认删除客户对账单 ${row.statementNo}？仅草稿可删除，删除后无法恢复。`,
+      remove: () => deleteCustomerStatement(row.id),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
 
   function syncCustomerDeleteRoute(forceRefresh = false): void {

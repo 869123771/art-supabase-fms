@@ -1,22 +1,8 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header>
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:group-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">薪资批次详情</strong>
-          <span class="block break-words text-xs text-g-600">{{ activeRunNo }}</span>
-        </div>
-      </div>
-    </template>
+  <ArtDrawer header-icon="ri:group-line" :loading="loading" ref="drawerRef" :show-footer="false">
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!run"
+      :empty="!loading && !run"
       empty-text="暂无薪资批次详情"
       empty-description="请返回列表重新选择批次，或刷新后重试。"
       @retry="reloadDetail"
@@ -208,7 +194,6 @@
     '薪资明细'
   )
   const drawerRef = ref<ArtDrawerExpose>()
-  const activeRunNo = ref('')
   const lineDialogRef = ref<{
     handleOpen: (run: Api.Fms.PayrollRunRecord, line?: Api.Fms.PayrollLineRecord) => Promise<void>
   }>()
@@ -391,7 +376,6 @@
     await reloadDetail()
   }
   async function handleOpen(row: Api.Fms.PayrollRunRecord): Promise<void> {
-    activeRunNo.value = row.runNo
     ++linesRequestId
     linesLoading.value = false
     linesError.value = ''
@@ -400,7 +384,8 @@
     openDetail(row.id)
     lines.value = []
     await drawerRef.value?.handleOpen(undefined, {
-      title: `薪资批次详情 · ${row.runNo}`,
+      title: '薪资批次详情',
+      subtitle: row.runNo,
       size: 'xl',
       loading: true,
       loadingText: '正在加载薪资明细…',

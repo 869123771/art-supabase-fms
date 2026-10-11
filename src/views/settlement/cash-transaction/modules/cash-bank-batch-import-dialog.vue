@@ -177,7 +177,7 @@
 
     <template #footer="{ api }">
       <div class="bank-batch__footer">
-        <span>
+        <span class="art-icon-label">
           <ArtSvgIcon icon="ri:lock-2-line" aria-hidden="true" />
           {{
             !isPlatformSuper

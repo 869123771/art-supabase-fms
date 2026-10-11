@@ -1,24 +1,11 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header="{ data }">
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:bill-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">发票详情</strong>
-          <small class="block truncate text-xs text-g-600"
-            >{{ data.invoiceNo || data.invoiceRecordNo }} · 发票信息与审批记录</small
-          >
-        </div>
-      </div>
+  <ArtDrawer header-icon="ri:bill-line" :loading="loading" ref="drawerRef" :show-footer="false">
+    <template #subtitle="{ data }">
+      {{ data.invoiceNo || data.invoiceRecordNo }} · 发票信息与审批记录
     </template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无发票详情"
       empty-description="请返回发票列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -103,7 +90,6 @@
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
@@ -242,7 +228,7 @@
   async function handleOpen(row: Invoice): Promise<void> {
     openDetail(row.id)
     await drawerRef.value?.handleOpen(row, {
-      title: `发票详情 · ${row.invoiceNo || row.invoiceRecordNo}`,
+      title: '发票详情',
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

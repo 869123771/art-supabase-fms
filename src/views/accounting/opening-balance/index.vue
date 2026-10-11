@@ -181,26 +181,28 @@
 
       <ArtAsyncState
         class="accounting-workspace-content-state"
-        :class="{ 'is-empty': filteredBalances.length === 0 }"
+        :class="{
+          'is-empty': !workspace.loading && !workspace.error && filteredBalances.length === 0
+        }"
         :loading="workspace.loading"
         :empty-image-size="56"
-        :min-height="0"
+        :min-height="120"
         :error="workspace.error"
-        :empty="filteredBalances.length === 0"
+        :empty="!workspace.loading && !workspace.error && filteredBalances.length === 0"
         empty-text="暂无期初余额"
         empty-description="按末级科目录入期初借贷余额；借贷合计平衡后方可确认。"
         @retry="scope.accountSetId ? loadFoundation() : loadAccountSets()"
       >
         <ArtTable
           :border="false"
-          v-if="!isCompact"
+          v-if="!isCompact && !workspace.loading && !workspace.error"
           :data="filteredBalances"
           :columns="columns"
           :pagination="false"
           table-layout="fixed"
           empty-text="暂无期初余额"
         />
-        <div v-else class="grid gap-3">
+        <div v-else-if="isCompact && !workspace.loading && !workspace.error" class="grid gap-3">
           <article
             v-for="row in filteredBalances"
             :key="row.id"
@@ -894,40 +896,42 @@
     }
 
     &__scope-section {
-      :deep(.art-page-section__header) {
+      :deep(.art-section-card__header) {
         align-items: center;
         margin-bottom: 0;
       }
     }
 
     &__detail {
-      :deep(.art-page-section__header) {
+      :deep(.art-section-card__header) {
+        flex: none;
         align-items: center;
         margin-bottom: 10px;
       }
     }
 
-    &__scope-section.art-page-section.art-card-xs {
+    &__scope-section.art-section-card.art-card-xs {
+      flex: none;
       padding: 14px 20px;
     }
 
-    &__detail.art-page-section.art-card-xs {
-      flex: 1;
-      min-height: 0;
+    &__detail.art-section-card.art-card-xs {
+      flex: 1 0 auto;
+      min-height: min-content;
       padding: 12px 20px;
       overflow: hidden;
 
-      :deep(.art-page-section__body) {
+      :deep(.art-section-card__body) {
         display: flex;
         flex: 1;
         flex-direction: column;
-        min-height: 0;
+        min-height: min-content;
         overflow: hidden;
       }
 
       :deep(.accounting-workspace-content-state),
       :deep(.accounting-workspace-content-state.is-empty > .art-async-state__empty) {
-        min-height: 0 !important;
+        min-height: 120px !important;
       }
 
       :deep(.accounting-workspace-content-state .art-empty-state) {
@@ -960,6 +964,7 @@
     }
 
     &__validation-strip {
+      flex: none;
       gap: 10px;
       min-height: 48px;
       padding: 8px 12px;

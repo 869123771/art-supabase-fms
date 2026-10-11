@@ -25,15 +25,15 @@
       </template>
       <template #meta>
         <div v-if="detail.data" class="expense-reimbursement-detail__header-meta">
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:user-3-line" aria-hidden="true" />
             {{ detail.data.applicantNameSnapshot || '申请人待补充' }}
           </span>
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:calendar-event-line" aria-hidden="true" />
             计划付款 {{ formatDate(detail.data.plannedPaymentDate) }}
           </span>
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:time-line" aria-hidden="true" />
             更新于 {{ formatDateTime(detail.data.updateTime) }}
           </span>

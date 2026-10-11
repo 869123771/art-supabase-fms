@@ -185,12 +185,13 @@
           :empty-image-size="72"
           :min-height="160"
           :error="workspace.error"
-          :empty="filteredRates.length === 0"
+          :empty="!workspace.loading && !workspace.error && filteredRates.length === 0"
           empty-text="暂无汇率记录"
           empty-description="选择已启用外币后维护汇率；本位币无需维护汇率。"
           @retry="loadWorkspace"
         >
           <ArtTable
+            v-if="!workspace.loading && !workspace.error"
             :border="false"
             :data="filteredRates"
             :columns="columns"

@@ -139,6 +139,7 @@
   import PostingRuleDialog from './modules/posting-rule-dialog.vue'
   import PostingEventDetailDrawer from './modules/posting-event-detail-drawer.vue'
   import VoucherDetailDrawer from '@fms/views/accounting/voucher-center/modules/voucher-detail-drawer.vue'
+  import { formatVoucherSummary } from '../../modules/voucher-summary'
 
   defineOptions({ name: 'FinanceAutoPosting' })
 
@@ -514,7 +515,13 @@
             prop: 'summary',
             label: '事件摘要',
             minWidth: 250,
-            showOverflowTooltip: true
+            showOverflowTooltip: true,
+            formatter: (row: Event) =>
+              formatVoucherSummary(
+                row.summary,
+                row.sourceType === 'waybill_cost' ? getDictMap.value.fmsPostingWaybillCostType : [],
+                { sourceType: row.sourceType, billEvents: getDictMap.value.fmsBillEventType }
+              )
           }
         ]
       : []),
@@ -543,16 +550,16 @@
             prop: 'voucher',
             label: '生成凭证',
             minWidth: 150,
-            formatter: (row: Event) =>
-              row.voucherId &&
-              hasAuth('FinanceAutoPosting:View') &&
-              isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'eventSourceReferences')) ? (
-                <ElButton link type="primary" onClick={() => void openVoucherById(row.voucherId!)}>
-                  {row.voucher?.voucherNo || '查看凭证'}
-                </ElButton>
-              ) : (
-                row.voucher?.voucherNo || '—'
-              )
+            formatter: (row: Event) => row.voucher?.voucherNo || '—',
+            link: {
+              permission: 'FinanceAutoPosting:View',
+              disabled: (row: Event) =>
+                !row.voucherId ||
+                !isReadableFieldAccess(getFieldAccess(row.fieldAccess, 'eventSourceReferences')),
+              onClick: (row: Event) => {
+                if (row.voucherId) void openVoucherById(row.voucherId)
+              }
+            }
           }
         ]
       : []),
@@ -779,7 +786,9 @@
       userStore.ensureDictLoaded('fmsPostingEventStatus'),
       userStore.ensureDictLoaded('fmsPostingSourceEvent'),
       userStore.ensureDictLoaded('fmsPostingSubmissionMode'),
-      userStore.ensureDictLoaded('fmsVoucherType')
+      userStore.ensureDictLoaded('fmsVoucherType'),
+      userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
+      userStore.ensureDictLoaded('fmsBillEventType')
     ])
     await loadAccountSets()
     await openReferencedEvent()

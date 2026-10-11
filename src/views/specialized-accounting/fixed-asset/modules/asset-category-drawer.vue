@@ -1,20 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
-    <template #header>
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-        >
-          <ArtSvgIcon icon="ri:folder-settings-line" class="text-xl" />
-        </span>
-        <div class="min-w-0">
-          <div class="text-base font-semibold text-g-900">资产类别</div>
-          <div class="mt-0.5 text-xs text-g-500"
-            >维护使用寿命与残值率，已被引用的类别需先处理关联</div
-          >
-        </div>
-      </div>
-    </template>
+  <ArtDrawer header-icon="ri:folder-settings-line" ref="drawerRef" :show-footer="false">
     <ArtTableQuery
       ref="tableRef"
       v-model="search"
@@ -44,7 +29,6 @@
   import { ElTag } from 'element-plus'
   import { useMediaQuery } from '@vueuse/core'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtTableQuery, {
     type ArtTableQueryExpose,
@@ -170,6 +154,7 @@
     search.value.keyword = ''
     await drawerRef.value?.handleOpen(undefined, {
       title: '资产类别',
+      subtitle: '维护使用寿命与残值率，已被引用的类别需先处理关联',
       size: 'lg',
       onOpen: async () => {
         await tableRef.value?.getData()

@@ -241,10 +241,9 @@
     const selected = table.search.status
     const count = (status: Api.Fms.BankReconciliationStatus) =>
       overviewRows.value.filter((row) => row.status === status).length
-    const unmatched = overviewRows.value.reduce(
-      (sum, row) => sum + row.unmatchedCount + row.partialCount,
-      0
-    )
+    const unmatched = overviewRows.value
+      .filter((row) => row.status === 'reconciling')
+      .reduce((sum, row) => sum + row.unmatchedCount + row.partialCount, 0)
     return [
       {
         key: 'all',
@@ -280,7 +279,7 @@
         key: 'exceptions',
         label: '待处理流水',
         value: unmatched,
-        description: '未匹配与部分匹配合计',
+        description: '对账中批次的未匹配与部分匹配',
         icon: 'ri:error-warning-line',
         tone: unmatched ? 'danger' : 'success'
       }

@@ -39,7 +39,7 @@
           :columns="lineColumns"
           :pagination="false"
           table-layout="fixed"
-          scrollbar-always-on
+          :scrollbar-always-on="false"
           empty-text="暂无制证分录"
           empty-description="请新增借方和贷方分录，形成完整的会计规则。"
           empty-height="180px"

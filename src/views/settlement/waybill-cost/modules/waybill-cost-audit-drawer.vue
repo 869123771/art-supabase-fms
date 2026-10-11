@@ -50,7 +50,7 @@
           <div class="cost-auditor__score">
             <article class="is-risk">
               <header>
-                <span><ArtSvgIcon icon="ri:pulse-line" />风险评分</span>
+                <span class="art-icon-label"><ArtSvgIcon icon="ri:pulse-line" />风险评分</span>
                 <strong :style="{ color: riskProgressColor }">{{
                   state.data.assessment.riskScore
                 }}</strong>
@@ -65,7 +65,7 @@
             </article>
             <article class="is-confidence">
               <header>
-                <span><ArtSvgIcon icon="ri:focus-3-line" />审核置信度</span>
+                <span class="art-icon-label"><ArtSvgIcon icon="ri:focus-3-line" />审核置信度</span>
                 <strong>{{ confidencePercent }}%</strong>
               </header>
               <ElProgress :percentage="confidencePercent" :show-text="false" :stroke-width="6" />
@@ -73,7 +73,9 @@
             </article>
             <article class="is-amount">
               <header>
-                <span><ArtSvgIcon icon="ri:money-cny-circle-line" />本笔金额</span>
+                <span class="art-icon-label"
+                  ><ArtSvgIcon icon="ri:money-cny-circle-line" />本笔金额</span
+                >
                 <strong>{{
                   formatSensitiveNumberWithAffix(state.data.assessment.metrics.amount, {
                     prefix: '¥'
@@ -253,9 +255,15 @@
         <ArtAiFeedback :run-id="state.data.runId" context-label="AI 运单费用审核" />
 
         <footer class="cost-auditor__meta">
-          <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span> <ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }} </span>
-          <span> <ArtSvgIcon icon="ri:shield-check-line" />只读建议，不会自动修改财务数据 </span>
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span
+          >
+          <span class="art-icon-label">
+            <ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}
+          </span>
+          <span class="art-icon-label">
+            <ArtSvgIcon icon="ri:shield-check-line" />只读建议，不会自动修改财务数据
+          </span>
         </footer>
       </template>
 

@@ -125,17 +125,17 @@
         </template>
         <div v-if="forecast" class="cash-forecast-page__explain-grid">
           <div>
-            <span><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
+            <span class="art-icon-label"><ArtSvgIcon icon="ri:arrow-left-down-line" />收入侧</span>
             <strong>{{ formatSensitiveCurrencyValue(forecast.receivableOutstanding) }}</strong>
             <p>来自待复核、已确认和部分核销客户对账单的未结金额。</p>
           </div>
           <div>
-            <span><ArtSvgIcon icon="ri:arrow-right-up-line" />支出侧</span>
+            <span class="art-icon-label"><ArtSvgIcon icon="ri:arrow-right-up-line" />支出侧</span>
             <strong>{{ formatSensitiveCurrencyValue(forecast.payableOutstanding) }}</strong>
             <p>来自待复核、已确认和部分结算承运商对账单的未结金额。</p>
           </div>
           <div>
-            <span><ArtSvgIcon icon="ri:line-chart-line" />趋势侧</span>
+            <span class="art-icon-label"><ArtSvgIcon icon="ri:line-chart-line" />趋势侧</span>
             <strong>{{ formatSignedMoney(forecast.historicalNetFlow30d) }}</strong>
             <p>近 30 日已入账资金流水净额，用于判断预测与近期真实趋势是否背离。</p>
           </div>

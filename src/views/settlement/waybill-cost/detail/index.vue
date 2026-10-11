@@ -31,15 +31,15 @@
       </template>
       <template #meta>
         <div v-if="detail.data" class="waybill-cost-detail__header-meta">
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:calendar-event-line" aria-hidden="true" />
             发生于 {{ formatDate(detail.data.occurredOn) }}
           </span>
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:user-3-line" aria-hidden="true" />
             {{ detail.data.reporterNameSnapshot || detail.data.createBy || '上报人待补充' }}
           </span>
-          <span>
+          <span class="art-icon-label">
             <ArtSvgIcon icon="ri:time-line" aria-hidden="true" />
             更新于 {{ formatDateTime(detail.data.updateTime) }}
           </span>

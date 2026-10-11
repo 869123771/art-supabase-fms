@@ -1,8 +1,14 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
+  <ArtDrawer
+    header-icon="ri:git-branch-line"
+    :loading="loading"
+    ref="drawerRef"
+    :show-footer="false"
+  >
+    <template #subtitle>{{ eventSubtitle }}</template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无自动入账事件详情"
       empty-description="请返回事件列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -39,28 +45,19 @@
           v-if="canViewPayload"
           class="posting-event-detail__section"
           title="业务数据"
-          :empty="!payloadRows.length"
+          :empty="!payloadItems.length"
           empty-title="暂无业务载荷"
           empty-description="业务事件生成载荷后，可在此核对字段。"
           :empty-visual-size="64"
           :min-height="148"
           preserve-content-structure
         >
-          <ArtTable
-            class="posting-event-detail__payload-table"
-            :border="false"
-            :data="payloadRows"
-            :columns="payloadColumns"
-            :pagination="false"
-            table-layout="fixed"
-            empty-text="暂无业务载荷"
+          <ArtDescriptions
+            :data="detail.payload"
+            :items="payloadItems"
+            :columns="1"
+            label-width="140px"
           />
-          <dl class="posting-event-detail__payload-list">
-            <div v-for="row in payloadRows" :key="row.key">
-              <dt>{{ row.label }}</dt>
-              <dd>{{ row.value }}</dd>
-            </div>
-          </dl>
         </ArtSectionCard>
 
         <ArtSectionCard
@@ -110,8 +107,6 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import ArtTable from '@/components/core/tables/art-table/index.vue'
-  import type { ColumnOption } from '@/types'
   import { fetchPostingEventDetail } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import {
@@ -121,16 +116,11 @@
     getFieldAccess
   } from '@/utils/field-permission'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
+  import { formatVoucherSummary } from '../../../modules/voucher-summary'
 
   defineOptions({ name: 'FinancePostingEventDetailDrawer' })
 
   type Event = Api.Fms.SecurePostingEventRecord
-
-  interface PayloadRow {
-    key: string
-    label: string
-    value: string
-  }
 
   const emit = defineEmits<{ 'view-voucher': [voucherId: string] }>()
   const userStore = useUserStore()
@@ -143,7 +133,8 @@
         userStore.ensureDictLoaded('fmsBillDirection'),
         userStore.ensureDictLoaded('fmsPostingSourceEvent'),
         userStore.ensureDictLoaded('tmsCashPaymentMethod'),
-        userStore.ensureDictLoaded('fmsPostingWaybillCostType')
+        userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
+        userStore.ensureDictLoaded('fmsBillEventType')
       ])
       return fetchPostingEventDetail(id, { showErrorMessage: false })
     },
@@ -190,6 +181,11 @@
   const canViewSourceReferences = computed(() =>
     canViewField(detail.value?.fieldAccess, 'eventSourceReferences')
   )
+  const eventSubtitle = computed(() =>
+    canViewSourceReferences.value && detail.value?.sourceNo
+      ? detail.value.sourceNo
+      : '核对业务事件、处理结果与生成凭证'
+  )
   const canViewDiagnostics = computed(() =>
     canViewField(detail.value?.fieldAccess, 'processingDiagnostics')
   )
@@ -230,7 +226,19 @@
           field: 'accountSet',
           formatter: (_value, row) => row.accountSet?.accountSetName || '待匹配账套'
         },
-        { key: 'summary', label: '事件摘要', field: 'summary' },
+        {
+          key: 'summary',
+          label: '事件摘要',
+          field: 'summary',
+          formatter: (_value, row) =>
+            formatVoucherSummary(
+              row.summary,
+              row.sourceType === 'waybill_cost'
+                ? userStore.getDictMap.fmsPostingWaybillCostType
+                : [],
+              { sourceType: row.sourceType, billEvents: userStore.getDictMap.fmsBillEventType }
+            )
+        },
         {
           key: 'rule',
           label: '命中规则',
@@ -295,13 +303,14 @@
       .map(([key]) => ({ key, field: key, label: payloadLabelMap[key], copyable: true }))
   )
 
-  const payloadRows = computed<PayloadRow[]>(() =>
+  const payloadItems = computed<ArtDescriptionItem<Record<string, unknown>>[]>(() =>
     Object.entries(detail.value?.payload ?? {})
       .filter(([key]) => !referenceKeys.includes(key))
-      .map(([key, value]) => ({
+      .map(([key]) => ({
         key,
+        field: key,
         label: payloadLabelMap[key] ?? key,
-        value: formatPayloadValue(key, value)
+        formatter: (value) => formatPayloadValue(key, value)
       }))
   )
 
@@ -328,11 +337,6 @@
     return typeof value === 'object' ? JSON.stringify(value) : String(value)
   }
 
-  const payloadColumns: ColumnOption<PayloadRow>[] = [
-    { prop: 'label', label: '字段', minWidth: 150 },
-    { prop: 'value', label: '业务值', minWidth: 260, showOverflowTooltip: true }
-  ]
-
   function viewVoucher(): void {
     const voucherId = detail.value?.voucherId
     if (canOpenVoucher.value && voucherId) emit('view-voucher', voucherId)
@@ -346,10 +350,6 @@
     await drawerRef.value?.handleOpen(initialRow, {
       title: '自动入账事件',
       headerIcon: 'ri:git-branch-line',
-      subtitle:
-        initialRow && canViewField(initialRow.fieldAccess, 'eventSourceReferences')
-          ? initialRow.sourceNo || undefined
-          : undefined,
       size: 'xl',
       onOpen: () => loadDetail(eventId),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }
@@ -367,10 +367,6 @@
 
     &__section {
       min-width: 0;
-    }
-
-    &__payload-list {
-      display: none;
     }
 
     &__voucher {
@@ -394,33 +390,6 @@
     }
 
     @media (width <= 640px) {
-      &__payload-table {
-        display: none;
-      }
-
-      &__payload-list {
-        display: grid;
-        gap: var(--art-space-3);
-        margin: 0;
-
-        > div {
-          display: grid;
-          gap: 4px;
-          padding-bottom: var(--art-space-3);
-          border-bottom: 1px solid var(--el-border-color-lighter);
-        }
-
-        dt {
-          color: var(--el-text-color-secondary);
-        }
-
-        dd {
-          margin: 0;
-          color: var(--el-text-color-primary);
-          overflow-wrap: anywhere;
-        }
-      }
-
       &__voucher {
         flex-direction: column;
         align-items: flex-start;

@@ -3,7 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { setupGlobDirectives } from '@/directives'
 import language from '@/locales'
 import { store } from '@/store'
-import AssetCategoryDialog from '@fms/views/fixed-asset/modules/asset-category-dialog.vue'
+import AssetCategoryDialog from '@fms/views/specialized-accounting/fixed-asset/modules/asset-category-dialog.vue'
 import '@styles/core/tailwind.css'
 import '@styles/index.scss'
 

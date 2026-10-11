@@ -1,24 +1,14 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header="{ data }">
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:funds-box-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">资金调拨详情</strong>
-          <small class="block truncate text-xs text-g-600"
-            >{{ data.transferNo }} · 资金流向与操作轨迹</small
-          >
-        </div>
-      </div>
-    </template>
+  <ArtDrawer
+    header-icon="ri:funds-box-line"
+    :loading="loading"
+    ref="drawerRef"
+    :show-footer="false"
+  >
+    <template #subtitle="{ data }">{{ data.transferNo }} · 资金流向与操作轨迹</template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无资金调拨详情"
       empty-description="请返回调拨列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"

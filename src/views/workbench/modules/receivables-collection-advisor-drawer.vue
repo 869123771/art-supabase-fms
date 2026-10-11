@@ -304,13 +304,15 @@
         <footer
           class="mt-5 flex flex-wrap items-center gap-3.5 border-t border-dashed border-(--el-border-color-lighter) px-0.5 pt-3.5 pb-0.5 text-xs text-g-700 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.25"
         >
-          <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span
+          >
+          <span class="art-icon-label"
             ><ArtSvgIcon icon="ri:time-line" />{{
               formatDateTimeValue(state.data.generatedAt)
             }}</span
           >
-          <span
+          <span class="art-icon-label"
             ><ArtSvgIcon
               icon="ri:shield-check-line"
             />只读研判，不会自动改账、催收或修改业务状态</span

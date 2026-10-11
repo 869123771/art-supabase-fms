@@ -1,24 +1,8 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header="{ data }">
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:bank-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">银行对账</strong>
-          <small class="block truncate text-xs text-g-600"
-            >{{ data.batchNo }} · 银行流水与资金记录</small
-          >
-        </div>
-      </div>
-    </template>
+  <ArtDrawer header-icon="ri:bank-line" :loading="loading" ref="drawerRef" :show-footer="false">
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无银行对账详情"
       empty-description="请返回对账列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -670,7 +654,8 @@
     matchesLoading.value = false
     matchesError.value = null
     await drawerRef.value?.handleOpen(row, {
-      title: `银行对账 · ${row.batchNo}`,
+      title: '银行对账',
+      subtitle: `${row.batchNo} · 银行流水与资金记录`,
       size: 'xl',
       onOpen: loadDetail,
       drawerProps: { appendToBody: true, resizable: false, closeOnClickModal: true }

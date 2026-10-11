@@ -213,9 +213,15 @@
         <ArtAiFeedback :run-id="state.data.runId" context-label="AI 发票合规审核" />
 
         <footer class="invoice-auditor__meta">
-          <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span>
-          <span><ArtSvgIcon icon="ri:shield-check-line" />只读建议，不会自动审批发票</span>
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span
+          >
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span
+          >
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:shield-check-line" />只读建议，不会自动审批发票</span
+          >
         </footer>
       </template>
 

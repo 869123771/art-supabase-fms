@@ -1,26 +1,14 @@
 <template>
-  <ArtDrawer :loading="detail.loading" ref="drawerRef" :show-footer="false">
-    <template #header="{ data }">
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:exchange-dollar-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900"
-            >{{ data.direction === 'payment' ? '付款' : '收款' }}详情</strong
-          >
-          <small class="block truncate text-xs text-g-600"
-            >{{ data.transactionNo }} · 凭证与核销记录</small
-          >
-        </div>
-      </div>
-    </template>
+  <ArtDrawer
+    header-icon="ri:exchange-dollar-line"
+    :loading="detail.loading"
+    ref="drawerRef"
+    :show-footer="false"
+  >
+    <template #subtitle="{ data }"> {{ data.transactionNo }} · 凭证与核销记录 </template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail.data"
+      :empty="!detail.loading && !detail.data"
       empty-text="暂无收付款详情"
       empty-description="请返回收付款列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -92,7 +80,6 @@
   import { createDateTimeFormatter } from '@/utils/ui/format'
 
   import { ElButton, ElTag } from 'element-plus'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -348,7 +335,7 @@
   async function handleOpen(row: CashTransaction): Promise<void> {
     openDetail(row.id, row)
     await drawerRef.value?.handleOpen(row, {
-      title: `${row.direction === 'payment' ? '付款' : '收款'}详情 · ${row.transactionNo}`,
+      title: `${row.direction === 'payment' ? '付款' : '收款'}详情`,
       size: 'xl',
       onOpen: () => loadDetail(row.id),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

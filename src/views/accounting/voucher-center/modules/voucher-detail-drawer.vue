@@ -5,9 +5,12 @@
     header-icon="ri:file-list-3-line"
     :show-footer="false"
   >
+    <template #subtitle>
+      {{ detail?.voucherNo || '查看会计分录、业务来源及操作记录' }}
+    </template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无凭证详情"
       empty-description="请返回凭证列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -334,7 +337,6 @@
     openDetail(typeof row === 'string' ? row : row.id)
     await drawerRef.value?.handleOpen(initialRow, {
       title: '会计凭证详情',
-      subtitle: '查看会计分录、业务来源、附件及全生命周期操作记录。',
       size: 'xl',
       onOpen: () => loadDetail(activeId.value),
       drawerProps: { appendToBody: true, resizable: true, closeOnClickModal: true }

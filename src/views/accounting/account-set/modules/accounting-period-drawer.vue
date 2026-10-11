@@ -7,7 +7,7 @@
   >
     <ArtAsyncState
       :error="state.error?.message"
-      :empty="!state.accountSet"
+      :empty="!state.loading && !state.accountSet"
       empty-text="暂无账套期间信息"
       empty-description="请返回账套列表选择有效账套，或刷新后重试。"
       @retry="retryLoad"

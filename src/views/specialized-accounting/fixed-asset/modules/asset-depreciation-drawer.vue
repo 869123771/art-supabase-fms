@@ -1,18 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
-    <template #header>
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-        >
-          <ArtSvgIcon icon="ri:line-chart-line" class="text-xl" />
-        </span>
-        <div class="min-w-0">
-          <div class="text-base font-semibold text-g-900">固定资产折旧管理</div>
-          <div class="mt-0.5 text-xs text-g-500">选择期间计算折旧，核对批次后确认入账</div>
-        </div>
-      </div>
-    </template>
+  <ArtDrawer header-icon="ri:line-chart-line" ref="drawerRef" :show-footer="false">
     <div class="depreciation-workbench">
       <ElAlert v-if="loadError" type="error" :closable="false" show-icon>
         <template #title>折旧数据加载失败</template>
@@ -266,7 +253,6 @@
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
@@ -470,6 +456,7 @@
     runs.value = []
     await drawerRef.value?.handleOpen(undefined, {
       title: '固定资产折旧管理',
+      subtitle: '选择期间计算折旧，核对批次后确认入账',
       size: 'xl',
       loading: true,
       loadingText: '正在加载折旧数据…',

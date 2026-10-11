@@ -195,11 +195,17 @@
         <ArtAsyncState
           class="accounting-workspace-content-state"
           :class="{ 'is-empty': filteredItems.length === 0 }"
-          :loading="workspace.itemLoading"
+          :loading="workspace.loading || workspace.itemLoading"
           :empty-image-size="72"
           :min-height="160"
-          :error="workspace.itemError"
-          :empty="filteredItems.length === 0"
+          :error="workspace.error || workspace.itemError"
+          :empty="
+            !workspace.loading &&
+            !workspace.itemLoading &&
+            !workspace.error &&
+            !workspace.itemError &&
+            filteredItems.length === 0
+          "
           empty-text="暂无辅助核算项目"
           :empty-description="
             canSync ? '点击“同步主数据”从现有业务档案生成核算项目。' : '可新增手工核算项目。'
@@ -207,6 +213,12 @@
           @retry="workspace.error ? retryWorkspace() : loadItems()"
         >
           <ArtTable
+            v-if="
+              !workspace.loading &&
+              !workspace.itemLoading &&
+              !workspace.error &&
+              !workspace.itemError
+            "
             :border="false"
             :data="filteredItems"
             :columns="columns"

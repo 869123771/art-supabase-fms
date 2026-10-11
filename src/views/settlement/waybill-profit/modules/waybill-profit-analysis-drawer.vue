@@ -204,8 +204,12 @@
                 </ElTag>
               </header>
               <div class="profit-analyst__waybill-party">
-                <span><ArtSvgIcon icon="ri:building-2-line" />{{ waybill.customerName }}</span>
-                <span><ArtSvgIcon icon="ri:truck-line" />{{ waybill.carrierName }}</span>
+                <span class="art-icon-label"
+                  ><ArtSvgIcon icon="ri:building-2-line" />{{ waybill.customerName }}</span
+                >
+                <span class="art-icon-label"
+                  ><ArtSvgIcon icon="ri:truck-line" />{{ waybill.carrierName }}</span
+                >
               </div>
               <div class="profit-analyst__waybill-metrics">
                 <span
@@ -266,13 +270,17 @@
         <footer
           class="mt-5 flex flex-wrap items-center gap-3.5 border-t border-dashed border-(--el-border-color-lighter) px-0.5 pt-3.5 pb-0.5 text-xs text-g-700 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.25"
         >
-          <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-          <span
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span
+          >
+          <span class="art-icon-label"
             ><ArtSvgIcon icon="ri:time-line" />{{
               formatDateTimeValue(state.data.generatedAt)
             }}</span
           >
-          <span><ArtSvgIcon icon="ri:shield-check-line" />只读诊断，不会自动修改财务数据</span>
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:shield-check-line" />只读诊断，不会自动修改财务数据</span
+          >
         </footer>
       </template>
 

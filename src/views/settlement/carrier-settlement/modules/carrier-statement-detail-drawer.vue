@@ -2,7 +2,7 @@
   <ArtDrawer :loading="loading" ref="drawerRef" header-icon="ri:truck-line" :show-footer="false">
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无承运商对账详情"
       empty-description="请返回对账列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"

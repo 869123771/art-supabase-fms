@@ -1,24 +1,14 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header="{ data }">
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
-        >
-          <ArtSvgIcon icon="ri:bank-card-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">票据详情</strong>
-          <small class="block truncate text-xs text-g-600"
-            >{{ data.billNo }} · 票据信息与流转记录</small
-          >
-        </div>
-      </div>
-    </template>
+  <ArtDrawer
+    header-icon="ri:bank-card-line"
+    :loading="loading"
+    ref="drawerRef"
+    :show-footer="false"
+  >
+    <template #subtitle="{ data }"> {{ data.billNo }} · 票据信息与流转记录 </template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!bill"
+      :empty="!loading && !bill"
       empty-text="暂无票据详情"
       empty-description="请返回票据列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"
@@ -79,7 +69,6 @@
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import { fetchCommercialBillDetail, fetchCommercialBillEvents } from '@fms/api'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'

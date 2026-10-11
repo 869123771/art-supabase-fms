@@ -48,7 +48,7 @@
           >
         </div>
         <div v-else-if="!state.result" class="expense-ocr__guide">
-          <span v-for="item in guideItems" :key="item.title">
+          <span class="art-icon-label" v-for="item in guideItems" :key="item.title">
             <ArtSvgIcon :icon="item.icon" />
             <span
               ><strong>{{ item.title }}</strong

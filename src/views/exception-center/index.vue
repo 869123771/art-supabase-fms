@@ -134,10 +134,10 @@
               <p v-else>{{ issue.description || '请进入对应业务页面核对异常上下文。' }}</p>
             </div>
             <div class="financial-exception-page__evidence">
-              <span>业务编号</span>
+              <span>{{ issue.category === 'close' ? '检查项目' : '业务编号' }}</span>
               <BusinessRecordLink
                 v-if="issue.sourceNo"
-                :label="issue.sourceNo"
+                :label="issueSourceLabel(issue)"
                 :to="issueDetailPath(issue)"
                 compact
               />
@@ -330,6 +330,11 @@
     }
     if (issue.category !== 'cost') return issue.routePath
     return sourceId ? getWaybillCostDetailPath(sourceId) : issue.routePath
+  }
+  function issueSourceLabel(issue: Api.Fms.FinancialExceptionIssue): string {
+    return issue.category === 'close'
+      ? issue.description.split(' · ')[0]?.trim() || '月结检查'
+      : (issue.sourceNo ?? '--')
   }
   async function loadOverview(): Promise<void> {
     if (loading.value) return

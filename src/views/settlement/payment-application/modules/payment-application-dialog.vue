@@ -371,26 +371,26 @@
     { prop: 'contactPhone', label: '联系电话', width: 150 }
   ]
   const statementSelectorColumns: DataSelectColumn[] = [
-    { prop: 'statementNo', label: '对账单号', width: 190 },
-    { prop: 'periodLabel', label: '对账账期', width: 205 },
+    { prop: 'statementNo', label: '对账单号', minWidth: 170 },
+    { prop: 'periodLabel', label: '对账账期', minWidth: 190 },
     {
       prop: 'statementOutstandingAmount',
       label: '账面未付',
-      width: 130,
+      width: 110,
       align: 'right',
       formatter: (row) => money((row as Statement).statementOutstandingAmount)
     },
     {
       prop: 'reservedAmount',
       label: '审批占用',
-      width: 130,
+      width: 110,
       align: 'right',
       formatter: (row) => money((row as Statement).reservedAmount)
     },
     {
       prop: 'outstandingAmount',
       label: '可申请余额',
-      width: 135,
+      width: 120,
       align: 'right',
       formatter: (row) => money((row as Statement).outstandingAmount)
     }

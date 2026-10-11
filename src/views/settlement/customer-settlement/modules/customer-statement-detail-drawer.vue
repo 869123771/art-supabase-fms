@@ -7,7 +7,7 @@
   >
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!detail"
+      :empty="!loading && !detail"
       empty-text="暂无客户对账详情"
       empty-description="请返回对账列表重新选择记录，或刷新后重试。"
       @retry="retryLoad"

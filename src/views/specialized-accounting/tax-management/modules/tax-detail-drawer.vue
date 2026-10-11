@@ -1,27 +1,16 @@
 <template>
-  <ArtDrawer :loading="loading" ref="drawerRef" :show-footer="false">
-    <template #header>
-      <div class="flex min-w-0 items-center gap-3">
-        <span
-          class="grid size-10 shrink-0 place-items-center rounded bg-primary/10 text-xl text-primary"
-          aria-hidden="true"
+  <ArtDrawer header-icon="ri:bill-line" :loading="loading" ref="drawerRef" :show-footer="false">
+    <template #subtitle>
+      <div class="flex flex-wrap items-center gap-1">
+        <ArtDictDisplay dict-code="fmsTaxType" :value="period?.taxType" display="text" />
+        <span v-if="period?.period"
+          >· {{ period.period.fiscalYear }} 年第 {{ period.period.periodNo }} 期</span
         >
-          <ArtSvgIcon icon="ri:bill-line" />
-        </span>
-        <div class="min-w-0">
-          <strong class="block text-base text-g-900">税务期间详情</strong>
-          <div class="flex flex-wrap items-center gap-1 text-xs text-g-600">
-            <ArtDictDisplay dict-code="fmsTaxType" :value="period?.taxType" display="text" />
-            <span v-if="period?.period"
-              >· {{ period.period.fiscalYear }} 年第 {{ period.period.periodNo }} 期</span
-            >
-          </div>
-        </div>
       </div>
     </template>
     <ArtAsyncState
       :error="loadError?.message"
-      :empty="!period"
+      :empty="!loading && !period"
       empty-text="暂无税务期间详情"
       empty-description="请返回列表重新选择期间，或刷新后重试。"
       @retry="reloadDetail"
@@ -185,7 +174,6 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
