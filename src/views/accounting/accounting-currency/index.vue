@@ -199,7 +199,9 @@
           :empty-description="
             selectedCurrency?.isBase
               ? '在左侧选择已启用外币后，可新增和维护兑换汇率。'
-              : '新增汇率后，可按日期和类型查询历史记录。'
+              : selectedCurrency && !selectedCurrency.isEnabled
+                ? '该外币已停用，启用后可新增汇率；已有历史记录仍可查询。'
+                : '新增汇率后，可按日期和类型查询历史记录。'
           "
           @retry="loadWorkspace"
         >

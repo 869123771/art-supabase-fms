@@ -160,7 +160,8 @@
     useDetailRecord<Voucher>(async (id) => {
       await Promise.all([
         userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-        userStore.ensureDictLoaded('fmsBillEventType')
+        userStore.ensureDictLoaded('fmsBillEventType'),
+        userStore.ensureDictLoaded('fmsTaxType')
       ])
       return fetchVoucherDetail(id, { showErrorMessage: false })
     }, '凭证详情加载失败，请重试或返回列表重新选择。')
@@ -172,7 +173,11 @@
       detail.value?.summary,
       getDictMap.value.fmsPostingWaybillCostType,
       detail.value
-        ? { sourceType: detail.value.sourceType, billEvents: getDictMap.value.fmsBillEventType }
+        ? {
+            sourceType: detail.value.sourceType,
+            billEvents: getDictMap.value.fmsBillEventType,
+            taxTypes: getDictMap.value.fmsTaxType
+          }
         : undefined
     )
   )
@@ -207,7 +212,15 @@
       formatter: (value) => voucherSourceLabel(value, getDictMap.value.fmsVoucherSourceType)
     },
     ...(canViewSourceReferences.value && detail.value?.sourceNo
-      ? [{ key: 'sourceNo', label: '来源单号', field: 'sourceNo', copyable: true }]
+      ? [
+          {
+            key: 'sourceNo',
+            label: detail.value.sourceType === 'tax' ? '税种' : '来源单号',
+            field: 'sourceNo',
+            copyable: detail.value.sourceType !== 'tax',
+            ...(detail.value.sourceType === 'tax' ? { dictCode: 'fmsTaxType' } : {})
+          }
+        ]
       : []),
     {
       key: 'lineCount',

@@ -101,6 +101,7 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
@@ -495,8 +496,14 @@
                   type="primary"
                   onClick={() => void eventDetailRef.value?.handleOpen(row)}
                 >
-                  {row.sourceNo || '查看事件'}
+                  {row.sourceType === 'tax' ? (
+                    <ArtDictDisplay dictCode="fmsTaxType" value={row.sourceNo} display="text" />
+                  ) : (
+                    row.sourceNo || '查看事件'
+                  )}
                 </ElButton>
+              ) : row.sourceType === 'tax' ? (
+                <ArtDictDisplay dictCode="fmsTaxType" value={row.sourceNo} display="text" />
               ) : (
                 row.sourceNo || '—'
               )
@@ -520,7 +527,11 @@
               formatVoucherSummary(
                 row.summary,
                 row.sourceType === 'waybill_cost' ? getDictMap.value.fmsPostingWaybillCostType : [],
-                { sourceType: row.sourceType, billEvents: getDictMap.value.fmsBillEventType }
+                {
+                  sourceType: row.sourceType,
+                  billEvents: getDictMap.value.fmsBillEventType,
+                  taxTypes: getDictMap.value.fmsTaxType
+                }
               )
           }
         ]
@@ -788,7 +799,8 @@
       userStore.ensureDictLoaded('fmsPostingSubmissionMode'),
       userStore.ensureDictLoaded('fmsVoucherType'),
       userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-      userStore.ensureDictLoaded('fmsBillEventType')
+      userStore.ensureDictLoaded('fmsBillEventType'),
+      userStore.ensureDictLoaded('fmsTaxType')
     ])
     await loadAccountSets()
     await openReferencedEvent()

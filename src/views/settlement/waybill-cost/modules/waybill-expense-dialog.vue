@@ -161,7 +161,7 @@
   interface ExpenseFormGroup {
     data: ExpenseForm
     items: ComputedRef<FormItem[]>
-    rules: FormRules<ExpenseForm>
+    rules: ComputedRef<FormRules<ExpenseForm>>
   }
 
   interface FormExpose {
@@ -255,7 +255,7 @@
   )
   const form = reactive<ExpenseFormGroup>({
     data: formData,
-    rules: {
+    rules: computed<FormRules<ExpenseForm>>(() => ({
       costNo: [
         {
           validator: (_rule, value, callback) =>
@@ -269,6 +269,7 @@
       expenseItemId: [{ required: true, message: '请选择费用项目', trigger: 'change' }],
       amount: [
         {
+          required: canEditCostAmounts.value,
           validator: (_rule, value, callback) => {
             if (!canEditCostAmounts.value) return callback()
             return Number(value) > 0 ? callback() : callback(new Error('费用金额必须大于 0'))
@@ -290,7 +291,7 @@
           trigger: 'change'
         }
       ]
-    },
+    })),
     items: computed<FormItem[]>(() => [
       { label: '业务关联', key: 'relationSection', type: 'divider', span: 24 },
       {

@@ -8,7 +8,7 @@
       ref="formRef"
       v-model="form.data"
       :items="formItems"
-      :rules="form.rules"
+      :rules="formRules"
       :validate-on-rule-change="false"
       :span="12"
       :gutter="20"
@@ -115,6 +115,25 @@
   const canReadAuxiliary = computed(() => isReadableFieldAccess(auxiliaryAccess.value))
   const canEditAmounts = computed(() => canEditField(fieldAccess.value, 'balanceAmounts'))
   const canEditAuxiliary = computed(() => canEditField(fieldAccess.value, 'auxiliaryDetails'))
+
+  const formRules = computed<FormRules>(() => {
+    const rules: FormRules = { ...form.rules }
+    if (!canEditAuxiliary.value) return rules
+    if (selectedSubject.value?.allowForeignCurrency) {
+      rules.currencyId = [{ required: true, message: '请选择核算外币', trigger: 'change' }]
+    }
+    for (const config of subjectAuxiliaryConfigs.value) {
+      if (!config.isRequired) continue
+      rules[`auxiliaryValues.${config.auxiliaryTypeId}`] = [
+        {
+          required: true,
+          message: `请选择${config.auxiliaryType?.typeName ?? '核算维度'}`,
+          trigger: 'change'
+        }
+      ]
+    }
+    return rules
+  })
 
   const formItems = computed<FormItem[]>(() => [
     {
@@ -243,7 +262,6 @@
             key: `auxiliaryValues.${config.auxiliaryTypeId}`,
             type: 'select' as const,
             span: 12,
-            required: config.isRequired,
             help: config.isRequired ? '该维度为科目必录项' : undefined,
             props: {
               clearable: !config.isRequired,

@@ -272,11 +272,12 @@ export async function deleteWaybillCost(id: string) {
   )
 }
 
-export async function submitWaybillCost(id: string) {
+export async function submitWaybillCost(row: Pick<WaybillCost, 'id' | 'costNo'>) {
+  if (!row.id) throw new Error('缺少费用记录，请刷新后重试')
   return await startWorkflow({
     businessType: 'tms_waybill_cost',
-    businessId: id,
-    businessTitle: `运单费用审批 · ${id.slice(0, 8)}`
+    businessId: row.id,
+    businessTitle: `运单费用 ${row.costNo || '待编号费用单'}`
   })
 }
 

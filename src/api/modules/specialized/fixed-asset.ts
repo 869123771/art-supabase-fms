@@ -71,7 +71,7 @@ export async function fetchAssetDepreciationRuns(accountSetId?: string) {
         p_account_set_id: accountSetId || null,
         p_tenant_id: null
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: false }
   )
   return {
     data: result.data?.records ?? [],
@@ -83,7 +83,7 @@ export async function fetchAssetDepreciationRuns(accountSetId?: string) {
 export async function fetchAssetDepreciationLines(runId: string) {
   const result = await responseHandle<DepreciationLineListPayload>(
     () => supabase.rpc('fms_list_asset_depreciation_lines_secure', { p_run_id: runId }),
-    { showErrorMessage: true }
+    { showErrorMessage: false }
   )
   return {
     data: result.data?.records ?? [],

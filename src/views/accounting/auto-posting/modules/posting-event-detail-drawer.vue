@@ -113,6 +113,7 @@
     isReadableFieldAccess,
     canViewField,
     formatSensitiveNumber,
+    formatSensitiveNumberWithAffix,
     getFieldAccess
   } from '@/utils/field-permission'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
@@ -134,7 +135,10 @@
         userStore.ensureDictLoaded('fmsPostingSourceEvent'),
         userStore.ensureDictLoaded('tmsCashPaymentMethod'),
         userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-        userStore.ensureDictLoaded('fmsBillEventType')
+        userStore.ensureDictLoaded('fmsBillEventType'),
+        userStore.ensureDictLoaded('tmsInvoiceDirection'),
+        userStore.ensureDictLoaded('tmsInvoiceType'),
+        userStore.ensureDictLoaded('fmsTaxType')
       ])
       return fetchPostingEventDetail(id, { showErrorMessage: false })
     },
@@ -154,7 +158,9 @@
     assetCount: '资产数量',
     grossAmount: '业务总额',
     gross_amount: '业务总额',
+    netAmount: '不含税金额',
     net_amount: '不含税金额',
+    taxAmount: '税额',
     tax_amount: '税额',
     customer_id: '客户 ID',
     customerId: '客户关联标识',
@@ -172,6 +178,11 @@
     paymentMethod: '收付方式',
     bankReference: '银行流水号',
     invoice_no: '发票号码',
+    invoiceNo: '发票号码',
+    invoiceType: '发票类型',
+    taxRate: '税率',
+    taxType: '税种',
+    taxPeriodId: '税务期间关联标识',
     tax_rate: '税率',
     cost_type: '费用类型',
     costType: '费用类型',
@@ -183,7 +194,12 @@
   )
   const eventSubtitle = computed(() =>
     canViewSourceReferences.value && detail.value?.sourceNo
-      ? detail.value.sourceNo
+      ? detail.value.sourceType === 'tax'
+        ? formatVoucherSummary(detail.value.summary, [], {
+            sourceType: 'tax',
+            taxTypes: userStore.getDictMap.fmsTaxType
+          })
+        : detail.value.sourceNo
       : '核对业务事件、处理结果与生成凭证'
   )
   const canViewDiagnostics = computed(() =>
@@ -236,7 +252,11 @@
               row.sourceType === 'waybill_cost'
                 ? userStore.getDictMap.fmsPostingWaybillCostType
                 : [],
-              { sourceType: row.sourceType, billEvents: userStore.getDictMap.fmsBillEventType }
+              {
+                sourceType: row.sourceType,
+                billEvents: userStore.getDictMap.fmsBillEventType,
+                taxTypes: userStore.getDictMap.fmsTaxType
+              }
             )
         },
         {
@@ -254,11 +274,14 @@
         },
         {
           key: 'sourceNo',
-          label: '来源单号',
+          label: detail.value?.sourceType === 'tax' ? '税种' : '来源单号',
           field: 'sourceNo',
-          copyable: isReadableFieldAccess(
-            getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences')
-          )
+          ...(detail.value?.sourceType === 'tax' ? { dictCode: 'fmsTaxType' } : {}),
+          copyable:
+            detail.value?.sourceType !== 'tax' &&
+            isReadableFieldAccess(
+              getFieldAccess(detail.value?.fieldAccess, 'eventSourceReferences')
+            )
         }
       )
     }
@@ -288,6 +311,7 @@
     'fundAccountId',
     'runId',
     'periodId',
+    'taxPeriodId',
     'customer_id',
     'customerId',
     'carrier_id',
@@ -309,30 +333,58 @@
       .map(([key]) => ({
         key,
         field: key,
-        label: payloadLabelMap[key] ?? key,
-        formatter: (value) => formatPayloadValue(key, value)
+        label:
+          key === 'direction' && detail.value?.sourceType === 'invoice'
+            ? '发票方向'
+            : (payloadLabelMap[key] ?? key),
+        ...(getPayloadDictCode(key)
+          ? { dictCode: getPayloadDictCode(key) }
+          : { formatter: (value: unknown) => formatPayloadValue(key, value) })
       }))
   )
+
+  function getPayloadDictCode(key: string): string | undefined {
+    if (key === 'taxType') return 'fmsTaxType'
+    if (key === 'paymentMethod' || key === 'payment_method') return 'tmsCashPaymentMethod'
+    if (key === 'costType' || key === 'cost_type') return 'fmsPostingWaybillCostType'
+    if (detail.value?.sourceType === 'commercial_bill') {
+      if (key === 'billType') return 'fmsBillType'
+      if (key === 'direction') return 'fmsBillDirection'
+    }
+    if (detail.value?.sourceType === 'invoice') {
+      if (key === 'invoiceType') return 'tmsInvoiceType'
+      if (key === 'direction') return 'tmsInvoiceDirection'
+    }
+    return undefined
+  }
 
   function formatPayloadValue(key: string, value: unknown): string {
     if (value == null) return '—'
     if (value === '***') return '***'
     if (
-      ['grossAmount', 'gross_amount', 'net_amount', 'tax_amount'].includes(key) &&
+      [
+        'grossAmount',
+        'gross_amount',
+        'netAmount',
+        'net_amount',
+        'taxAmount',
+        'tax_amount'
+      ].includes(key) &&
       (typeof value === 'number' || typeof value === 'string')
     ) {
-      return formatSensitiveNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return formatSensitiveNumberWithAffix(value, {
+        prefix: '¥',
+        numberFormat: { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+      })
     }
-    let dictCode: string | undefined
-    if (key === 'paymentMethod' || key === 'payment_method') dictCode = 'tmsCashPaymentMethod'
-    if (key === 'costType' || key === 'cost_type') dictCode = 'fmsPostingWaybillCostType'
-    if (detail.value?.sourceType === 'commercial_bill') {
-      if (key === 'billType') dictCode = 'fmsBillType'
-      if (key === 'direction') dictCode = 'fmsBillDirection'
-    }
-    if (dictCode && (typeof value === 'string' || typeof value === 'number')) {
-      const label = userStore.getDictItemByValue(dictCode, value)?.label
-      if (label) return label
+    if (
+      ['taxRate', 'tax_rate'].includes(key) &&
+      (typeof value === 'number' || typeof value === 'string')
+    ) {
+      return formatSensitiveNumberWithAffix(value, {
+        suffix: '%',
+        numberFormat: { maximumFractionDigits: 4 }
+      })
     }
     return typeof value === 'object' ? JSON.stringify(value) : String(value)
   }

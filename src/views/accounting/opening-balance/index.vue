@@ -849,6 +849,10 @@
     void userStore.ensureDictLoaded('fmsBalanceDirection').catch(() => undefined)
     void loadAccountSets()
   })
+
+  onActivated(() => {
+    if (scope.accountSetId && !scope.loading) void loadFoundation()
+  })
 </script>
 
 <style scoped lang="scss">

@@ -157,7 +157,10 @@
     if (expenseTenantIds.length > 1) return ''
     return expenseTenantIds[0] || tenantScopeStore.effectiveTenantId || ''
   })
-  const reimbursementNumber = useDocumentNumberRule('tms.expense_reimbursement')
+  const reimbursementNumber = useDocumentNumberRule(
+    'tms.expense_reimbursement',
+    () => attachmentTenantId.value || undefined
+  )
 
   const currentUserName = computed(
     () => getUserInfo.value.nickName || getUserInfo.value.userName || getUserInfo.value.email || ''

@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -333,7 +334,8 @@
       formatter: (row: Voucher) =>
         formatVoucherSummary(row.summary, getDictMap.value.fmsPostingWaybillCostType, {
           sourceType: row.sourceType,
-          billEvents: getDictMap.value.fmsBillEventType
+          billEvents: getDictMap.value.fmsBillEventType,
+          taxTypes: getDictMap.value.fmsTaxType
         })
     },
     {
@@ -349,7 +351,13 @@
             prop: 'sourceNo',
             label: '来源单号',
             minWidth: 150,
-            showOverflowTooltip: true
+            showOverflowTooltip: true,
+            formatter: (row: Voucher) =>
+              row.sourceType === 'tax' ? (
+                <ArtDictDisplay dictCode="fmsTaxType" value={row.sourceNo} display="text" />
+              ) : (
+                row.sourceNo || '—'
+              )
           }
         ]
       : []),
@@ -640,7 +648,8 @@
       userStore.ensureDictLoaded('fmsVoucherType'),
       userStore.ensureDictLoaded('fmsVoucherSourceType'),
       userStore.ensureDictLoaded('fmsPostingWaybillCostType'),
-      userStore.ensureDictLoaded('fmsBillEventType')
+      userStore.ensureDictLoaded('fmsBillEventType'),
+      userStore.ensureDictLoaded('fmsTaxType')
     ])
     void loadAccountSets()
   })

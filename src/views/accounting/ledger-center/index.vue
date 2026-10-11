@@ -25,7 +25,19 @@
       title="报表仅统计已记账及其冲销凭证，已确认期初余额自动纳入期初数；原凭证与冲销凭证均保留，确保账簿结果可审计、可追溯。"
     />
 
-    <ElTabs v-model="activeTab" class="ledger-center-page__tabs accounting-workspace-tabs">
+    <ArtAsyncState
+      v-if="initializing || initializationError"
+      :loading="initializing"
+      :error="initializationError"
+      full-height
+      class="flex-1"
+      @retry="initialize"
+    />
+    <ElTabs
+      v-show="!initializing && !initializationError"
+      v-model="activeTab"
+      class="ledger-center-page__tabs accounting-workspace-tabs"
+    >
       <ElTabPane name="balance">
         <template #label>
           <span class="ledger-center-page__tab-label accounting-workspace-tab-label">
@@ -136,6 +148,7 @@
 
 <script setup lang="tsx">
   import { uniq } from 'lodash-es'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import VoucherDetailDrawer from '@fms/views/accounting/voucher-center/modules/voucher-detail-drawer.vue'
@@ -198,6 +211,8 @@
   const voucherDetailRef = ref<InstanceType<typeof VoucherDetailDrawer>>()
   const { getDictMap } = storeToRefs(userStore)
   const activeTab = ref<LedgerTab>('balance')
+  const initializing = ref(true)
+  const initializationError = ref<string | null>(null)
   const accountSetOptions = ref<Api.Fms.AccountSetOption[]>([])
   const balanceTableRef = ref<ArtTableQueryExpose>()
   const generalTableRef = ref<ArtTableQueryExpose>()
@@ -1279,28 +1294,36 @@
     String(row.voucherLineId || `opening-${row.periodNo}-${row.summary}`)
 
   async function initialize(): Promise<void> {
-    const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
-    accountSetOptions.value = data ?? []
-    const defaultAccountSetId = accountSetOptions.value[0]?.value ?? ''
-    if (!defaultAccountSetId) return
+    initializing.value = true
+    initializationError.value = null
+    try {
+      const { data } = await fetchAccountSetOptions({ status: 'active', from: 0, to: 999 })
+      accountSetOptions.value = data ?? []
+      const defaultAccountSetId = accountSetOptions.value[0]?.value ?? ''
+      if (!defaultAccountSetId) return
 
-    balanceSearch.accountSetId = defaultAccountSetId
-    generalSearch.accountSetId = defaultAccountSetId
-    subsidiarySearch.accountSetId = defaultAccountSetId
-    await Promise.all([
-      loadContext('balance', defaultAccountSetId),
-      loadContext('general', defaultAccountSetId),
-      loadContext('subsidiary', defaultAccountSetId)
-    ])
-    applyContextDefaults('balance')
-    applyContextDefaults('general')
-    applyContextDefaults('subsidiary')
-    await nextTick()
-    await Promise.all([
-      balanceTableRef.value?.getData(),
-      generalTableRef.value?.getData(),
-      subsidiaryTableRef.value?.getData()
-    ])
+      balanceSearch.accountSetId = defaultAccountSetId
+      generalSearch.accountSetId = defaultAccountSetId
+      subsidiarySearch.accountSetId = defaultAccountSetId
+      await Promise.all([
+        loadContext('balance', defaultAccountSetId),
+        loadContext('general', defaultAccountSetId),
+        loadContext('subsidiary', defaultAccountSetId)
+      ])
+      applyContextDefaults('balance')
+      applyContextDefaults('general')
+      applyContextDefaults('subsidiary')
+      await nextTick()
+      await Promise.all([
+        balanceTableRef.value?.getData(),
+        generalTableRef.value?.getData(),
+        subsidiaryTableRef.value?.getData()
+      ])
+    } catch {
+      initializationError.value = '账簿查询范围加载失败，请重新加载后继续。'
+    } finally {
+      initializing.value = false
+    }
   }
 
   onMounted(() => {

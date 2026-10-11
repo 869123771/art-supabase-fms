@@ -1095,7 +1095,7 @@
         confirmButtonText: '提交审核',
         cancelButtonText: '取消'
       })
-      await submitWaybillCost(row.id)
+      await submitWaybillCost(row)
       await Promise.all([expenseTableRef.value?.refreshUpdate(), loadOverview()])
     } catch (error) {
       if (error !== 'cancel' && error !== 'close')

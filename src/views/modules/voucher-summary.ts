@@ -37,9 +37,22 @@ export function voucherSourceLabel(value: unknown, configured: CostTypeOption[] 
 export function formatVoucherSummary(
   summary: string | null | undefined,
   costTypes: CostTypeOption[] = [],
-  context?: { sourceType: Api.Fms.VoucherSourceType; billEvents?: CostTypeOption[] }
+  context?: {
+    sourceType: Api.Fms.VoucherSourceType
+    billEvents?: CostTypeOption[]
+    taxTypes?: CostTypeOption[]
+  }
 ): string {
   const text = summary ?? ''
+  if (context?.sourceType === 'tax') {
+    return text
+      .split(/(\s+)/)
+      .map((segment) => {
+        const option = context.taxTypes?.find((item) => String(item.value) === segment)
+        return option?.label ?? option?.name ?? segment
+      })
+      .join('')
+  }
   const segments = text.split(' · ')
   const lastSegment = segments.at(-1)
   const options = context?.sourceType === 'commercial_bill' ? (context.billEvents ?? []) : costTypes
