@@ -41,6 +41,7 @@
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const currencyOptions = ref<Array<{ label: string; value: string }>>([])
+  const rateTypeOptions = computed(() => getDictMap.value.fmsExchangeRateType ?? [])
 
   const createInitialForm = (): FormData => ({
     id: undefined,
@@ -91,9 +92,12 @@
     {
       label: '汇率类型',
       key: 'rateType',
-      type: 'select',
+      type:
+        rateTypeOptions.value.length > 0 && rateTypeOptions.value.length <= 4
+          ? 'segment'
+          : 'select',
       span: 12,
-      props: { options: getDictMap.value.fmsExchangeRateType ?? [] }
+      props: { options: rateTypeOptions.value }
     },
     {
       label: '直接汇率',

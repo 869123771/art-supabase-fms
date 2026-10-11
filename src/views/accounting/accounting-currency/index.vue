@@ -135,7 +135,11 @@
       <ArtSectionCard
         title="汇率台账"
         :subtitle="
-          selectedCurrency ? `${selectedCurrency.currencyCode} 对本位币的直接汇率` : '请选择外币'
+          selectedCurrency?.isBase
+            ? '本位币直接用于记账，无需维护兑换汇率'
+            : selectedCurrency
+              ? `${selectedCurrency.currencyCode} 对本位币的直接汇率`
+              : '请选择已启用外币'
         "
         class="accounting-workspace-fill-section"
       >
@@ -144,12 +148,17 @@
           <ElButton
             v-auth="'FinanceAccountingCurrency:Add'"
             type="primary"
+            :disabled="!canAddRate"
+            :title="rateUnavailableReason"
             @click="openRateDialog()"
           >
             <ArtSvgIcon icon="ri:add-line" />新增汇率
           </ElButton>
         </template>
-        <div v-if="selectedCurrency" class="accounting-currency-page__rate-context">
+        <div
+          v-if="selectedCurrency && !selectedCurrency.isBase"
+          class="accounting-currency-page__rate-context"
+        >
           <span class="accounting-currency-page__rate-context-symbol">
             {{ selectedCurrency.symbol || selectedCurrency.currencyCode }}
           </span>
@@ -186,8 +195,12 @@
           :min-height="160"
           :error="workspace.error"
           :empty="!workspace.loading && !workspace.error && filteredRates.length === 0"
-          empty-text="暂无汇率记录"
-          empty-description="选择已启用外币后维护汇率；本位币无需维护汇率。"
+          :empty-text="selectedCurrency?.isBase ? '本位币无需维护汇率' : '暂无汇率记录'"
+          :empty-description="
+            selectedCurrency?.isBase
+              ? '在左侧选择已启用外币后，可新增和维护兑换汇率。'
+              : '新增汇率后，可按日期和类型查询历史记录。'
+          "
           @retry="loadWorkspace"
         >
           <ArtTable
@@ -293,6 +306,17 @@
     workspace.currencies.find((item) => item.id === workspace.selectedCurrencyId)
   )
   const baseCurrency = computed(() => workspace.currencies.find((item) => item.isBase))
+  const rateUnavailableReason = computed(() => {
+    if (workspace.loading) return '正在加载币种，请稍候'
+    if (workspace.error) return '请先重试加载币种'
+    if (!selectedCurrency.value) return '请先选择已启用外币'
+    if (selectedCurrency.value.isBase) return '本位币无需维护汇率，请选择外币'
+    if (!selectedCurrency.value.isEnabled) return '请先启用该外币'
+    return ''
+  })
+  const canAddRate = computed(
+    () => Boolean(currentAccountSet.value) && !rateUnavailableReason.value
+  )
   const selectedCurrencyRates = computed(() =>
     workspace.rates.filter((item) => item.currencyId === workspace.selectedCurrencyId)
   )
@@ -354,7 +378,7 @@
     },
     {
       key: 'selected',
-      label: '当前外币',
+      label: '当前币种',
       value: selectedCurrency.value?.currencyCode ?? '—',
       description: selectedCurrency.value?.isBase ? '本位币无需折算' : '直接汇率维护范围',
       icon: 'ri:exchange-line',
