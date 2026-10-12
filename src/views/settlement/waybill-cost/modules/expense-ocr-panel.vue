@@ -181,12 +181,12 @@
       }
 
       strong {
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       small {
         line-height: 1.5;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -242,19 +242,19 @@
 
         strong {
           font-size: 12px;
-          color: var(--art-text-gray-800);
+          color: var(--el-text-color-primary);
         }
 
         small {
           font-size: 12px;
-          color: var(--art-text-gray-600);
+          color: var(--el-text-color-secondary);
         }
       }
     }
 
     &__disabled {
       gap: var(--art-space-2);
-      color: var(--art-text-gray-600);
+      color: var(--el-text-color-secondary);
 
       span {
         display: flex;
@@ -279,7 +279,7 @@
       > small {
         display: block;
         margin: 6px 0 0;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
 
       > small {

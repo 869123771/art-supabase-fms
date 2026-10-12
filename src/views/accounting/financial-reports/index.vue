@@ -469,7 +469,10 @@
                 </ElTag>
               ) : null}
             </div>
-            <small class="truncate text-[11px] text-[var(--art-text-gray-500)]" translate="no">
+            <small
+              class="truncate text-[11px] text-[var(--el-text-color-secondary)]"
+              translate="no"
+            >
               {row.itemCode}
             </small>
           </div>
@@ -658,7 +661,7 @@
       small {
         margin-top: 2px;
         font-size: 11px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 

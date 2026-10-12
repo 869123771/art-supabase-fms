@@ -1,0 +1,1 @@
+import{Ki as e,Li as t,da as n}from"./sys-JP6WwJfQ.js";import{t as r}from"./purchase-payable-workspace-rVllH6Gn.js";var i=e({name:`FinancePurchasePayable`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{kind:`financial`,"view-permission":`FinancePurchasePayable:View`}))}});export{i as default};

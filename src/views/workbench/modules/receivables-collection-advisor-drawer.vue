@@ -545,7 +545,7 @@
 
       p {
         margin: 6px 0 0;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -590,7 +590,7 @@
       > strong {
         margin-right: 3px;
         font-size: 19px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -615,12 +615,12 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
           font-size: 20px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
 
         small {
@@ -654,13 +654,13 @@
       }
 
       small {
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       p {
         margin: 3px 0 0;
         line-height: 1.65;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -688,7 +688,7 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
@@ -696,7 +696,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 16px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
           white-space: nowrap;
         }
 
@@ -760,7 +760,7 @@
         }
 
         strong {
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
 
         p {
@@ -771,7 +771,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 12px;
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
           white-space: nowrap;
         }
       }
@@ -783,7 +783,7 @@
         padding-top: 10px;
         margin-top: 10px;
         font-size: 12px;
-        color: var(--art-text-gray-400);
+        color: var(--el-text-color-secondary);
         border-top: 1px dashed var(--el-border-color-lighter);
       }
     }
@@ -817,7 +817,7 @@
       }
 
       small {
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       strong {
@@ -825,7 +825,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: 12px;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
         white-space: nowrap;
       }
     }
@@ -841,7 +841,7 @@
         align-items: center;
         padding: 4px 8px;
         font-size: 12px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
         background: var(--el-fill-color-lighter);
         border-radius: 999px;
       }
@@ -903,7 +903,7 @@
       p {
         margin: 10px 0;
         line-height: 1.65;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -976,7 +976,7 @@
         p {
           margin: 3px 0 0;
           line-height: 1.55;
-          color: var(--art-text-gray-700);
+          color: var(--el-text-color-regular);
         }
       }
     }
@@ -988,7 +988,7 @@
         align-items: flex-start;
         margin: 0;
         line-height: 1.6;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
 
         & + p {
           margin-top: 8px;

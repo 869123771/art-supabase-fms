@@ -106,7 +106,7 @@
         <div v-else class="grid gap-4">
           <article v-for="item in detail.data.items ?? []" :key="item.id" class="min-w-0">
             <RouterLink
-              class="mb-3 inline-block break-all text-sm font-medium text-primary"
+              class="mb-3 inline-block break-all text-sm font-medium text-[var(--art-primary-text)]"
               :to="getWaybillCostDetailPath(item.costId)"
             >
               {{ item.costNoSnapshot || '查看费用详情' }}
@@ -456,7 +456,7 @@
       field: 'waybillNoSnapshot',
       render: (_value, row) => (
         <RouterLink
-          class="break-all text-primary"
+          class="break-all text-[var(--art-primary-text)]"
           to={{ name: 'TmsWaybillDetail', params: { id: row.waybillId } }}
         >
           {row.waybillNoSnapshot || '--'}

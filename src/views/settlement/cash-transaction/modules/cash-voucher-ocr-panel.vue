@@ -251,13 +251,13 @@
       h3 {
         margin: 1px 0 2px;
         font-size: 15px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 0;
         font-size: 12px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -294,13 +294,13 @@
 
       strong {
         font-size: 13px;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
       }
 
       span {
         font-size: 12px;
         line-height: 1.5;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -328,13 +328,13 @@
 
         strong {
           font-size: 12px;
-          color: var(--art-text-gray-800);
+          color: var(--el-text-color-primary);
         }
 
         small {
           font-size: 12px;
           line-height: 1.45;
-          color: var(--art-text-gray-600);
+          color: var(--el-text-color-secondary);
         }
       }
     }
@@ -345,7 +345,7 @@
       > p {
         margin: 8px 0;
         font-size: 12px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -371,19 +371,19 @@
 
       small {
         font-size: 12px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
 
       strong {
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: 12px;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
         white-space: nowrap;
 
         &.is-empty {
           font-weight: 400;
-          color: var(--art-text-gray-400);
+          color: var(--el-text-color-secondary);
         }
       }
     }
@@ -408,14 +408,14 @@
 
         strong {
           font-size: 12px;
-          color: var(--art-text-gray-800);
+          color: var(--el-text-color-primary);
         }
 
         small {
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 12px;
-          color: var(--art-text-gray-600);
+          color: var(--el-text-color-secondary);
           white-space: nowrap;
         }
       }

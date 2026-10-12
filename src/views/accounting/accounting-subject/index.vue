@@ -602,7 +602,7 @@
     }
 
     &__readonly {
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
     }
   }
 

@@ -571,12 +571,12 @@
 
       strong {
         font-size: 15px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       small {
         line-height: 1.5;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -621,7 +621,7 @@
         margin-bottom: var(--art-space-3);
 
         strong {
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
       }
     }

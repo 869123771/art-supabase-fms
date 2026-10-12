@@ -106,7 +106,7 @@
       justify-content: flex-end;
       padding: 12px 16px;
       font-size: 12px;
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
       background: var(--art-gray-100);
       border: 1px solid var(--art-card-border);
       border-radius: var(--el-border-radius-base);
@@ -142,13 +142,13 @@
 
       h3 {
         margin: 4px 0 6px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 0;
         line-height: 1.65;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
   }

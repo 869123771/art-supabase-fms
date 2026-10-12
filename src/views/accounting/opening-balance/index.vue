@@ -1035,7 +1035,7 @@
     }
 
     &__locked {
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
     }
   }
 
@@ -1052,7 +1052,7 @@
 
     small {
       margin-top: 3px;
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
     }
   }
 

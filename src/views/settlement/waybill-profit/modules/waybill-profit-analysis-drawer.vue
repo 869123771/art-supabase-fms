@@ -500,7 +500,7 @@
 
       p {
         margin: 6px 0 0;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -545,7 +545,7 @@
       > strong {
         margin-right: 3px;
         font-size: 19px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -570,12 +570,12 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
           font-size: 20px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
 
         small {
@@ -609,13 +609,13 @@
       }
 
       small {
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       p {
         margin: 3px 0 0;
         line-height: 1.65;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -647,7 +647,7 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
@@ -655,7 +655,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 16px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
           white-space: nowrap;
         }
 
@@ -743,7 +743,7 @@
       p {
         margin: 10px 0;
         line-height: 1.65;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -758,7 +758,7 @@
         align-items: center;
         padding: 4px 8px;
         font-size: 11px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
         background: var(--el-fill-color-lighter);
         border-radius: 999px;
       }
@@ -788,7 +788,7 @@
         }
 
         strong {
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
 
         p {
@@ -799,7 +799,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 11px;
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
           white-space: nowrap;
         }
       }
@@ -829,7 +829,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: 11px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
         white-space: nowrap;
       }
     }
@@ -850,7 +850,7 @@
 
       span {
         font-size: 10px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       strong {
@@ -858,7 +858,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: 12px;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
         white-space: nowrap;
 
         &.is-negative {
@@ -901,7 +901,7 @@
         p {
           margin: 3px 0 0;
           line-height: 1.55;
-          color: var(--art-text-gray-700);
+          color: var(--el-text-color-regular);
         }
       }
     }

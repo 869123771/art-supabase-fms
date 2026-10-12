@@ -248,8 +248,11 @@
             class="flex min-w-0 flex-col gap-[3px]"
             style={{ paddingLeft: `${Math.max(row.itemLevel - 1, 0) * 14}px` }}
           >
-            <strong class="truncate text-[var(--art-text-gray-900)]">{row.itemName}</strong>
-            <small class="truncate text-[11px] text-[var(--art-text-gray-600)]" translate="no">
+            <strong class="truncate text-[var(--el-text-color-primary)]">{row.itemName}</strong>
+            <small
+              class="truncate text-[11px] text-[var(--el-text-color-secondary)]"
+              translate="no"
+            >
               {row.itemCode} · 行次 {row.lineNo}
             </small>
           </div>
@@ -473,11 +476,11 @@
       }
 
       strong {
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       small {
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
   }
@@ -520,13 +523,13 @@
 
         dt {
           font-size: 11px;
-          color: var(--art-text-gray-600);
+          color: var(--el-text-color-secondary);
         }
 
         dd {
           margin: 2px 0 0;
           font-size: 12px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
           overflow-wrap: anywhere;
         }
       }

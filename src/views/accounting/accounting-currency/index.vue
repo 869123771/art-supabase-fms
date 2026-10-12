@@ -655,7 +655,7 @@
       align-items: center;
       width: 100%;
       padding: 6px;
-      color: var(--art-text-gray-800);
+      color: var(--el-text-color-primary);
       text-align: left;
       background: var(--art-gray-100);
       border: 1px solid var(--el-border-color-lighter);
@@ -747,7 +747,7 @@
 
       small {
         min-width: 0;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       :deep(.el-tag) {

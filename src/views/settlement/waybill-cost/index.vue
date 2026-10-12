@@ -1386,7 +1386,7 @@
         align-items: center;
         min-width: 0;
         padding: var(--art-space-2);
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
 
         &.is-current {
           color: var(--theme-color);
@@ -1398,7 +1398,7 @@
           }
 
           strong {
-            color: var(--art-text-gray-900);
+            color: var(--el-text-color-primary);
           }
         }
 
@@ -1409,7 +1409,7 @@
           }
 
           strong {
-            color: var(--art-text-gray-700);
+            color: var(--el-text-color-regular);
           }
         }
       }
@@ -1423,7 +1423,7 @@
       height: 28px;
       font-size: 12px;
       font-weight: 700;
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
       background: var(--el-fill-color-light);
       border-radius: 50%;
       transition:
@@ -1446,19 +1446,19 @@
 
       strong {
         font-size: 13px;
-        color: var(--art-text-gray-700);
+        color: var(--el-text-color-regular);
       }
 
       small {
         font-size: 11px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
     &__step-arrow {
       flex: 0 0 auto;
       margin-left: auto;
-      color: var(--art-text-gray-300);
+      color: var(--el-text-color-secondary);
     }
 
     :deep(.waybill-cost__document-link) {
