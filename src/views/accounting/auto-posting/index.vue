@@ -37,7 +37,9 @@
           :api-fn="fetchRuleTableData"
           :columns-factory="ruleColumnsFactory"
           :header-actions="ruleTable.headerActions"
-          header-actions-placement="workspace"
+          header-actions-placement="section"
+          section-title="制证规则"
+          section-subtitle="配置业务事件、会计科目与核算维度；规则变更将保留完整审计记录。"
           :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
           :table-props="{
             rowKey: 'id',
@@ -68,7 +70,9 @@
           :api-fn="fetchEventTableData"
           :columns-factory="eventColumnsFactory"
           :header-actions="eventTable.headerActions"
-          header-actions-placement="workspace"
+          header-actions-placement="section"
+          section-title="事件监控"
+          section-subtitle="跟踪凭证生成、待配置与失败重试，快速定位需要处理的业务事件。"
           :search-bar-props="{ span: 6, labelWidth: 86, isExpand: true, showExpand: false }"
           :table-props="{
             rowKey: 'id',
@@ -92,7 +96,7 @@
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import '../../modules/accounting-workspace-tabs.scss'
 
-  import { ElButton, ElMessage, ElTag } from 'element-plus'
+  import { ElButton, ElMessage } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -448,9 +452,11 @@
       prop: 'isEnabled',
       label: '状态',
       width: 88,
-      formatter: (row) => (
-        <ElTag type={row.isEnabled ? 'success' : 'info'}>{row.isEnabled ? '启用' : '停用'}</ElTag>
-      )
+      dict: {
+        code: 'commonEnabledStatus',
+        display: 'tag',
+        value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+      }
     },
     {
       prop: 'operation',
@@ -853,8 +859,6 @@
 
 <style scoped lang="scss">
   .auto-posting-page {
-    overflow: auto;
-
     &__tabs {
       min-height: 480px;
     }

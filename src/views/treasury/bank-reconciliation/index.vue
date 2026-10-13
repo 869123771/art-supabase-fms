@@ -466,8 +466,6 @@
 
 <style scoped lang="scss">
   .bank-reconciliation-page {
-    overflow: auto;
-
     :deep(.art-table-query.bank-reconciliation-page__table) {
       min-height: 420px;
     }

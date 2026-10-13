@@ -1,0 +1,1 @@
+import{Ki as e,Li as t,da as n}from"./sys-CG2_trqM.js";import{t as r}from"./purchase-payable-workspace-B36XRJMw.js";var i=e({name:`FinanceEstimatedPayable`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{kind:`estimated`,"view-permission":`FinanceEstimatedPayable:View`}))}});export{i as default};

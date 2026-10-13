@@ -402,8 +402,6 @@
 
 <style scoped lang="scss">
   .fund-account-page {
-    overflow: auto;
-
     :deep(.art-table-query.fund-account-page__table) {
       min-height: 420px;
     }

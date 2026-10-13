@@ -78,7 +78,6 @@
   import { uniq } from 'lodash-es'
   import { replaceReactiveModel } from '@/utils/form/model'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
-  import { ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
@@ -453,22 +452,7 @@
             class="flex min-w-0 flex-col gap-[3px]"
             style={{ paddingLeft: `${Math.max(row.itemLevel - 1, 0) * 16}px` }}
           >
-            <div class="flex min-w-0 items-center gap-2">
-              <strong class="truncate">{row.itemName}</strong>
-              {row.displayStyle !== 'normal' ? (
-                <ElTag
-                  size="small"
-                  type={row.displayStyle === 'total' ? 'success' : 'primary'}
-                  effect="plain"
-                >
-                  {statementOptionLabel(
-                    'fmsStatementDisplayStyle',
-                    row.displayStyle,
-                    getDictMap.value.fmsStatementDisplayStyle
-                  )}
-                </ElTag>
-              ) : null}
-            </div>
+            <strong class="truncate">{row.itemName}</strong>
             <small
               class="truncate text-[11px] text-[var(--el-text-color-secondary)]"
               translate="no"
@@ -477,6 +461,12 @@
             </small>
           </div>
         )
+      },
+      {
+        prop: 'displayStyle',
+        label: '显示样式',
+        width: 102,
+        dict: { code: 'fmsStatementDisplayStyle', display: 'tag' }
       },
       ...(canViewReportAmounts.value
         ? [
@@ -613,8 +603,6 @@
 
 <style scoped lang="scss">
   .financial-reports-page {
-    overflow: auto;
-
     &__tabs {
       flex: 0 0 auto;
 

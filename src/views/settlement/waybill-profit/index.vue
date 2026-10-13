@@ -56,7 +56,6 @@
   import { exportWaybillProfitList, fetchWaybillProfitList } from '@fms/api'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
-  import { getWaybillStatusPresentation } from '../../modules/waybill-status'
   import {
     canViewField,
     isMaskedValue,
@@ -172,21 +171,16 @@
     },
     {
       prop: 'waybillStatus',
-      label: '状态 / 完成',
+      label: '状态',
       width: 104,
-      formatter: (row) => {
-        const status = getWaybillStatusPresentation(row.waybillStatus)
-        return (
-          <div class="flex flex-col items-start gap-1">
-            <ElTag size="small" type={status.type}>
-              {status.label}
-            </ElTag>
-            <small class="whitespace-nowrap text-[var(--el-text-color-secondary)]">
-              {row.completedAt ? formatWithDayjs(row.completedAt, 'YYYY-MM-DD') : '未完成'}
-            </small>
-          </div>
-        )
-      }
+      dict: { code: 'tmsWaybillStatus', display: 'tag' }
+    },
+    {
+      prop: 'completedAt',
+      label: '完成日期',
+      width: 112,
+      formatter: (row) =>
+        row.completedAt ? formatWithDayjs(row.completedAt, 'YYYY-MM-DD') : '未完成'
     },
     ...(canViewField(profitFieldAccess.value, 'receivableAmounts')
       ? [

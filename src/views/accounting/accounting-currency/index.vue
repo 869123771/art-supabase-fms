@@ -74,15 +74,14 @@
         @retry="loadWorkspace"
       >
         <template #actions>
-          <ElButton
+          <ArtIconButton
             v-auth="'FinanceAccountingCurrency:AddCurrency'"
-            type="primary"
+            icon="ri:add-line"
+            label="新增外币"
             @click="openCurrencyDialog()"
-          >
-            <ArtSvgIcon icon="ri:add-line" />新增外币
-          </ElButton>
+          />
         </template>
-        <ElScrollbar class="accounting-currency-page__currency-scrollbar">
+        <div class="accounting-currency-page__currency-list-wrap">
           <div class="accounting-currency-page__currency-grid">
             <div
               v-for="item in workspace.currencies"
@@ -129,7 +128,7 @@
               />
             </div>
           </div>
-        </ElScrollbar>
+        </div>
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -232,6 +231,7 @@
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
   import BusinessWorkspaceFocusToggle from '@/components/business/business-workspace-focus-toggle/index.vue'
+  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AccountingSetupGuide from '../../modules/accounting-setup-guide.vue'
   import { useFinanceAccountSetPrerequisite } from '../../modules/use-finance-account-set-prerequisite'
@@ -601,6 +601,7 @@
     }
 
     &__scope {
+      margin-top : var(--art-space-4);
       display: grid;
       grid-template-columns: 76px minmax(280px, 560px);
       gap: 10px;
@@ -643,8 +644,9 @@
       padding-right: 4px;
     }
 
-    &__currency-scrollbar {
-      flex: 1;
+    &__currency-list-wrap {
+      flex: 0 0 auto;
+      min-width: 0;
       min-height: 0;
     }
 

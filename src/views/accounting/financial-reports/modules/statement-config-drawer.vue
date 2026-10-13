@@ -263,15 +263,7 @@
         label: '计算方式',
         width: 92,
         showOverflowTooltip: true,
-        formatter: (row) => (
-          <ElTag type={calculationTag(row.calculationMethod)} effect="plain">
-            {statementOptionLabel(
-              'fmsStatementCalculationMethod',
-              row.calculationMethod,
-              getDictMap.value.fmsStatementCalculationMethod
-            )}
-          </ElTag>
-        )
+        dict: { code: 'fmsStatementCalculationMethod', display: 'tag' }
       },
       {
         prop: 'displayStyle',
@@ -309,11 +301,11 @@
         label: '状态',
         width: 66,
         align: 'center',
-        formatter: (row) => (
-          <ElTag type={row.isEnabled ? 'success' : 'info'} effect="plain">
-            {row.isEnabled ? '启用' : '停用'}
-          </ElTag>
-        )
+        dict: {
+          code: 'commonEnabledStatus',
+          display: 'tag',
+          value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+        }
       },
       {
         prop: 'operation',
@@ -353,12 +345,6 @@
       return true
     })
   })
-
-  function calculationTag(method: Api.Fms.FinancialStatementCalculationMethod) {
-    if (method === 'formula') return 'success'
-    if (method === 'label') return 'info'
-    return 'primary'
-  }
 
   function canConfigureRule(item: Item): boolean {
     if (item.calculationMethod === 'formula') return true

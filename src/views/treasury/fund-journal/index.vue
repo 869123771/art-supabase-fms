@@ -428,8 +428,6 @@
 
 <style scoped lang="scss">
   .fund-journal-page {
-    overflow: auto;
-
     :deep(.art-table-query.fund-journal-page__table) {
       min-height: 440px;
     }

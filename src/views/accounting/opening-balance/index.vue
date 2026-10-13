@@ -529,11 +529,11 @@
       prop: 'balanceDirection',
       label: '方向',
       width: 76,
-      formatter: (row) => (
-        <ElTag type={row.subject?.balanceDirection === 'debit' ? 'success' : 'warning'}>
-          {row.subject?.balanceDirection === 'debit' ? '借' : '贷'}
-        </ElTag>
-      )
+      dict: {
+        code: 'fmsBalanceDirection',
+        display: 'tag',
+        value: (row) => row.subject?.balanceDirection
+      }
     },
     ...(canViewListField('balanceAmounts')
       ? [
@@ -869,6 +869,7 @@
     }
 
     &__scope {
+      margin-top: var(--art-space-4);
       display: grid;
       grid-template-columns: minmax(320px, 520px) 220px;
       gap: 16px;
@@ -902,7 +903,6 @@
     &__scope-section {
       :deep(.art-section-card__header) {
         align-items: center;
-        margin-bottom: 0;
       }
     }
 
@@ -916,13 +916,11 @@
 
     &__scope-section.art-section-card.art-card-xs {
       flex: none;
-      padding: 14px 20px;
     }
 
     &__detail.art-section-card.art-card-xs {
       flex: 1 0 auto;
       min-height: min-content;
-      padding: 12px 20px;
       overflow: hidden;
 
       :deep(.art-section-card__body) {

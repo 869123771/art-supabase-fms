@@ -46,7 +46,6 @@
   import { formatTenantLabel as resolveTenantLabel } from '@/utils/tenant-display'
 
   import { storeToRefs } from 'pinia'
-  import { ElTag } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -236,9 +235,11 @@
       prop: 'isEnabled',
       label: '启用状态',
       width: 90,
-      formatter: (row) => (
-        <ElTag type={row.isEnabled ? 'success' : 'info'}>{row.isEnabled ? '启用' : '停用'}</ElTag>
-      )
+      dict: {
+        code: 'commonEnabledStatus',
+        display: 'tag',
+        value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+      }
     },
     { prop: 'sort', label: '排序', width: 65, align: 'center' },
     {

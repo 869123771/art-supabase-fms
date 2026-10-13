@@ -50,7 +50,6 @@
 
 <script setup lang="tsx">
   import { replaceReactiveModel } from '@/utils/form/model'
-  import { ElTag } from 'element-plus'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtButtonMore, {
     type ButtonMoreItem
@@ -87,7 +86,6 @@
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
-  import { getSettlementStatusPresentation } from '../../modules/settlement-status'
   import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
 
@@ -334,10 +332,7 @@
       prop: 'status',
       label: '状态',
       width: 100,
-      formatter: (row) => {
-        const status = getSettlementStatusPresentation(row.status)
-        return <ElTag type={status.type}>{status.label}</ElTag>
-      }
+      dict: { code: 'tmsSettlementStatus', display: 'tag' }
     },
     {
       prop: 'operation',

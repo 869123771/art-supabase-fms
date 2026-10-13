@@ -282,10 +282,7 @@
         prop: 'status',
         label: '状态',
         width: 105,
-        formatter: (row: AccountSet) => {
-          const option = accountSetStatusOptions.find((item) => item.value === row.status)
-          return <ElTag type={option?.tagType ?? 'info'}>{option?.label ?? row.status}</ElTag>
-        }
+        dict: { code: 'fmsAccountSetStatus', display: 'tag' }
       },
       ...(canViewListField('administrativeAudit')
         ? ([

@@ -26,7 +26,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { ElTag } from 'element-plus'
   import { useMediaQuery } from '@vueuse/core'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -95,9 +94,11 @@
         prop: 'isEnabled',
         label: '状态',
         width: 90,
-        formatter: (row) => (
-          <ElTag type={row.isEnabled ? 'success' : 'info'}>{row.isEnabled ? '启用' : '停用'}</ElTag>
-        )
+        dict: {
+          code: 'commonEnabledStatus',
+          display: 'tag',
+          value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+        }
       },
       {
         prop: 'operation',

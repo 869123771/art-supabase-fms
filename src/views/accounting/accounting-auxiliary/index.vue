@@ -89,17 +89,16 @@
         @retry="retryWorkspace"
       >
         <template #actions>
-          <ElButton
+          <ArtIconButton
             v-auth="'FinanceAccountingAuxiliary:AddType'"
-            type="primary"
+            icon="ri:add-line"
+            label="新增维度"
             :disabled="mutationBusy"
             @click="openTypeDialog()"
-          >
-            <ArtSvgIcon icon="ri:add-line" />新增维度
-          </ElButton>
+          />
         </template>
 
-        <ElScrollbar class="accounting-auxiliary-page__type-scrollbar">
+        <div class="accounting-auxiliary-page__type-list-wrap">
           <div class="accounting-auxiliary-page__type-list">
             <div
               v-for="item in workspace.types"
@@ -148,7 +147,7 @@
               />
             </div>
           </div>
-        </ElScrollbar>
+        </div>
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -276,6 +275,7 @@
     syncAuxiliaryItems
   } from '@fms/api'
   import BusinessWorkspaceFocusToggle from '@/components/business/business-workspace-focus-toggle/index.vue'
+  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { useWorkspaceFocus } from '@/hooks/core/useWorkspaceFocus'
   import AuxiliaryTypeDialog from './modules/auxiliary-type-dialog.vue'
   import AuxiliaryItemDialog from './modules/auxiliary-item-dialog.vue'
@@ -480,9 +480,11 @@
       prop: 'isEnabled',
       label: '状态',
       width: 76,
-      formatter: (row) => (
-        <ElTag type={row.isEnabled ? 'success' : 'info'}>{row.isEnabled ? '启用' : '停用'}</ElTag>
-      )
+      dict: {
+        code: 'commonEnabledStatus',
+        display: 'tag',
+        value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+      }
     },
     {
       prop: 'operation',
@@ -815,6 +817,7 @@
     }
 
     &__scope {
+      margin-top: var(--art-space-4);
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -852,9 +855,9 @@
       min-height: 0;
     }
 
-    &__type-scrollbar {
-      flex: 1 1 auto;
-      height: 100%;
+    &__type-list-wrap {
+      flex: 0 0 auto;
+      min-width: 0;
       min-height: 0;
     }
 
@@ -993,11 +996,6 @@
         &.is-focused {
           height: auto;
         }
-      }
-
-      &__type-scrollbar {
-        height: 100%;
-        min-height: 0;
       }
     }
   }

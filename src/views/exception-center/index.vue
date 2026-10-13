@@ -33,6 +33,7 @@
 
       <ElAlert
         v-if="overview"
+        class="financial-exception-page__health"
         :type="health.type"
         show-icon
         :closable="false"
@@ -375,6 +376,13 @@
     flex-direction: column;
     gap: 12px;
     min-width: 0;
+    height: auto;
+    min-height: var(--art-full-height);
+    overflow: visible;
+
+    &__health.el-alert :deep(.el-alert__content) {
+      align-items: flex-start;
+    }
 
     &__workspace {
       display: flex;

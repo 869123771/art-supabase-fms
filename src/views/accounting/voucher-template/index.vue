@@ -42,7 +42,6 @@
 
 <script setup lang="tsx">
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
-  import { ElTag } from 'element-plus'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -227,9 +226,11 @@
       prop: 'isEnabled',
       label: '状态',
       width: 90,
-      formatter: (row) => (
-        <ElTag type={row.isEnabled ? 'success' : 'info'}>{row.isEnabled ? '启用' : '停用'}</ElTag>
-      )
+      dict: {
+        code: 'commonEnabledStatus',
+        display: 'tag',
+        value: (row) => (row.isEnabled ? 'enabled' : 'disabled')
+      }
     },
     ...(canViewListField('maintenanceAudit')
       ? ([

@@ -650,8 +650,6 @@
 
 <style scoped lang="scss">
   .fund-transfer-page {
-    overflow: auto;
-
     :deep(.art-table-query.fund-transfer-page__table) {
       min-height: 420px;
     }
