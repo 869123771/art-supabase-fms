@@ -112,12 +112,16 @@
             <span class="financial-exception-page__signal" aria-hidden="true"></span>
             <div class="financial-exception-page__issue-main">
               <div>
-                <ElTag :type="categoryMeta[issue.category].type" effect="light" size="small">
-                  {{ categoryMeta[issue.category].label }}
-                </ElTag>
-                <ElTag :type="severityType(issue.severity)" effect="plain" size="small">
-                  {{ severityLabel[issue.severity] }}
-                </ElTag>
+                <ArtDictDisplay
+                  dict-code="fmsExceptionCategory"
+                  :value="issue.category"
+                  display="tag"
+                />
+                <ArtDictDisplay
+                  dict-code="fmsExceptionSeverity"
+                  :value="issue.severity"
+                  display="tag"
+                />
               </div>
               <strong>{{ issue.title }}</strong>
               <p v-if="issue.category === 'cost' && costDescription(issue).costType">
@@ -172,6 +176,7 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { storeToRefs } from 'pinia'
   import { useAuth } from '@/hooks/core/useAuth'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { useUserStore } from '@/store/modules/user'
   import { getWaybillCostDetailPath } from '@/router/business-paths'
   import { formatWithDayjs } from '@/utils/time'
@@ -181,7 +186,6 @@
   defineOptions({ name: 'FinanceExceptionCenter' })
 
   type Category = Api.Fms.FinancialExceptionCategory
-  type Severity = Api.Fms.FinancialExceptionSeverity
   type CategoryScope = Category | 'all'
 
   const { hasAuth } = useAuth()
@@ -192,28 +196,12 @@
   const activeCategory = ref<CategoryScope>('all')
   const overview = ref<Api.Fms.FinancialExceptionOverview | null>(null)
 
-  const categoryOptions: Array<{ label: string; value: Category }> = [
-    { label: '入账', value: 'posting' },
-    { label: '银行', value: 'bank' },
-    { label: '费用', value: 'cost' },
-    { label: '应收', value: 'receivable' },
-    { label: '月结', value: 'close' }
-  ]
-  const categoryMeta: Record<
-    Category,
-    { label: string; type: 'primary' | 'success' | 'warning' | 'danger' | 'info' }
-  > = {
-    posting: { label: '自动入账', type: 'primary' },
-    bank: { label: '银行对账', type: 'info' },
-    cost: { label: '费用审核', type: 'warning' },
-    receivable: { label: '应收管理', type: 'danger' },
-    close: { label: '月末结账', type: 'danger' }
-  }
-  const severityLabel: Record<Severity, string> = {
-    critical: '严重',
-    warning: '需处理',
-    attention: '需关注'
-  }
+  const configuredCategoryOptions = useDictionaryOptions('fmsExceptionCategory')
+  const categoryOptions = computed(() =>
+    configuredCategoryOptions.filter((option): option is { label: string; value: Category } =>
+      ['posting', 'bank', 'cost', 'receivable', 'close'].includes(option.value)
+    )
+  )
   const requiredPermission: Record<Category, string> = {
     posting: 'FinanceAutoPosting:View',
     bank: 'FinanceBankReconciliation:View',
@@ -296,11 +284,6 @@
 
   function categoryCount(category: Category): number {
     return (overview.value?.issues ?? []).filter((issue) => issue.category === category).length
-  }
-  function severityType(severity: Severity): 'danger' | 'warning' | 'info' {
-    if (severity === 'critical') return 'danger'
-    if (severity === 'warning') return 'warning'
-    return 'info'
   }
   function costDescription(issue: Api.Fms.FinancialExceptionIssue): {
     context: string

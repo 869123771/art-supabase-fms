@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import FinanceAccountingWorkspaceShell from '@fms/views/modules/finance-accounting-workspace-shell/index.vue'
   import { ElTag } from 'element-plus'
   import { storeToRefs } from 'pinia'
@@ -97,12 +98,7 @@
   type SearchParams = Api.Fms.AccountSetSearchParams
   type TableParams = SearchParams & { current: number; size: number }
 
-  const accountSetStatusOptions = [
-    { label: '待配置', value: 'draft', tagType: 'warning' },
-    { label: '启用', value: 'active', tagType: 'success' },
-    { label: '停用', value: 'suspended', tagType: 'info' },
-    { label: '已归档', value: 'archived', tagType: 'info' }
-  ] as const
+  const accountSetStatusOptions = useDictionaryOptions('fmsAccountSetStatus')
 
   interface AccountSetDialogExpose {
     handleOpen: (row?: AccountSet) => Promise<void>
@@ -124,7 +120,7 @@
 
   const { confirmAction, promptReason } = useArtFeedback()
   const userStore = useUserStore()
-  const { getDictMap, isPlatformSuper } = storeToRefs(userStore)
+  const { isPlatformSuper } = storeToRefs(userStore)
   const dialogRef = ref<AccountSetDialogExpose>()
   const periodDrawerRef = ref<PeriodDrawerExpose>()
   const tableRef = ref<ArtTableQueryExpose>()
@@ -163,9 +159,7 @@
       type: 'select',
       props: {
         clearable: true,
-        options: getDictMap.value.fmsAccountSetStatus?.length
-          ? getDictMap.value.fmsAccountSetStatus
-          : accountSetStatusOptions,
+        options: accountSetStatusOptions,
         placeholder: '全部状态'
       }
     },

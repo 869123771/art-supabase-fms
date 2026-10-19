@@ -19,10 +19,10 @@
 <script setup lang="ts">
   import { replaceReactiveModel } from '@/utils/form/model'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
-  import { storeToRefs } from 'pinia'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -33,13 +33,9 @@
   defineOptions({ name: 'FinanceTaxLedgerDialog' })
   const emit = defineEmits<{ success: [] }>()
   const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
-  const booleanOptions = computed(() =>
-    (getDictMap.value.commonBoolean ?? []).map((item) => ({
-      ...item,
-      value: item.value === 'true'
-    }))
-  )
+  const booleanOptions = useDictionaryOptions('commonBoolean', (value) => value === 'true')
+  const directionOptions = useDictionaryOptions('fmsTaxLedgerDirection')
+  const voucherSourceOptions = useDictionaryOptions('fmsVoucherSourceType')
   const dialogRef = ref<ArtDialogExpose>()
   const formRef = ref<{ validate: () => Promise<boolean>; clearValidate: () => void }>()
   const periodId = ref('')
@@ -68,8 +64,7 @@
       type: 'select',
       props: {
         options: [
-          { label: '手工录入', value: 'manual' },
-          { label: '发票', value: 'invoice' },
+          ...voucherSourceOptions.filter((option) => ['manual', 'invoice'].includes(option.value)),
           ...(form.sourceType && !['manual', 'invoice'].includes(form.sourceType)
             ? [{ label: form.sourceType, value: form.sourceType }]
             : [])
@@ -91,7 +86,7 @@
       label: '税额方向',
       key: 'direction',
       type: 'segment',
-      props: { options: getDictMap.value.fmsTaxLedgerDirection ?? [] }
+      props: { options: directionOptions }
     },
     { label: '计税信息', key: 'amountSection', type: 'divider', span: 24 },
     {
@@ -117,7 +112,7 @@
       label: '允许抵扣',
       key: 'isDeductible',
       type: 'segment',
-      props: { options: booleanOptions.value }
+      props: { options: booleanOptions }
     },
     { label: '明细说明', key: 'remarkSection', type: 'divider', span: 24 },
     { label: '备注', key: 'remark', type: 'input', span: 24, props: { type: 'textarea', rows: 3 } }
@@ -168,7 +163,8 @@
         try {
           await Promise.all([
             userStore.ensureDictLoaded('fmsTaxLedgerDirection'),
-            userStore.ensureDictLoaded('commonBoolean')
+            userStore.ensureDictLoaded('commonBoolean'),
+            userStore.ensureDictLoaded('fmsVoucherSourceType')
           ])
           formRef.value?.clearValidate()
         } catch (error) {

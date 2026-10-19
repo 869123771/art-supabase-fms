@@ -601,7 +601,7 @@
     }
 
     &__scope {
-      margin-top : var(--art-space-4);
+      margin-top: var(--art-space-4);
       display: grid;
       grid-template-columns: 76px minmax(280px, 560px);
       gap: 10px;

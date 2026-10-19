@@ -393,7 +393,7 @@
       formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
     },
     {
-      prop: 'actions',
+      prop: 'operation',
       label: '操作',
       width: 180,
       fixed: 'right',
