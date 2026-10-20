@@ -1,0 +1,1 @@
+import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./purchase-payable-workspace-BBIG8JUd.js";var i=e({name:`FinanceEstimatedPayable`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{kind:`estimated`,"view-permission":`FinanceEstimatedPayable:View`}))}});export{i as default};

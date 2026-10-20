@@ -279,3 +279,50 @@ export {
 export { fetchCashForecastOverview } from '@fms/api/modules/treasury/cash-forecast'
 export { fetchReceivableAgingOverview } from '@fms/api/modules/transport/receivable-aging'
 export { fetchFinancialExceptionOverview } from '@fms/api/modules/financial-exception'
+
+export {
+  fetchPayeeInformationList,
+  savePayeeInformation,
+  deletePayeeInformation,
+  type PayeeInformation,
+  type PayeeInformationInput,
+  type PayeeInformationSearch
+} from '@fms/api/modules/expense/payee-information'
+
+export {
+  fetchTravelApplicationList,
+  fetchTravelItineraryList,
+  fetchTravelApplicationDetail,
+  saveTravelApplicationDraft,
+  fetchExpenseProjectOptions,
+  fetchTravelAssignmentOptions,
+  type TravelApplication,
+  type TravelItinerary,
+  type TravelApplicationInput,
+  type TravelItineraryInput,
+  type TravelApplicationSearch,
+  type TravelLineRecord
+} from '@fms/api/modules/expense/travel-application'
+
+export {
+  fetchTravelApplicantSelector,
+  fetchLoanApplicantSelector,
+  fetchReimbursementApplicantSelector
+} from '@fms/api/modules/expense/expense-applicants'
+
+export {
+  fetchTravelLoanList,
+  fetchTravelLoanItemList,
+  fetchTravelLoanDetail,
+  saveTravelLoanDraft,
+  fetchLoanPayeeOptions,
+  type TravelLoan,
+  type TravelLoanItem,
+  type TravelLoanPayee,
+  type TravelLoanInput,
+  type TravelLoanItemInput,
+  type TravelLoanPayeeInput,
+  type TravelLoanSearch,
+  type TravelLoanItemRecord,
+  type LoanPayeeOption
+} from '@fms/api/modules/expense/travel-loan'

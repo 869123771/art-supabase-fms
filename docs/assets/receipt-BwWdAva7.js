@@ -1,0 +1,1 @@
+import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./finance-planned-page-B6vCYrKA.js";var i=e({name:`FinanceReceipt`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{title:`收款单`,area:`应收款管理`,description:`登记与核对收款单。`,icon:`ri:money-cny-circle-line`}))}});export{i as default};

@@ -1,0 +1,1 @@
+import{$ as e,B as t,U as n,q as r,z as i}from"./_baseForOwn-CswilecV.js";function a(e,i){return n(t(e,i,r),e+``)}function o(t){return e(t)&&i(t)}export{a as n,o as t};

@@ -817,12 +817,12 @@
     }
 
     &__scope {
-      margin-top: var(--art-space-4);
       display: flex;
       flex-direction: column;
       gap: 6px;
       align-items: stretch;
       max-width: 560px;
+      margin-top: var(--art-space-4);
 
       > span {
         flex: none;

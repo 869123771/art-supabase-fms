@@ -869,11 +869,11 @@
     }
 
     &__scope {
-      margin-top: var(--art-space-4);
       display: grid;
       grid-template-columns: minmax(320px, 520px) 220px;
       gap: 16px;
       align-items: center;
+      margin-top: var(--art-space-4);
 
       label {
         display: grid;

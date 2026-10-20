@@ -1,0 +1,1 @@
+import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./finance-planned-page-B6vCYrKA.js";var i=e({name:`FinanceEstimatedReceivable`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{title:`暂估应收单`,area:`应收款管理`,description:`查看和处理暂估应收。`,icon:`ri:file-list-3-line`}))}});export{i as default};
