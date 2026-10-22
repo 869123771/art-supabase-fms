@@ -1,1 +1,0 @@
-import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./waybill-cost--bNd2LzH.js";var i=e({name:`FinanceExpenseReimbursement`,__name:`index`,setup(e){return(e,i)=>(n(),t(r))}});export{i as default};

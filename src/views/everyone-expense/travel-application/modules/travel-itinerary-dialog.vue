@@ -130,7 +130,8 @@
       key: 'expenseItemId',
       label: '费用项目',
       type: 'treeSelect',
-      api: () => fetchExpenseItemTree({ tenantId: tenantId.value, isEnabled: true }),
+      api: () =>
+        fetchExpenseItemTree({ tenantId: tenantId.value, isEnabled: true, disableGroups: true }),
       resultField: 'data',
       labelField: 'itemName',
       valueField: 'id',
@@ -170,7 +171,15 @@
       ? [{ required: true, message: '请选择出差人', trigger: 'change' }]
       : [],
     expenseItemId: [{ required: true, message: '请选择费用项目', trigger: 'change' }],
-    requestedAmount: [{ required: true, message: '请输入申请金额', trigger: 'change' }]
+    requestedAmount: [
+      {
+        required: true,
+        type: 'number' as const,
+        min: 0.01,
+        message: '申请金额须大于零',
+        trigger: 'change'
+      }
+    ]
   }))
 
   function regionLabel(path: string[]): string {

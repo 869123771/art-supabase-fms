@@ -162,6 +162,12 @@
     net_amount: '不含税金额',
     taxAmount: '税额',
     tax_amount: '税额',
+    paid_amount: '实付分摊金额',
+    payable_amount: '应付金额（含现金折扣）',
+    discount_amount: '现金折扣金额',
+    fee_amount: '付款手续费',
+    has_cash_discount: '含现金折扣',
+    payment_business_type: '付款业务类型',
     customer_id: '客户 ID',
     customerId: '客户关联标识',
     carrier_id: '承运商 ID',
@@ -358,9 +364,18 @@
     return undefined
   }
 
+  const paymentBusinessTypeLabels: Record<string, string> = {
+    purchase: '采购付款',
+    advance: '预付款',
+    other: '其他付款',
+    sales_refund: '销售退款'
+  }
   function formatPayloadValue(key: string, value: unknown): string {
     if (value == null) return '—'
     if (value === '***') return '***'
+    if (key === 'has_cash_discount' && typeof value === 'boolean') return value ? '是' : '否'
+    if (key === 'payment_business_type' && typeof value === 'string')
+      return paymentBusinessTypeLabels[value] ?? value
     if (
       [
         'grossAmount',
@@ -368,7 +383,11 @@
         'netAmount',
         'net_amount',
         'taxAmount',
-        'tax_amount'
+        'tax_amount',
+        'paid_amount',
+        'payable_amount',
+        'discount_amount',
+        'fee_amount'
       ].includes(key) &&
       (typeof value === 'number' || typeof value === 'string')
     ) {

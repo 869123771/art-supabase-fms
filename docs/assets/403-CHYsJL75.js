@@ -1,1 +1,0 @@
-import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./art-permission-guard-CEjjgnal.js";var i=e({name:`Exception403`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};

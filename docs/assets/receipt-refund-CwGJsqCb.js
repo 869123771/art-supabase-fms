@@ -1,1 +1,0 @@
-import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./finance-planned-page-B6vCYrKA.js";var i=e({name:`FinanceReceiptRefund`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{title:`收款退款单`,area:`应收款管理`,description:`处理已收款项的退款。`,icon:`ri:refund-2-line`}))}});export{i as default};

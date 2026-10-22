@@ -1,1 +1,0 @@
-import{nt as e}from"./_baseForOwn-CswilecV.js";var t=function(){return e.Date.now()};export{t};

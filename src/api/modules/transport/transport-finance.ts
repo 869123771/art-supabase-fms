@@ -125,11 +125,17 @@ export async function fetchExpenseItemList(params: ExpenseItemSearchParams = {})
   })
 }
 
-export async function fetchExpenseItemTree(params: ExpenseItemSearchParams = {}) {
-  const result = await fetchAllRangePages((range) => fetchExpenseItemList({ ...params, ...range }))
+export async function fetchExpenseItemTree(
+  params: ExpenseItemSearchParams & { disableGroups?: boolean } = {}
+) {
+  const { disableGroups, ...filters } = params
+  const result = await fetchAllRangePages((range) => fetchExpenseItemList({ ...filters, ...range }))
+  const records = disableGroups
+    ? (result.data ?? []).map((item) => ({ ...item, disabled: !item.isSelectable }))
+    : (result.data ?? [])
   return {
     ...result,
-    data: expenseItemTreeUtils.listToTree(result.data ?? [], (a, b) => {
+    data: expenseItemTreeUtils.listToTree(records, (a, b) => {
       const left = a as ExpenseItem
       const right = b as ExpenseItem
       return left.sort - right.sort || left.itemCode.localeCompare(right.itemCode, 'zh-CN')

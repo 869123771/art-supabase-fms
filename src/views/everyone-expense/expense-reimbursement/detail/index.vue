@@ -11,7 +11,11 @@
   >
     <ArtPageHeader
       :title="detail.data?.reimbursementNo || '费用报销详情'"
-      subtitle="费用申报、审批、付款与逐笔核销详情"
+      :subtitle="
+        detail.data?.sourceType === 'travel'
+          ? '差旅费用、收款与审批详情'
+          : '费用申报、审批、付款与逐笔核销详情'
+      "
       show-back
       @back="goBack"
     >
@@ -22,6 +26,7 @@
           :value="detail.data.status"
           display="tag"
         />
+        <ElTag v-if="detail.data?.isDemo" type="warning" size="small">演示</ElTag>
       </template>
       <template #meta>
         <div v-if="detail.data" class="expense-reimbursement-detail__header-meta">
@@ -31,7 +36,14 @@
           </span>
           <span class="art-icon-label">
             <ArtSvgIcon icon="ri:calendar-event-line" aria-hidden="true" />
-            计划付款 {{ formatDate(detail.data.plannedPaymentDate) }}
+            {{ detail.data.sourceType === 'travel' ? '报销日期' : '计划付款' }}
+            {{
+              formatDate(
+                detail.data.sourceType === 'travel'
+                  ? detail.data.reimbursementDate
+                  : detail.data.plannedPaymentDate
+              )
+            }}
           </span>
           <span class="art-icon-label">
             <ArtSvgIcon icon="ri:time-line" aria-hidden="true" />
@@ -44,6 +56,13 @@
         查看关联运单
       </ElButton>
     </ArtPageHeader>
+
+    <ElAlert
+      v-if="detail.data?.isDemo"
+      type="warning"
+      :closable="false"
+      title="演示单据：付款仅用于流程验证，不涉及银行划转、真实资金流水或记账凭证。"
+    />
 
     <section v-if="detail.data" class="expense-reimbursement-detail__overview art-card-xs">
       <article v-for="item in overviewItems" :key="item.label">
@@ -66,7 +85,9 @@
       >
         <ArtDescriptions
           :data="detail.data"
-          :items="reimbursementItems"
+          :items="
+            detail.data.sourceType === 'travel' ? travelReimbursementItems : reimbursementItems
+          "
           :columns="descriptionColumns"
           label-width="128px"
         />
@@ -89,13 +110,40 @@
         class="expense-reimbursement-detail__section"
         preserve-content-structure
         title="费用明细"
-        subtitle="逐笔保留申请时的费用快照，审批通过并付清后自动核销。"
-        :empty="!detail.data.items?.length"
+        :subtitle="
+          detail.data.sourceType === 'travel'
+            ? '逐笔记录费用、税额和报销人。'
+            : '逐笔保留申请时的费用快照，审批通过并付清后自动核销。'
+        "
+        :empty="
+          detail.data.sourceType === 'travel'
+            ? !detail.data.travelLines?.length
+            : !detail.data.items?.length
+        "
         empty-title="当前报销单暂无费用明细"
         empty-description="登记费用明细后，可在此查看逐笔核销情况。"
       >
         <ArtTable
-          v-if="!isMobile"
+          v-if="detail.data.sourceType === 'travel' && !isMobile"
+          :data="detail.data.travelLines ?? []"
+          :columns="travelExpenseColumns"
+          :border="false"
+          :pagination="false"
+          :show-table-header="false"
+          table-layout="fixed"
+        />
+        <div v-else-if="detail.data.sourceType === 'travel'" class="grid gap-4">
+          <article v-for="item in detail.data.travelLines ?? []" :key="item.id" class="min-w-0">
+            <ArtDescriptions
+              :data="item"
+              :items="travelExpenseMobileItems"
+              :columns="1"
+              label-width="96px"
+            />
+          </article>
+        </div>
+        <ArtTable
+          v-else-if="!isMobile"
           :data="detail.data.items ?? []"
           :columns="expenseColumns"
           :border="false"
@@ -114,6 +162,40 @@
             <ArtDescriptions
               :data="item"
               :items="expenseMobileItems"
+              :columns="1"
+              label-width="96px"
+            />
+          </article>
+        </div>
+      </ArtSectionCard>
+
+      <ArtSectionCard
+        v-if="detail.data.sourceType === 'travel' && canViewPayees"
+        class="expense-reimbursement-detail__section"
+        preserve-content-structure
+        title="收款信息"
+        :empty="!detail.data.payees?.length"
+        :empty-title="detail.data.cashPayableAmount === 0 ? '无需现金付款' : '暂无收款信息'"
+        :empty-description="
+          detail.data.cashPayableAmount === 0
+            ? '本单报销金额已由借款抵扣，无需填写收款账户。'
+            : '提交审批前需核对收款账户与收款金额。'
+        "
+      >
+        <ArtTable
+          v-if="!isMobile"
+          :data="detail.data.payees ?? []"
+          :columns="travelPayeeColumns"
+          :border="false"
+          :pagination="false"
+          :show-table-header="false"
+          table-layout="fixed"
+        />
+        <div v-else class="grid gap-4">
+          <article v-for="payee in detail.data.payees ?? []" :key="payee.id" class="min-w-0">
+            <ArtDescriptions
+              :data="payee"
+              :items="travelPayeeMobileItems"
               :columns="1"
               label-width="96px"
             />
@@ -161,11 +243,17 @@
               v-else
               empty
               :empty-text="
-                canReadPaymentExecution ? '尚未形成付款凭证' : '付款凭证已按字段权限脱敏'
+                canReadPaymentExecution
+                  ? detail.data.isDemo
+                    ? '演示付款不生成凭证'
+                    : '尚未形成付款凭证'
+                  : '付款凭证已按字段权限脱敏'
               "
               :empty-description="
                 canReadPaymentExecution
-                  ? '付款完成并登记凭证后可在此查看。'
+                  ? detail.data.isDemo
+                    ? '流程验收记录，不对应真实银行付款。'
+                    : '付款完成并登记凭证后可在此查看。'
                   : '当前权限无法查看付款凭证。'
               "
               size="compact"
@@ -222,6 +310,8 @@
 
   type Reimbursement = Api.Fms.ExpenseReimbursementRecord
   type ExpenseItem = Api.Fms.ExpenseReimbursementItem
+  type TravelLine = Api.Fms.ExpenseReimbursementTravelLine
+  type TravelPayee = Api.Fms.ExpenseReimbursementPayee
 
   interface DetailState {
     data?: Reimbursement
@@ -255,6 +345,7 @@
     getFieldAccess(detail.data?.fieldAccess, 'reimbursementAmounts')
   )
   const payeeAccess = computed(() => getFieldAccess(detail.data?.fieldAccess, 'payeeDetails'))
+  const canViewPayees = computed(() => payeeAccess.value !== 'hidden')
   const evidenceAccess = computed(() =>
     getFieldAccess(detail.data?.fieldAccess, 'reimbursementEvidence')
   )
@@ -288,30 +379,45 @@
         tone: 'primary'
       })
     }
-    items.push(
-      {
-        label: '费用笔数',
-        value: `${detail.data?.itemCount ?? 0} 笔`,
-        hint: '逐笔保留费用快照',
-        icon: 'ri:file-list-3-line',
-        tone: 'warning'
-      },
-      {
+    items.push({
+      label: '费用笔数',
+      value: `${detail.data?.itemCount ?? 0} 笔`,
+      hint: detail.data?.sourceType === 'travel' ? '逐笔登记差旅费用' : '逐笔保留费用快照',
+      icon: 'ri:file-list-3-line',
+      tone: 'warning'
+    })
+    if (detail.data?.sourceType === 'travel') {
+      if (amountAccess.value !== 'hidden') {
+        items.push({
+          label: '付现金额',
+          value: money(detail.data.cashPayableAmount),
+          hint: '扣除借款抵扣后的应付金额',
+          icon: 'ri:wallet-3-line',
+          tone: 'success'
+        })
+      }
+    } else {
+      items.push({
         label: '关联运单',
         value: detail.data?.waybillNos || `${detail.data?.waybillCount ?? 0} 单`,
         hint: '同一运单费用集中报销',
         icon: 'ri:truck-line',
         tone: 'success'
-      }
-    )
+      })
+    }
     if (paymentExecutionAccess.value !== 'hidden') {
       items.push({
-        label: '付款进度',
-        value: detail.data?.paymentNo || (detail.data?.status === 'paid' ? '已支付' : '待支付'),
+        label: detail.data?.isDemo ? '模拟付款' : '付款进度',
+        value:
+          detail.data?.cashPayableAmount === 0
+            ? '无需现金付款'
+            : detail.data?.paymentNo || (detail.data?.status === 'paid' ? '已支付' : '待支付'),
         hint:
           paymentExecutionAccess.value === 'masked'
             ? '付款结果已按字段权限脱敏'
-            : detail.data?.paymentReference || '付款后自动逐笔核销',
+            : detail.data?.isDemo
+              ? '仅记录演示付款，不产生真实资金流水'
+              : detail.data?.paymentReference || '付款后自动逐笔核销',
         icon: 'ri:secure-payment-line',
         tone: 'info'
       })
@@ -359,6 +465,77 @@
     if (evidenceAccess.value !== 'hidden') {
       items.push({ key: 'remark', label: '报销说明', field: 'remark', span: 4 })
     }
+    return items
+  })
+
+  const travelReimbursementItems = computed<ArtDescriptionItem<Reimbursement>[]>(() => {
+    const items: ArtDescriptionItem<Reimbursement>[] = [
+      { key: 'reimbursementNo', label: '报销单号', field: 'reimbursementNo', copyable: true },
+      { key: 'applicantNameSnapshot', label: '报销人', field: 'applicantNameSnapshot' },
+      {
+        key: 'applicantEmployeeNoSnapshot',
+        label: '员工工号',
+        field: 'applicantEmployeeNoSnapshot'
+      },
+      { key: 'reimbursementDate', label: '报销日期', field: 'reimbursementDate', format: 'date' },
+      { key: 'positionNameSnapshot', label: '职位', field: 'positionNameSnapshot' },
+      {
+        key: 'applicantCompanyNameSnapshot',
+        label: '申请人公司',
+        field: 'applicantCompanyNameSnapshot'
+      },
+      {
+        key: 'expenseDepartmentNameSnapshot',
+        label: '费用承担部门',
+        field: 'expenseDepartmentNameSnapshot'
+      },
+      {
+        key: 'expenseCompanyNameSnapshot',
+        label: '费用承担公司',
+        field: 'expenseCompanyNameSnapshot'
+      }
+    ]
+    if (evidenceAccess.value !== 'hidden') {
+      items.push({ key: 'reason', label: '事由', field: 'reason', span: 4 })
+    }
+    if (amountAccess.value !== 'hidden') {
+      items.push(
+        {
+          key: 'totalAmount',
+          label: '报销金额',
+          field: 'totalAmount',
+          value: (row: Reimbursement) => money(row.totalAmount)
+        },
+        {
+          key: 'approvedAmount',
+          label: '核定金额',
+          field: 'approvedAmount',
+          value: (row: Reimbursement) => money(row.approvedAmount)
+        },
+        {
+          key: 'loanOffsetAmount',
+          label: '借款抵扣',
+          field: 'loanOffsetAmount',
+          value: (row: Reimbursement) => money(row.loanOffsetAmount)
+        },
+        {
+          key: 'cashPayableAmount',
+          label: '付现金额',
+          field: 'cashPayableAmount',
+          value: (row: Reimbursement) => money(row.cashPayableAmount)
+        }
+      )
+    }
+    items.push(
+      { key: 'travelApplicationNo', label: '关联出差申请', field: 'travelApplicationNo' },
+      { key: 'travelLoanNo', label: '关联借款单', field: 'travelLoanNo' },
+      {
+        key: 'plannedPaymentDate',
+        label: '计划付款日',
+        field: 'plannedPaymentDate',
+        format: 'date'
+      }
+    )
     return items
   })
 
@@ -444,6 +621,132 @@
             width: 140,
             align: 'right' as const,
             formatter: (row: ExpenseItem) => money(row.amountSnapshot)
+          }
+        ]
+      : [])
+  ])
+
+  const travelExpenseColumns = computed<ColumnOption<TravelLine>[]>(() => [
+    { prop: 'expenseItemNameSnapshot', label: '费用项目', minWidth: 150 },
+    { prop: 'projectNameSnapshot', label: '项目', minWidth: 140 },
+    { prop: 'occurredOn', label: '费用发生日期', width: 130 },
+    ...(amountAccess.value !== 'hidden'
+      ? [
+          {
+            prop: 'grossAmount',
+            label: '报销金额',
+            width: 130,
+            align: 'right' as const,
+            formatter: (row: TravelLine) => money(row.grossAmount)
+          },
+          {
+            prop: 'taxRate',
+            label: '税率',
+            width: 80,
+            align: 'right' as const,
+            formatter: (row: TravelLine) => `${row.taxRate}%`
+          },
+          {
+            prop: 'taxAmount',
+            label: '税额',
+            width: 115,
+            align: 'right' as const,
+            formatter: (row: TravelLine) => money(row.taxAmount)
+          },
+          {
+            prop: 'netAmount',
+            label: '不含税金额',
+            width: 130,
+            align: 'right' as const,
+            formatter: (row: TravelLine) => money(row.netAmount)
+          },
+          {
+            prop: 'approvedAmount',
+            label: '核定金额',
+            width: 130,
+            align: 'right' as const,
+            formatter: (row: TravelLine) => money(row.approvedAmount)
+          }
+        ]
+      : []),
+    ...(evidenceAccess.value !== 'hidden'
+      ? [{ prop: 'invoiceNo', label: '发票号码', minWidth: 140, showOverflowTooltip: true }]
+      : []),
+    { prop: 'reimburseeNameSnapshot', label: '报销人', minWidth: 120 },
+    { prop: 'remark', label: '备注', minWidth: 150, showOverflowTooltip: true }
+  ])
+
+  const travelExpenseMobileItems = computed<ArtDescriptionItem<TravelLine>[]>(() => [
+    { key: 'expenseItemNameSnapshot', label: '费用项目', field: 'expenseItemNameSnapshot' },
+    { key: 'projectNameSnapshot', label: '项目', field: 'projectNameSnapshot' },
+    { key: 'occurredOn', label: '发生日期', field: 'occurredOn', format: 'date' },
+    ...(amountAccess.value !== 'hidden'
+      ? [
+          {
+            key: 'grossAmount',
+            label: '报销金额',
+            field: 'grossAmount',
+            value: (row: TravelLine) => money(row.grossAmount)
+          },
+          {
+            key: 'taxAmount',
+            label: '税额',
+            field: 'taxAmount',
+            value: (row: TravelLine) => money(row.taxAmount)
+          },
+          {
+            key: 'netAmount',
+            label: '不含税金额',
+            field: 'netAmount',
+            value: (row: TravelLine) => money(row.netAmount)
+          }
+        ]
+      : []),
+    { key: 'reimburseeNameSnapshot', label: '报销人', field: 'reimburseeNameSnapshot' }
+  ])
+
+  const travelPayeeColumns = computed<ColumnOption<TravelPayee>[]>(() => [
+    {
+      prop: 'settlementMethod',
+      label: '支付方式',
+      width: 140,
+      formatter: (row) => (
+        <ArtDictDisplay
+          dictCode="fmsSettlementMethod"
+          value={row.settlementMethod}
+          display="text"
+        />
+      )
+    },
+    { prop: 'payeeNameSnapshot', label: '收款人', minWidth: 130 },
+    { prop: 'accountNameSnapshot', label: '账户名称', minWidth: 150 },
+    { prop: 'bankNameSnapshot', label: '开户银行', minWidth: 170 },
+    { prop: 'bankAccountSnapshot', label: '银行账号', minWidth: 180 },
+    ...(amountAccess.value !== 'hidden'
+      ? [
+          {
+            prop: 'amount',
+            label: '收款金额',
+            width: 135,
+            align: 'right' as const,
+            formatter: (row: TravelPayee) => money(row.amount)
+          }
+        ]
+      : []),
+    { prop: 'remark', label: '备注', minWidth: 150, showOverflowTooltip: true }
+  ])
+
+  const travelPayeeMobileItems = computed<ArtDescriptionItem<TravelPayee>[]>(() => [
+    { key: 'payeeNameSnapshot', label: '收款人', field: 'payeeNameSnapshot' },
+    { key: 'bankNameSnapshot', label: '开户银行', field: 'bankNameSnapshot' },
+    { key: 'bankAccountSnapshot', label: '银行账号', field: 'bankAccountSnapshot' },
+    ...(amountAccess.value !== 'hidden'
+      ? [
+          {
+            key: 'amount',
+            label: '收款金额',
+            field: 'amount',
+            value: (row: TravelPayee) => money(row.amount)
           }
         ]
       : [])

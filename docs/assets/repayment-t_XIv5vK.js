@@ -1,1 +1,0 @@
-import{$n as e,Wn as t,yr as n}from"./supabase-BiadesM0.js";import{t as r}from"./finance-planned-page-B6vCYrKA.js";var i=e({name:`FinanceRepayment`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{title:`还款单`,area:`人人费用`,description:`登记并核对借款归还。`,icon:`ri:refund-line`}))}});export{i as default};

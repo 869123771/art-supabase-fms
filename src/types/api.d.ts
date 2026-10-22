@@ -37,6 +37,8 @@ declare global {
       type VoucherType =
         'general' | 'receipt' | 'payment' | 'transfer' | 'adjustment' | 'closing' | 'reversal'
       type VoucherSourceType =
+        | 'estimated_payable'
+        | 'financial_payable'
         | 'manual'
         | 'customer_statement'
         | 'carrier_statement'
@@ -1244,7 +1246,29 @@ declare global {
       interface ExpenseReimbursementRecord {
         id: string
         tenantId: string
+        isDemo: boolean
         reimbursementNo: string
+        sourceType: 'waybill' | 'travel'
+        reimbursementDate: string
+        applicantEmployeeId?: string | null
+        applicantEmployeeNoSnapshot?: string | null
+        applicantOrganizationNameSnapshot?: string | null
+        applicantCompanyId?: string | null
+        applicantCompanyNameSnapshot?: string | null
+        assignmentId?: string | null
+        positionNameSnapshot?: string | null
+        expenseDepartmentId?: string | null
+        expenseDepartmentNameSnapshot?: string | null
+        expenseCompanyId?: string | null
+        expenseCompanyNameSnapshot?: string | null
+        travelApplicationId?: string | null
+        travelApplicationNo?: string | null
+        travelLoanId?: string | null
+        travelLoanNo?: string | null
+        reason?: string | null
+        multipleReimbursees?: boolean
+        isProjectExpense?: boolean
+        projectId?: string | null
         applicantUserId?: string | null
         applicantNameSnapshot: string
         payeeName?: string | null
@@ -1253,6 +1277,10 @@ declare global {
         plannedPaymentDate: string
         paymentMethod?: CashPaymentMethod | '***'
         totalAmount?: Api.Fms.SensitiveNumber
+        approvedAmount?: Api.Fms.SensitiveNumber
+        loanOffsetAmount?: Api.Fms.SensitiveNumber
+        cashPayableAmount?: Api.Fms.SensitiveNumber
+        payeeAmount?: Api.Fms.SensitiveNumber
         paidAmount?: Api.Fms.SensitiveNumber
         remainingAmount?: Api.Fms.SensitiveNumber
         basisUrls?: string[]
@@ -1268,6 +1296,8 @@ declare global {
         paymentVoucherUrls?: string[]
         remark?: string | null
         itemCount: number
+        travelLineCount?: number
+        payeeCount?: number
         waybillCount: number
         waybillNos?: string | null
         paymentId?: string | null
@@ -1278,8 +1308,47 @@ declare global {
         updateBy?: string | null
         updateTime: string
         items?: ExpenseReimbursementItem[]
+        travelLines?: ExpenseReimbursementTravelLine[]
+        payees?: ExpenseReimbursementPayee[]
         fieldAccess?: ExpenseReimbursementFieldAccessMap
         isRecordOwner?: boolean
+      }
+
+      interface ExpenseReimbursementTravelLine {
+        id: string
+        reimbursementId: string
+        lineNo: number
+        expenseItemId: string
+        expenseItemNameSnapshot: string
+        projectId: string | null
+        projectNameSnapshot: string | null
+        occurredOn: string
+        grossAmount?: Api.Fms.SensitiveNumber
+        taxRate: number
+        taxAmount?: Api.Fms.SensitiveNumber
+        netAmount?: Api.Fms.SensitiveNumber
+        approvedAmount?: Api.Fms.SensitiveNumber
+        invoiceNo?: string | null
+        reimburseeEmployeeId?: string | null
+        reimburseeNameSnapshot?: string | null
+        remark?: string | null
+      }
+
+      interface ExpenseReimbursementPayee {
+        id: string
+        reimbursementId: string
+        lineNo: number
+        settlementMethod?: string
+        payeeType: 'person'
+        payeeInformationId?: string
+        payeeNameSnapshot?: string
+        bankAccountSnapshot?: string
+        accountNameSnapshot?: string | null
+        bankNameSnapshot?: string
+        amount?: Api.Fms.SensitiveNumber
+        paidAmount?: Api.Fms.SensitiveNumber
+        remainingAmount?: Api.Fms.SensitiveNumber
+        remark?: string | null
       }
 
       type ExpenseReimbursementSearchParams = Api.Common.CommonSearchParams & {
@@ -2367,6 +2436,9 @@ declare global {
 
       interface InvoiceRecord {
         id: string
+        receivableId?: string | null
+        currencyCode?: string
+        exchangeRate?: Api.Fms.SensitiveNumber
         tenantId: string
         invoiceRecordNo: string
         direction: InvoiceDirection

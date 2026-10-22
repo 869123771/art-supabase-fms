@@ -106,6 +106,7 @@
 </template>
 
 <script setup lang="ts">
+  import { ElMessage } from 'element-plus'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
@@ -117,7 +118,6 @@
   import { getDeleteReferenceContext } from '@/utils/supabase/delete-reference'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { formatCurrencyValue } from '@/utils/ui'
-  import TreeUtils from '@/utils/tree'
   import { calculateDistinctTravelDays } from '@fms/utils/travel-itinerary'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -141,9 +141,12 @@
     type TravelItineraryInput
   } from '@fms/api'
   import TravelItineraryDialog from './travel-itinerary-dialog.vue'
+  import { findExpenseCompany } from '../../shared/expense-company'
+  import { usePrimaryAssignment } from '../../shared/use-primary-assignment'
 
   interface OpenData {
     row?: TravelApplication
+    copy?: boolean
   }
   type EditableLine = TravelItineraryInput & { id?: string }
   interface ItineraryDialogExpose {
@@ -168,11 +171,6 @@
   const userStore = useUserStore()
   const { getUserInfo } = storeToRefs(userStore)
   const travelTypeOptions = useDictionaryOptions('fmsTravelType')
-  const orgTreeUtils = new TreeUtils({
-    idKey: 'id',
-    parentKey: 'parentId',
-    childrenKey: 'children'
-  })
   const organizations = ref<Organization[]>([])
   const selectedApplicant = ref<EmployeeIntegrationItem[]>([])
   const lines = ref<EditableLine[]>([])
@@ -191,25 +189,19 @@
     attachmentUrls: []
   })
   const model = ref<TravelApplicationInput>(initial())
+  const { selectPrimaryAssignment } = usePrimaryAssignment(model)
   const totalAmount = computed(() =>
     lines.value.reduce((sum, line) => sum + Number(line.requestedAmount), 0)
   )
   const estimatedDays = computed(() => calculateDistinctTravelDays(lines.value))
 
-  function companyFor(organizationId: string | null | undefined): Organization | null {
-    if (!organizationId) return null
-    const path = orgTreeUtils.getPathToNode(organizations.value, organizationId) ?? []
-    for (const id of path.reverse()) {
-      const organization = orgTreeUtils.findNode(organizations.value, id)
-      if (organization?.organizationType === 'company') return organization
-    }
-    return null
-  }
   const applicantCompanyName = computed(
-    () => companyFor(selectedApplicant.value[0]?.organizationId)?.organizationName
+    () =>
+      findExpenseCompany(organizations.value, selectedApplicant.value[0]?.organizationId)
+        ?.organizationName
   )
   const expenseCompanyName = computed(
-    () => companyFor(model.value.expenseDepartmentId)?.organizationName
+    () => findExpenseCompany(organizations.value, model.value.expenseDepartmentId)?.organizationName
   )
   const items = computed<FormItem[]>(() => [
     { key: 'base', label: '基本信息', type: 'divider', span: 24 },
@@ -273,6 +265,7 @@
     model.value.assignmentId = null
     const organizationId = selectedApplicant.value[0]?.organizationId
     if (organizationId) model.value.expenseDepartmentId = organizationId
+    void selectPrimaryAssignment()
   }
   function addLine(): void {
     editingLineIndex.value = null
@@ -326,11 +319,12 @@
       const detail = data.row ? (await fetchTravelApplicationDetail(data.row.id)).data : null
       model.value = detail
         ? {
-            id: detail.id,
+            id: data.copy ? undefined : detail.id,
+            copySourceId: data.copy ? detail.id : undefined,
             tenantId: detail.tenantId,
             applicantEmployeeId: detail.applicantEmployeeId,
             assignmentId: detail.assignmentId,
-            applicationDate: detail.applicationDate,
+            applicationDate: data.copy ? dayjs().format('YYYY-MM-DD') : detail.applicationDate,
             expenseDepartmentId: detail.expenseDepartmentId,
             travelType: detail.travelType,
             multipleTravelers: detail.multipleTravelers,
@@ -340,7 +334,7 @@
           }
         : initial()
       lines.value = (detail?.itineraries ?? []).map((line) => ({
-        id: line.id,
+        id: data.copy ? undefined : line.id,
         departureRegionPath: line.departureRegionPath,
         departurePlace: line.departurePlace,
         destinationRegionPath: line.destinationRegionPath,
@@ -371,12 +365,15 @@
         : getUserInfo.value.hrEmployee
           ? [{ ...getUserInfo.value.hrEmployee, tenantId: model.value.tenantId }]
           : []
+      await selectPrimaryAssignment()
       const organizationsResult = await fetchEnabledOrganizationTree({
         tenantId: model.value.tenantId
       })
       organizations.value = organizationsResult.data ?? []
       await dialogRef.value?.handleOpen(data, {
-        title: detail ? `编辑出差申请 · ${detail.applicationNo}` : '新增出差申请',
+        title: detail
+          ? `${data.copy ? '复制' : '编辑'}出差申请 · ${detail.applicationNo}`
+          : '新增出差申请',
         subtitle: '本阶段保存草稿及行程；审批和差旅报销将在后续流程中接入。',
         confirmText: '保存草稿',
         onOpen: () => formRef.value?.clearValidate(),
@@ -391,6 +388,7 @@
               return false
             }
             await saveTravelApplicationDraft(model.value, lines.value)
+            ElMessage.success(data.copy ? '出差申请已复制为新草稿' : '出差申请草稿已保存')
             emit('success')
             return true
           } catch (error) {

@@ -1,5 +1,12 @@
 <template>
   <ArtDialog ref="dialogRef" size="lg">
+    <ElAlert
+      v-if="sourceReceivableId"
+      class="mb-5"
+      type="info"
+      :closable="false"
+      :title="`来源财务应收 · ${invoiceCurrency}。客户、税率和金额随来源锁定；填写票号和开票资料后提交审核。`"
+    />
     <InvoiceOcrPanel
       v-if="canEditInvoiceField('invoiceAttachments')"
       ref="ocrPanelRef"
@@ -25,6 +32,7 @@
       <template #counterpartyId>
         <div class="invoice-dialog__counterparty-field">
           <ArtTableSingleSelect
+            :disabled="Boolean(sourceReceivableId)"
             v-model="form.data.counterpartyId"
             v-model:selected-data="selection.parties"
             :api-fn="fetchPartySelectorData"
@@ -206,9 +214,11 @@
 </template>
 
 <script setup lang="ts">
+  import { ref, reactive, computed, nextTick, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
-  import { formatCnyCurrencyValue as formatMoney } from '@/utils/ui/format'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui/format'
 
   import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
@@ -318,6 +328,8 @@
   const { getDictMap } = storeToRefs(userStore)
   const tenantScopeStore = useTenantScopeStore()
   const recordTenantId = ref('')
+  const sourceReceivableId = ref<string | null>()
+  const invoiceCurrency = ref('CNY')
   const attachmentTenantId = computed(
     () => recordTenantId.value || tenantScopeStore.effectiveTenantId || ''
   )
@@ -346,6 +358,7 @@
   }
 
   function canEditInvoiceField(field: Api.Fms.InvoiceFieldKey): boolean {
+    if (field === 'invoiceAmounts' && sourceReceivableId.value) return false
     return canEditField(fieldAccess.value, field)
   }
 
@@ -499,11 +512,15 @@
                 formatter: () =>
                   getFieldAccess(fieldAccess.value, 'invoiceAmounts') === 'masked'
                     ? '金额已脱敏'
-                    : formatMoney(form.data.totalAmount)
+                    : formatSensitiveCurrencyValue(form.data.totalAmount, invoiceCurrency.value)
               }
             },
-            { label: '对账关联', key: 'linkSection', type: 'divider' as const, span: 24 },
-            { label: '关联对账单', key: 'statementIds', type: 'input' as const, span: 24 }
+            ...(!sourceReceivableId.value
+              ? [
+                  { label: '对账关联', key: 'linkSection', type: 'divider' as const, span: 24 },
+                  { label: '关联对账单', key: 'statementIds', type: 'input' as const, span: 24 }
+                ]
+              : [])
           ]
         : []),
       {
@@ -574,14 +591,19 @@
       label: '对账金额',
       width: 135,
       align: 'right',
-      formatter: (row) => formatMoney((row as InvoiceableStatement).statementAmount)
+      formatter: (row) =>
+        formatSensitiveCurrencyValue(
+          (row as InvoiceableStatement).statementAmount,
+          invoiceCurrency.value
+        )
     },
     {
       prop: 'availableAmount',
       label: '可开票金额',
       width: 135,
       align: 'right',
-      formatter: (row) => formatMoney(getAvailableAmount(row))
+      formatter: (row) =>
+        formatSensitiveCurrencyValue(getAvailableAmount(row), invoiceCurrency.value)
     }
   ]
 
@@ -610,7 +632,8 @@
         label: '可开票金额',
         width: 135,
         align: 'right',
-        formatter: (row) => formatMoney(getAvailableAmount(row))
+        formatter: (row) =>
+          formatSensitiveCurrencyValue(getAvailableAmount(row), invoiceCurrency.value)
       },
       {
         prop: 'linkedAmount',
@@ -693,7 +716,7 @@
     selection.statements.length
       ? getFieldAccess(fieldAccess.value, 'invoiceAmounts') === 'masked'
         ? `已选择 ${selection.statements.length} 份对账单，关联金额已脱敏`
-        : `已选择 ${selection.statements.length} 份对账单，本次关联 ${formatMoney(selectedLinkedAmount.value)}，发票价税合计 ${formatMoney(form.data.totalAmount)}`
+        : `已选择 ${selection.statements.length} 份对账单，本次关联 ${formatSensitiveCurrencyValue(selectedLinkedAmount.value, invoiceCurrency.value)}，发票价税合计 ${formatSensitiveCurrencyValue(form.data.totalAmount, invoiceCurrency.value)}`
       : form.data.counterpartyId
         ? '可以关联已确认的对账单；暂不关联时，发票将进入待匹配状态'
         : '请先选择发票方向和往来单位，再关联对账单'
@@ -929,6 +952,8 @@
   }
 
   async function resetForm(): Promise<void> {
+    sourceReceivableId.value = undefined
+    invoiceCurrency.value = 'CNY'
     replaceForm(createInitialForm())
     recordTenantId.value = ''
     fieldAccess.value = {
@@ -951,6 +976,10 @@
   }
 
   async function handleApplyOcrResult(result: Api.Fms.InvoiceOcrAnalyzeResponse): Promise<void> {
+    if (sourceReceivableId.value) {
+      ElMessage.info('来源应收的客户和金额已锁定，请直接维护票号及附件')
+      return
+    }
     const invoice = result.invoice
     const patch: Partial<InvoiceFormModel> = {}
     const recognizedCounterpartyName =
@@ -1086,6 +1115,8 @@
     if (error) throw error
     if (!data) throw new Error('发票记录已不可用，请刷新列表后重试')
     recordTenantId.value = data.tenantId || ''
+    sourceReceivableId.value = data.receivableId
+    invoiceCurrency.value = data.currencyCode || 'CNY'
     fieldAccess.value = data.fieldAccess ?? {}
     const links = data.statementLinks ?? []
     const counterpartyId = data.direction === 'output' ? data.customerId : data.carrierId

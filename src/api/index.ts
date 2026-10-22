@@ -294,6 +294,7 @@ export {
   fetchTravelItineraryList,
   fetchTravelApplicationDetail,
   saveTravelApplicationDraft,
+  deleteTravelApplications,
   fetchExpenseProjectOptions,
   fetchTravelAssignmentOptions,
   type TravelApplication,
@@ -315,10 +316,15 @@ export {
   fetchTravelLoanItemList,
   fetchTravelLoanDetail,
   saveTravelLoanDraft,
+  deleteTravelLoans,
+  prepareTravelLoanPush,
+  type TravelLoanPushKind,
   fetchLoanPayeeOptions,
+  recordTravelLoanPayment,
   type TravelLoan,
   type TravelLoanItem,
   type TravelLoanPayee,
+  type TravelLoanPayment,
   type TravelLoanInput,
   type TravelLoanItemInput,
   type TravelLoanPayeeInput,
@@ -326,3 +332,40 @@ export {
   type TravelLoanItemRecord,
   type LoanPayeeOption
 } from '@fms/api/modules/expense/travel-loan'
+
+export {
+  fetchTravelRepaymentList,
+  fetchTravelRepaymentLineList,
+  fetchTravelRepaymentDetail,
+  fetchRepayableLoans,
+  saveTravelRepaymentDraft,
+  submitTravelRepayment,
+  deleteTravelRepayments,
+  recordTravelRepaymentCollection,
+  type TravelRepayment,
+  type TravelRepaymentItem,
+  type TravelRepaymentReceipt,
+  type TravelRepaymentLine,
+  type TravelRepaymentSearch,
+  type TravelRepaymentInput,
+  type TravelRepaymentItemInput,
+  type RepayableLoan
+} from '@fms/api/modules/expense/travel-repayment'
+
+export {
+  deleteTravelReimbursements,
+  fetchReimbursementPayeeOptions,
+  fetchTravelReimbursementDetail,
+  fetchReimbursementLoanOptions,
+  type ReimbursementLoanOption,
+  fetchReimbursementWorkspaceLines,
+  fetchReimbursementWorkspaceList,
+  recordTravelReimbursementPayment,
+  saveTravelReimbursementDraft,
+  type ReimbursementWorkspaceSearch,
+  type ReimbursementWorkspaceLine,
+  type TravelReimbursementDraftInput,
+  type TravelReimbursementLineInput,
+  type TravelReimbursementPayeeInput,
+  type TravelReimbursementPaymentInput
+} from '@fms/api/modules/expense/travel-reimbursement'

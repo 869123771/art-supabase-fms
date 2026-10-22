@@ -1,14 +1,7 @@
 <template>
-  <FinancePlannedPage
-    title="收款单"
-    area="应收款管理"
-    description="登记与核对收款单。"
-    icon="ri:money-cny-circle-line"
-  />
+  <ArSecondaryWorkspace kind="receipt" />
 </template>
-
 <script setup lang="ts">
-  import FinancePlannedPage from '../../components/finance-planned-page.vue'
-
+  import ArSecondaryWorkspace from '../modules/ar-secondary-workspace.vue'
   defineOptions({ name: 'FinanceReceipt' })
 </script>

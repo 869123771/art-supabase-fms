@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+  import { ref, computed } from 'vue'
   import { ElButton } from 'element-plus'
   import type { ColumnOption } from '@/types'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -95,6 +96,7 @@
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import { fetchInvoiceDetail } from '@fms/api'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui/format'
   import { useDetailRecord } from '@/hooks/core/useDetailRecord'
   import {
     canViewField,
@@ -126,6 +128,7 @@
     { key: 'invoiceType', label: '发票类型', field: 'invoiceType', dictCode: 'tmsInvoiceType' },
     { key: 'counterparty', label: '往来单位', field: 'counterpartyNameSnapshot' },
     { key: 'issueDate', label: '开票日期', field: 'issueDate', format: 'date' },
+    { key: 'currencyCode', label: '币种', field: 'currencyCode' },
     { key: 'invoiceCode', label: '发票代码', field: 'invoiceCode', copyable: true },
     { key: 'invoiceNo', label: '发票号码', field: 'invoiceNo', copyable: true },
     { key: 'invoiceTitle', label: '发票抬头', field: 'invoiceTitle' },
@@ -146,7 +149,7 @@
             label: '不含税金额',
             field: 'amountExcludingTax' as const,
             formatter: (_value: unknown, data: Invoice) =>
-              formatSensitiveNumberWithAffix(data.amountExcludingTax, { prefix: '¥' })
+              formatSensitiveCurrencyValue(data.amountExcludingTax, data.currencyCode)
           },
           {
             key: 'taxRate',
@@ -160,28 +163,28 @@
             label: '税额',
             field: 'taxAmount' as const,
             formatter: (_value: unknown, data: Invoice) =>
-              formatSensitiveNumberWithAffix(data.taxAmount, { prefix: '¥' })
+              formatSensitiveCurrencyValue(data.taxAmount, data.currencyCode)
           },
           {
             key: 'totalAmount',
             label: '价税合计',
             field: 'totalAmount' as const,
             formatter: (_value: unknown, data: Invoice) =>
-              formatSensitiveNumberWithAffix(data.totalAmount, { prefix: '¥' })
+              formatSensitiveCurrencyValue(data.totalAmount, data.currencyCode)
           },
           {
             key: 'linkedAmount',
             label: '已关联金额',
             field: 'linkedAmount' as const,
             formatter: (_value: unknown, data: Invoice) =>
-              formatSensitiveNumberWithAffix(data.linkedAmount, { prefix: '¥' })
+              formatSensitiveCurrencyValue(data.linkedAmount, data.currencyCode)
           },
           {
             key: 'unlinkedAmount',
             label: '未关联金额',
             field: 'unlinkedAmount' as const,
             formatter: (_value: unknown, data: Invoice) =>
-              formatSensitiveNumberWithAffix(data.unlinkedAmount, { prefix: '¥' })
+              formatSensitiveCurrencyValue(data.unlinkedAmount, data.currencyCode)
           }
         ]
       : []),

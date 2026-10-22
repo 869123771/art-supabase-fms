@@ -35,6 +35,7 @@
 </template>
 
 <script setup lang="ts">
+  import { ElMessage } from 'element-plus'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import TreeUtils from '@/utils/tree'
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
@@ -265,6 +266,7 @@
           if (!(await validateArtFormForSubmit(formRef.value))) return false
           const { id, ...payload } = model.value
           await savePayeeInformation(payload, id)
+          ElMessage.success(id ? '收款信息已更新' : '收款信息已保存')
           emit('success')
           return true
         } catch (error) {

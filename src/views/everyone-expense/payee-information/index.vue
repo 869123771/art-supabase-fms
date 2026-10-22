@@ -186,6 +186,7 @@
       key: 'deleteSelected',
       permission: 'FinancePayeeInformation:Delete',
       label: '批量删除',
+      icon: 'ri:delete-bin-line',
       selectionRequired: true,
       disabled: deleteBusy.value,
       onClick: ({ selectedRows }) => deleteSelected(selectedRows as PayeeInformation[])
@@ -286,6 +287,7 @@
   async function deleteOne(row: PayeeInformation): Promise<void> {
     await deleteRecord({
       resource: { id: row.id, label: `${row.payeeName} · ${row.bankName}` },
+      successMessage: '收款信息已删除',
       permission: 'FinancePayeeInformation:Delete',
       remove: () => deletePayeeInformation([row.id]),
       onDeleted: refreshTable
@@ -295,6 +297,7 @@
     if (!rows.length) return
     await deleteRecords({
       resources: rows.map((row) => ({ id: row.id, label: `${row.payeeName} · ${row.bankName}` })),
+      successMessage: '所选收款信息已删除',
       permission: 'FinancePayeeInformation:Delete',
       remove: () => deletePayeeInformation(rows.map((row) => row.id)),
       onDeleted: refreshTable

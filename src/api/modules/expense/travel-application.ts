@@ -63,6 +63,7 @@ export interface TravelApplication {
 
 export interface TravelApplicationInput {
   id?: string
+  copySourceId?: string
   tenantId: string
   applicantEmployeeId: string
   assignmentId: string | null
@@ -117,6 +118,10 @@ export interface TravelAssignmentOption {
   id: string
   businessTitle: string | null
   primaryAssignment: boolean
+}
+
+interface TravelAssignmentRow extends TravelAssignmentOption {
+  position: { positionName: string | null } | null
 }
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
@@ -191,8 +196,9 @@ export async function saveTravelApplicationDraft(
   input: TravelApplicationInput,
   itineraries: TravelItineraryInput[]
 ) {
+  const { copySourceId, ...record } = input
   const payload = keysToSnakeDeep({
-    ...input,
+    ...record,
     reason: input.reason.trim(),
     remark: normalizeNullableText(input.remark)
   })
@@ -204,15 +210,28 @@ export async function saveTravelApplicationDraft(
     estimatedDays: number
   }>(
     () =>
-      supabase.rpc('save_fms_travel_application_draft_secure', {
-        p_payload: payload,
-        p_lines: keysToSnakeDeep(itineraries)
-      }),
+      supabase.rpc(
+        copySourceId
+          ? 'copy_fms_travel_application_draft_secure'
+          : 'save_fms_travel_application_draft_secure',
+        {
+          ...(copySourceId ? { p_source_id: copySourceId } : {}),
+          p_payload: payload,
+          p_lines: keysToSnakeDeep(itineraries)
+        }
+      ),
     {
       breakReturn: true,
       showErrorMessage: false,
       errorMessage: '出差申请保存失败，请核对行程后重试'
     }
+  )
+}
+
+export async function deleteTravelApplications(ids: string[]) {
+  return responseHandle<number>(
+    () => supabase.rpc('delete_fms_travel_applications_secure', { p_ids: ids }),
+    { breakReturn: true, showErrorMessage: false, errorMessage: '出差申请删除失败，请刷新后重试' }
   )
 }
 
@@ -224,14 +243,24 @@ export async function fetchExpenseProjectOptions(tenantId: string) {
 }
 
 export async function fetchTravelAssignmentOptions(tenantId: string, employeeId: string) {
-  return await responseHandle<TravelAssignmentOption[]>(
+  const result = await responseHandle<TravelAssignmentRow[]>(
     () =>
       supabase
         .from('mdm_employee_assignment')
-        .select('id,business_title,primary_assignment')
+        .select(
+          'id,business_title,primary_assignment,position:mdm_position!hr_employee_assignment_position_fkey(position_name)'
+        )
         .eq('tenant_id', tenantId)
         .eq('employee_id', employeeId)
+        .eq('assignment_status', 'active')
         .order('primary_assignment', { ascending: false }),
     { breakReturn: true, showErrorMessage: false, errorMessage: '任职职位加载失败，请重试' }
   )
+  return {
+    ...result,
+    data: (result.data ?? []).map(({ position, ...assignment }) => ({
+      ...assignment,
+      businessTitle: assignment.businessTitle || position?.positionName || '未设置职位名称'
+    }))
+  }
 }

@@ -1,6 +1,7 @@
 <template>
   <ArtPermissionGuard permission="FinanceTravelApplication:View">
     <div class="business-workspace-page art-full-height flex min-w-0 flex-col gap-4">
+      <MasterDeleteProcessingNotice :table="tableRef" />
       <BusinessWorkspaceHeader
         density="compact"
         eyebrow="TRAVEL APPLICATIONS"
@@ -16,11 +17,13 @@
         :search-items="searchItems"
         :api-fn="fetchTableData"
         :columns-factory="columnsFactory"
+        :columns-context-key="search.displayMode"
         :header-actions="headerActions"
         header-actions-placement="workspace"
         :search-bar-props="{ span: 6, labelWidth: 86 }"
         :table-props="{
           rowKey: 'id',
+          spanMethod: mergeDocumentCells,
           tableLayout: 'fixed',
           emptyText: '暂无出差申请',
           emptyDescription: '可新增草稿，填写申请人和行程信息。'
@@ -38,11 +41,15 @@
         </template>
       </ArtTableQuery>
       <TravelApplicationDialog ref="dialogRef" @success="refreshTable" />
+      <TravelApplicationPrintSheet ref="printRef" />
+      <MasterDataDeleteGuard ref="deleteGuardRef" />
     </div>
   </ArtPermissionGuard>
 </template>
 
 <script setup lang="tsx">
+  import { orderBy, uniqBy } from 'lodash-es'
+  import { useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import type { ColumnOption } from '@/types'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -53,30 +60,61 @@
   import ArtPermissionGuard from '@/components/core/feedback/art-permission-guard/index.vue'
   import ArtTableQuery from '@/components/core/tables/art-table-query/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { resolveExpenseDeleteResources } from '../shared/expense-delete-resources'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { documentGroupSpan } from '@/utils/business/document-detail-list'
   import { formatCurrencyValue } from '@/utils/ui'
   import {
     fetchTravelApplicationList,
+    fetchTravelApplicationDetail,
+    deleteTravelApplications,
     fetchTravelItineraryList,
     type TravelApplication,
     type TravelApplicationSearch,
     type TravelLineRecord
   } from '@fms/api'
   import TravelApplicationDialog from './modules/travel-application-dialog.vue'
+  import TravelApplicationPrintSheet from './modules/travel-application-print-sheet.vue'
 
   defineOptions({ name: 'FinanceTravelApplication' })
   interface DialogExpose {
-    handleOpen: (data?: { row?: TravelApplication }) => Promise<void>
+    handleOpen: (data?: { row?: TravelApplication; copy?: boolean }) => Promise<void>
   }
   type TableRecord = TravelApplication | TravelLineRecord
   type TravelSearch = TravelApplicationSearch & { displayMode: 'document' | 'line' }
   const tableRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
+  const printRef = ref<InstanceType<typeof TravelApplicationPrintSheet>>()
+  const printing = ref(false)
+  const route = useRoute()
+  const { hasAuth } = useAuth()
+  const { deleteGuardRef, deleteRecord, deleteRecords, deleteBusy } = useRecordDeleteGuard(
+    'fms_travel_application',
+    '出差申请单'
+  )
+  const visibleLines = ref<TravelLineRecord[]>([])
+  const lineProperties = new Set([
+    'lineNo',
+    'departurePlace',
+    'destinationPlace',
+    'startDate',
+    'endDate',
+    'expenseItem',
+    'project',
+    'requestedAmount'
+  ])
+  let latestRequest = 0
   const { effectiveTenantId, isAllTenants } = storeToRefs(useTenantScopeStore())
   const statusOptions = useDictionaryOptions('fmsExpenseDocumentStatus')
   const displayModeOptions = useDictionaryOptions('commonDocumentDisplayMode')
@@ -92,6 +130,7 @@
       label: '展示方式',
       key: 'displayMode',
       type: 'radioGroup',
+      span: 12,
       options: displayModeOptions,
       props: { optionType: 'button', 'aria-label': '出差申请列表展示方式' }
     },
@@ -126,18 +165,66 @@
       permission: 'FinanceTravelApplication:Add',
       label: '新增出差申请',
       onClick: () => dialogRef.value?.handleOpen()
+    },
+    {
+      key: 'deleteSelected',
+      label: '批量删除',
+      icon: 'ri:delete-bin-line',
+      permission: 'FinanceTravelApplication:Delete',
+      selectionRequired: true,
+      disabled: search.value.displayMode !== 'document' || deleteBusy.value,
+      onClick: ({ selectedRows }) => deleteSelected(selectedRows as TravelApplication[])
+    },
+    {
+      key: 'batchPrint',
+      label: '批量打印',
+      icon: 'ri:printer-line',
+      permission: 'FinanceTravelApplication:Print',
+      selectionRequired: true,
+      buttonProps: { loading: printing.value },
+      onClick: ({ selectedRows }) => printSelected(selectedRows as TableRecord[])
     }
   ])
 
   async function fetchTableData(params: TravelSearch & { current: number; size: number }) {
+    const request = ++latestRequest
     const range = buildSupabasePageRange(params)
     const { displayMode, ...filters } = params
     const query = { ...filters, ...range, tenantId: effectiveTenantId.value }
-    const result =
-      displayMode === 'line'
-        ? await fetchTravelItineraryList(query)
-        : await fetchTravelApplicationList(query)
+    if (displayMode === 'line') {
+      const result = await fetchTravelItineraryList(query)
+      const rows = orderBy(
+        result.data ?? [],
+        [
+          (row) => row.application.applicationDate,
+          (row) => row.application.id,
+          (row) => row.lineNo
+        ],
+        ['desc', 'asc', 'asc']
+      )
+      if (request === latestRequest) visibleLines.value = rows
+      return { ...result, data: rows, total: result.total ?? 0 }
+    }
+    const result = await fetchTravelApplicationList(query)
+    if (request === latestRequest) visibleLines.value = []
     return { ...result, total: result.total ?? 0 }
+  }
+  function mergeDocumentCells({
+    rowIndex,
+    column
+  }: {
+    rowIndex: number
+    column: { property?: string }
+  }) {
+    return search.value.displayMode === 'line'
+      ? documentGroupSpan(
+          visibleLines.value,
+          rowIndex,
+          column.property,
+          lineProperties,
+          (row) => row.application.id
+        )
+      : ([1, 1] as [number, number])
   }
   const applicationOf = (row: TableRecord): TravelApplication =>
     'application' in row ? row.application : row
@@ -146,6 +233,7 @@
   const columnsFactory = (): ColumnOption<TableRecord>[] => {
     if (search.value.displayMode === 'line') {
       return [
+        { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
         {
           prop: 'applicationNo',
           label: '单据编号',
@@ -204,20 +292,14 @@
         {
           prop: 'operation',
           label: '操作',
-          width: 86,
+          width: 160,
           fixed: 'right',
-          formatter: (row) => (
-            <ArtButtonTable
-              type="edit"
-              permission="FinanceTravelApplication:Edit"
-              disabled={applicationOf(row).status !== 'draft'}
-              onClick={() => dialogRef.value?.handleOpen({ row: applicationOf(row) })}
-            />
-          )
+          formatter: (row) => applicationActions(applicationOf(row))
         }
       ]
     }
     return [
+      { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
       {
         prop: 'applicationNo',
         label: '单据编号',
@@ -303,24 +385,104 @@
       {
         prop: 'operation',
         label: '操作',
-        width: 86,
+        width: 160,
         fixed: 'right',
-        formatter: (row) => (
-          <ArtButtonTable
-            type="edit"
-            permission="FinanceTravelApplication:Edit"
-            disabled={applicationOf(row).status !== 'draft'}
-            onClick={() => dialogRef.value?.handleOpen({ row: applicationOf(row) })}
-          />
-        )
+        formatter: (row) => applicationActions(applicationOf(row))
       }
     ]
   }
   function refreshTable(): Promise<unknown> {
     return tableRef.value?.refreshData() ?? Promise.resolve()
   }
+  function applicationActions(row: TravelApplication) {
+    return (
+      <BusinessTableRowActions>
+        <ArtButtonTable
+          type="edit"
+          permission="FinanceTravelApplication:Edit"
+          disabled={row.status !== 'draft'}
+          onClick={() => dialogRef.value?.handleOpen({ row })}
+        />
+        <ArtButtonTable
+          icon="ri:file-copy-line"
+          label="复制出差申请"
+          permission="FinanceTravelApplication:Copy"
+          disabled={!hasAuth('FinanceTravelApplication:Add')}
+          onClick={() => dialogRef.value?.handleOpen({ row, copy: true })}
+        />
+        {row.status === 'draft' ? (
+          <ArtButtonTable
+            type="delete"
+            permission="FinanceTravelApplication:Delete"
+            disabled={deleteBusy.value}
+            onClick={() => void deleteOne(row)}
+          />
+        ) : null}
+      </BusinessTableRowActions>
+    )
+  }
+  async function deleteOne(row: TravelApplication): Promise<void> {
+    await deleteRecord({
+      resource: { id: row.id, label: row.applicationNo },
+      resolveResources: () => resolveExpenseDeleteResources('application', [row.id]),
+      successMessage: '出差申请已删除',
+      permission: 'FinanceTravelApplication:Delete',
+      remove: () => deleteTravelApplications([row.id]),
+      onDeleted: refreshTable
+    })
+  }
+  async function deleteSelected(rows: TravelApplication[]): Promise<void> {
+    if (search.value.displayMode !== 'document' || !rows.length) return
+    await deleteRecords({
+      resources: rows.map((row) => ({ id: row.id, label: row.applicationNo })),
+      resolveResources: () =>
+        resolveExpenseDeleteResources(
+          'application',
+          rows.map((row) => row.id)
+        ),
+      successMessage: '所选出差申请已删除',
+      permission: 'FinanceTravelApplication:Delete',
+      remove: () => deleteTravelApplications(rows.map((row) => row.id)),
+      onDeleted: refreshTable
+    })
+  }
+  async function printSelected(rows: TableRecord[]): Promise<void> {
+    if (!hasAuth('FinanceTravelApplication:Print') || printing.value || !rows.length) return
+    printing.value = true
+    try {
+      const selected = uniqBy(rows.map(applicationOf), (row) => row.id)
+      const details = await Promise.all(selected.map((row) => fetchTravelApplicationDetail(row.id)))
+      const records = details.flatMap((result) => (result.data ? [result.data] : []))
+      if (records.length !== selected.length) throw new Error('部分申请已变化，请刷新后重试')
+      await printRef.value?.print(records)
+    } catch (error) {
+      notifyFriendlyError(error, '出差申请打印内容加载失败，请重试')
+    } finally {
+      printing.value = false
+    }
+  }
   watch(
     () => search.value.displayMode,
-    () => void tableRef.value?.getData()
+    () => {
+      tableRef.value?.clearSelection()
+      void tableRef.value?.getData()
+    }
+  )
+  watch(
+    () => route.query.applicationId,
+    async (id) => {
+      if (typeof id !== 'string' || !id) return
+      try {
+        const { data } = await fetchTravelApplicationDetail(id)
+        if (!data) throw new Error('关联申请不可用')
+        search.value.displayMode = 'document'
+        search.value.keyword = data.applicationNo
+        await nextTick()
+        await tableRef.value?.getData()
+      } catch (error) {
+        notifyFriendlyError(error, '关联出差申请定位失败，请刷新后重试')
+      }
+    },
+    { immediate: true }
   )
 </script>

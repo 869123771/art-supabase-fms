@@ -52,6 +52,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { ref, reactive, computed } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
@@ -221,6 +223,22 @@
     const allowed: Record<string, string[]> = {
       'customer_statement:confirmed': ['customer_id'],
       'carrier_statement:confirmed': ['carrier_id'],
+      'estimated_payable:approved': ['supplier_id', 'organization_id', 'project_id'],
+      'financial_payable:approved': ['supplier_id', 'organization_id', 'project_id'],
+      'system:ap_payment_confirmed': ['supplier_id', 'organization_id', 'project_id'],
+      'system:ap_writeoff_approved': [
+        'supplier_id',
+        'counterparty_supplier_id',
+        'organization_id',
+        'counterparty_organization_id'
+      ],
+      'system:ar_estimate_approved': ['customer_id', 'organization_id', 'project_id'],
+      'system:ar_financial_approved': ['customer_id', 'organization_id', 'project_id'],
+      'system:ar_reversal_approved': ['customer_id', 'organization_id', 'project_id'],
+      'system:ar_revenue_approved': ['customer_id', 'organization_id', 'project_id'],
+      'system:ar_receipt_confirmed': ['customer_id', 'organization_id'],
+      'system:ar_refund_paid': ['customer_id', 'organization_id'],
+      'system:ar_credit_payment_paid': ['customer_id', 'organization_id'],
       'customer_receipt:recorded': ['customer_id'],
       'carrier_payment:recorded': ['carrier_id'],
       'invoice:output_issued': ['customer_id'],

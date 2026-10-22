@@ -51,6 +51,9 @@
 </template>
 
 <script setup lang="tsx">
+  import { ref, reactive, computed, nextTick, watch, onActivated, onMounted } from 'vue'
+  import { storeToRefs } from 'pinia'
+  import { useRoute } from 'vue-router'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -74,9 +77,9 @@
     isReadableFieldAccess,
     canViewField,
     getFieldAccess,
-    mergeFieldAccessMaps,
-    formatSensitiveNumberWithAffix
+    mergeFieldAccessMaps
   } from '@/utils/field-permission'
+  import { formatSensitiveCurrencyValue } from '@/utils/ui/format'
   import { financePaths } from '@/router/business-paths'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -398,7 +401,7 @@
             width: 125,
             align: 'right' as const,
             formatter: (row: Invoice) =>
-              formatSensitiveNumberWithAffix(row.totalAmount, { prefix: '¥' })
+              formatSensitiveCurrencyValue(row.totalAmount, row.currencyCode)
           },
           {
             prop: 'unlinkedAmount',
@@ -408,13 +411,13 @@
             formatter: (row: Invoice) => (
               <div
                 class="py-1 text-right leading-5"
-                title={`已关联 ${formatSensitiveNumberWithAffix(row.linkedAmount, { prefix: '¥' })} · 未关联 ${formatSensitiveNumberWithAffix(row.unlinkedAmount, { prefix: '¥' })}`}
+                title={`已关联 ${formatSensitiveCurrencyValue(row.linkedAmount, row.currencyCode)} · 未关联 ${formatSensitiveCurrencyValue(row.unlinkedAmount, row.currencyCode)}`}
               >
                 <small class="block text-xs text-[var(--el-text-color-secondary)]">
-                  已关联 {formatSensitiveNumberWithAffix(row.linkedAmount, { prefix: '¥' })}
+                  已关联 {formatSensitiveCurrencyValue(row.linkedAmount, row.currencyCode)}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未关联 {formatSensitiveNumberWithAffix(row.unlinkedAmount, { prefix: '¥' })}
+                  未关联 {formatSensitiveCurrencyValue(row.unlinkedAmount, row.currencyCode)}
                 </strong>
               </div>
             )
@@ -479,6 +482,7 @@
     { key: 'issueDate', title: '开票日期' },
     ...(canViewListField('invoiceAmounts')
       ? [
+          { key: 'currencyCode', title: '币种' },
           { key: 'amountExcludingTax', title: '不含税金额' },
           { key: 'taxAmount', title: '税额' },
           { key: 'totalAmount', title: '价税合计' },

@@ -110,13 +110,14 @@
       </section>
     </div>
     <TravelLoanItemDialog ref="itemDialogRef" @save="saveItem" />
-    <TravelLoanPayeeDialog ref="payeeDialogRef" @save="savePayee" />
+    <ExpensePayeeDialog ref="payeeDialogRef" @save="savePayee" />
     <MasterDataDeleteGuard ref="itemGuardRef" />
     <MasterDataDeleteGuard ref="payeeGuardRef" />
   </ArtDialog>
 </template>
 
 <script setup lang="tsx">
+  import { ElMessage } from 'element-plus'
   import dayjs from 'dayjs'
   import { storeToRefs } from 'pinia'
   import type { ColumnOption } from '@/types'
@@ -155,10 +156,13 @@
     type TravelLoanPayeeInput
   } from '@fms/api'
   import TravelLoanItemDialog from './travel-loan-item-dialog.vue'
-  import TravelLoanPayeeDialog from './travel-loan-payee-dialog.vue'
+  import ExpensePayeeDialog from '../../shared/expense-payee-dialog.vue'
+  import { findExpenseCompany } from '../../shared/expense-company'
+  import { usePrimaryAssignment } from '../../shared/use-primary-assignment'
 
   interface OpenData {
     row?: TravelLoan
+    copy?: boolean
   }
   interface ItemDialogExpose {
     handleOpen: (data: {
@@ -173,8 +177,9 @@
     handleOpen: (data: {
       payee?: TravelLoanPayeeInput
       tenantId: string
-      borrowerEmployeeId: string
+      employeeId: string
       defaultAmount: number
+      documentType: 'loan' | 'reimbursement'
       copy?: boolean
     }) => Promise<void>
   }
@@ -197,11 +202,6 @@
   } = useRecordDeleteGuard('fms_travel_loan_payee', '收款明细')
   const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const { getUserInfo } = storeToRefs(useUserStore())
-  const organizationTreeUtils = new TreeUtils({
-    idKey: 'id',
-    parentKey: 'parentId',
-    childrenKey: 'children'
-  })
   const expenseTreeUtils = new TreeUtils({
     idKey: 'id',
     parentKey: 'parentId',
@@ -230,26 +230,20 @@
     attachmentUrls: []
   })
   const model = ref<TravelLoanInput>(initial())
+  const { selectPrimaryAssignment } = usePrimaryAssignment(model)
   const loanTotal = computed(() =>
     loanItems.value.reduce((sum, item) => sum + Number(item.amount), 0)
   )
   const payeeTotal = computed(() =>
     payees.value.reduce((sum, item) => sum + Number(item.amount), 0)
   )
-  function companyFor(organizationId: string | null | undefined): Organization | null {
-    if (!organizationId) return null
-    const path = organizationTreeUtils.getPathToNode(organizations.value, organizationId) ?? []
-    for (const id of path.reverse()) {
-      const organization = organizationTreeUtils.findNode(organizations.value, id)
-      if (organization?.organizationType === 'company') return organization
-    }
-    return null
-  }
   const applicantCompanyName = computed(
-    () => companyFor(selectedApplicant.value[0]?.organizationId)?.organizationName
+    () =>
+      findExpenseCompany(organizations.value, selectedApplicant.value[0]?.organizationId)
+        ?.organizationName
   )
   const expenseCompanyName = computed(
-    () => companyFor(model.value.expenseDepartmentId)?.organizationName
+    () => findExpenseCompany(organizations.value, model.value.expenseDepartmentId)?.organizationName
   )
   const items = computed<FormItem[]>(() => [
     { key: 'base', label: '基本信息', type: 'divider', span: 24 },
@@ -433,6 +427,7 @@
     model.value.assignmentId = null
     const organizationId = selectedApplicant.value[0]?.organizationId
     if (organizationId) model.value.expenseDepartmentId = organizationId
+    void selectPrimaryAssignment()
   }
   function addItem(): void {
     editingItemIndex.value = null
@@ -490,7 +485,8 @@
     editingPayeeIndex.value = null
     void payeeDialogRef.value?.handleOpen({
       tenantId: model.value.tenantId,
-      borrowerEmployeeId: model.value.applicantEmployeeId,
+      employeeId: model.value.applicantEmployeeId,
+      documentType: 'loan',
       defaultAmount: Math.max(loanTotal.value - payeeTotal.value, 0)
     })
   }
@@ -499,7 +495,8 @@
     void payeeDialogRef.value?.handleOpen({
       payee,
       tenantId: model.value.tenantId,
-      borrowerEmployeeId: model.value.applicantEmployeeId,
+      employeeId: model.value.applicantEmployeeId,
+      documentType: 'loan',
       defaultAmount: payee.amount
     })
   }
@@ -509,7 +506,8 @@
       payee,
       copy: true,
       tenantId: model.value.tenantId,
-      borrowerEmployeeId: model.value.applicantEmployeeId,
+      employeeId: model.value.applicantEmployeeId,
+      documentType: 'loan',
       defaultAmount: payee.amount
     })
   }
@@ -556,13 +554,16 @@
       const detail = data.row ? (await fetchTravelLoanDetail(data.row.id)).data : null
       model.value = detail
         ? {
-            id: detail.id,
+            id: data.copy ? undefined : detail.id,
+            copySourceId: data.copy ? detail.id : undefined,
             tenantId: detail.tenantId,
             applicantEmployeeId: detail.applicantEmployeeId,
             assignmentId: detail.assignmentId,
-            applicationDate: detail.applicationDate,
+            applicationDate: data.copy ? dayjs().format('YYYY-MM-DD') : detail.applicationDate,
             expenseDepartmentId: detail.expenseDepartmentId,
-            repaymentDate: detail.repaymentDate,
+            repaymentDate: data.copy
+              ? dayjs().add(30, 'day').format('YYYY-MM-DD')
+              : detail.repaymentDate,
             multipleTravelers: detail.multipleTravelers,
             reason: detail.reason,
             remark: detail.remark,
@@ -570,7 +571,7 @@
           }
         : initial()
       loanItems.value = (detail?.items ?? []).map((item) => ({
-        id: item.id,
+        id: data.copy ? undefined : item.id,
         expenseItemId: item.expenseItemId,
         projectId: item.projectId,
         borrowerEmployeeId: item.borrowerEmployeeId,
@@ -578,7 +579,7 @@
         purpose: item.purpose
       }))
       payees.value = (detail?.payees ?? []).map((payee) => ({
-        id: payee.id,
+        id: data.copy ? undefined : payee.id,
         settlementMethod: payee.settlementMethod,
         payeeType: payee.payeeType,
         payeeInformationId: payee.payeeInformationId,
@@ -608,9 +609,14 @@
           ? [{ ...getUserInfo.value.hrEmployee, tenantId: model.value.tenantId }]
           : []
       await loadOptions()
+      await selectPrimaryAssignment()
       await dialogRef.value?.handleOpen(data, {
-        title: detail ? `编辑借款单 · ${detail.loanNo}` : '新增借款单',
-        subtitle: '先保存借款草稿；审批、付款与下推还款将在后续流程中接入。',
+        title: data.copy
+          ? `复制借款单 · ${detail?.loanNo ?? ''}`
+          : detail
+            ? `编辑借款单 · ${detail.loanNo}`
+            : '新增借款单',
+        subtitle: '保存草稿后可提交审批；审核通过后可登记付款。',
         confirmText: '保存草稿',
         onOpen: () => formRef.value?.clearValidate(),
         onConfirm: async () => {
@@ -624,6 +630,7 @@
               return false
             }
             await saveTravelLoanDraft(model.value, loanItems.value, payees.value)
+            ElMessage.success(data.copy ? '已复制为新的借款草稿' : '借款草稿已保存')
             emit('success')
             return true
           } catch (error) {

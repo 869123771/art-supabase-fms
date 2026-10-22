@@ -5,6 +5,8 @@ interface CostTypeOption {
 }
 
 const voucherSourceLabels: Record<Api.Fms.VoucherSourceType, string> = {
+  estimated_payable: '暂估应付',
+  financial_payable: '财务应付',
   manual: '手工录入',
   customer_statement: '客户对账',
   carrier_statement: '承运商对账',

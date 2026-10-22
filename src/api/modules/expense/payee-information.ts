@@ -76,6 +76,10 @@ export async function fetchPayeeInformationList(params: PayeeInformationSearch =
 export async function savePayeeInformation(input: PayeeInformationInput, id?: string) {
   const payload = keysToSnakeDeep({
     ...input,
+    employeeId: input.isEmployee ? normalizeNullableText(input.employeeId) : null,
+    organizationId: normalizeNullableText(input.organizationId),
+    costCompanyId: normalizeNullableText(input.costCompanyId),
+    userEmployeeId: input.authorizedUse ? normalizeNullableText(input.userEmployeeId) : null,
     payeeName: normalizeNonNullableText(input.payeeName),
     accountName: normalizeNullableText(input.accountName),
     bankName: normalizeNonNullableText(input.bankName),

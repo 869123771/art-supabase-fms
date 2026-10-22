@@ -61,7 +61,8 @@
       key: 'expenseItemId',
       label: '费用项目',
       type: 'treeSelect',
-      api: () => fetchExpenseItemTree({ tenantId: tenantId.value, isEnabled: true }),
+      api: () =>
+        fetchExpenseItemTree({ tenantId: tenantId.value, isEnabled: true, disableGroups: true }),
       resultField: 'data',
       labelField: 'itemName',
       valueField: 'id',
@@ -98,7 +99,15 @@
   const rules = {
     expenseItemId: [{ required: true, message: '请选择费用项目', trigger: 'change' }],
     borrowerEmployeeId: [{ required: true, message: '请选择借款人', trigger: 'change' }],
-    amount: [{ required: true, message: '请输入借款金额', trigger: 'change' }],
+    amount: [
+      {
+        required: true,
+        type: 'number' as const,
+        min: 0.01,
+        message: '借款金额须大于零',
+        trigger: 'change'
+      }
+    ],
     purpose: [{ required: true, message: '请填写借款用途', trigger: 'blur' }]
   }
   async function handleOpen(data: OpenData): Promise<void> {

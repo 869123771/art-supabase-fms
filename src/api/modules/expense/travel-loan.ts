@@ -32,6 +32,25 @@ export interface TravelLoanPayee {
   remark: string | null
 }
 
+export interface TravelLoanPayment {
+  id: string
+  tenantId: string
+  loanId: string
+  loanPayeeId: string
+  fundAccountId: string
+  paymentNo: string
+  paymentDate: string
+  amount: number
+  payeeName: string
+  bankName: string
+  bankAccount: string
+  bankReference: string | null
+  voucherUrls: string[]
+  remark: string | null
+  isDemo: boolean
+  createTime: string
+}
+
 export interface TravelLoan {
   id: string
   tenantId: string
@@ -63,8 +82,10 @@ export interface TravelLoan {
   remainingBalance: number | null
   usedAmount: number | null
   paidAmount: number | null
+  availableAmount?: number
   currentHandler: string | null
   paymentDate: string | null
+  isDemo: boolean
   rejectionOpinion: string | null
   status: string
   remark: string | null
@@ -72,10 +93,25 @@ export interface TravelLoan {
   createTime: string
   items?: TravelLoanItem[]
   payees?: TravelLoanPayee[]
+  payments?: TravelLoanPayment[]
+}
+
+export type TravelLoanPushKind = 'reimbursement' | 'repayment'
+
+export async function prepareTravelLoanPush(loanId: string, kind: TravelLoanPushKind) {
+  return responseHandle<TravelLoan>(
+    () => supabase.rpc('prepare_fms_travel_loan_push_secure', { p_loan_id: loanId, p_kind: kind }),
+    {
+      breakReturn: true,
+      showErrorMessage: false,
+      errorMessage: '借款下推资料加载失败，请核对余额和权限后重试'
+    }
+  )
 }
 
 export interface TravelLoanInput {
   id?: string
+  copySourceId?: string
   tenantId: string
   applicantEmployeeId: string
   assignmentId: string | null
@@ -186,7 +222,9 @@ export async function fetchTravelLoanDetail(id: string) {
     () =>
       supabase
         .from('fms_travel_loan')
-        .select('*,items:fms_travel_loan_item(*),payees:fms_travel_loan_payee(*)')
+        .select(
+          '*,items:fms_travel_loan_item(*,expenseItem:tms_expense_item(item_name)),payees:fms_travel_loan_payee(*),payments:fms_travel_loan_payment(*)'
+        )
         .eq('id', id)
         .single(),
     { breakReturn: true, showErrorMessage: false, errorMessage: '借款单详情加载失败，请重试' }
@@ -198,8 +236,9 @@ export async function saveTravelLoanDraft(
   items: TravelLoanItemInput[],
   payees: TravelLoanPayeeInput[]
 ) {
+  const { copySourceId, ...draft } = input
   const payload = keysToSnakeDeep({
-    ...input,
+    ...draft,
     reason: input.reason.trim(),
     remark: normalizeNullableText(input.remark)
   })
@@ -211,12 +250,26 @@ export async function saveTravelLoanDraft(
     paymentAmount: number
   }>(
     () =>
-      supabase.rpc('save_fms_travel_loan_draft_secure', {
-        p_payload: payload,
-        p_items: keysToSnakeDeep(items),
-        p_payees: keysToSnakeDeep(payees)
-      }),
+      copySourceId
+        ? supabase.rpc('copy_fms_travel_loan_draft_secure', {
+            p_source_id: copySourceId,
+            p_payload: payload,
+            p_items: keysToSnakeDeep(items),
+            p_payees: keysToSnakeDeep(payees)
+          })
+        : supabase.rpc('save_fms_travel_loan_draft_secure', {
+            p_payload: payload,
+            p_items: keysToSnakeDeep(items),
+            p_payees: keysToSnakeDeep(payees)
+          }),
     { breakReturn: true, showErrorMessage: false, errorMessage: '借款单保存失败，请核对明细后重试' }
+  )
+}
+
+export async function deleteTravelLoans(ids: string[]) {
+  return responseHandle<number>(
+    () => supabase.rpc('delete_fms_travel_loans_secure', { p_ids: ids }),
+    { breakReturn: true, showErrorMessage: false, errorMessage: '借款单删除失败，请核对引用后重试' }
   )
 }
 
@@ -229,5 +282,45 @@ export async function fetchLoanPayeeOptions(tenantId: string, borrowerEmployeeId
         p_keyword: null
       }),
     { breakReturn: true, showErrorMessage: false, errorMessage: '收款账户加载失败，请重试' }
+  )
+}
+
+export async function recordTravelLoanPayment(input: {
+  loanId: string
+  loanPayeeId: string
+  fundAccountId: string
+  amount: number
+  paymentDate: string
+  bankReference: string
+  voucherUrls: string[]
+  remark: string | null
+  demo: boolean
+  idempotencyKey: string
+}) {
+  return responseHandle<{
+    id: string
+    paymentNo: string
+    status: string
+    isDemo: boolean
+    paidAmount: number
+  }>(
+    () =>
+      supabase.rpc('record_fms_travel_loan_payment_secure', {
+        p_loan_id: input.loanId,
+        p_loan_payee_id: input.loanPayeeId,
+        p_fund_account_id: input.fundAccountId,
+        p_amount: input.amount,
+        p_payment_date: input.paymentDate,
+        p_bank_reference: input.bankReference,
+        p_voucher_urls: input.voucherUrls,
+        p_remark: normalizeNullableText(input.remark),
+        p_demo: input.demo,
+        p_idempotency_key: input.idempotencyKey
+      }),
+    {
+      breakReturn: true,
+      showErrorMessage: false,
+      errorMessage: '借款付款登记失败，请核对付款信息后重试'
+    }
   )
 }
