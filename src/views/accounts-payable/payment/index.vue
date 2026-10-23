@@ -8,6 +8,7 @@
       Submit: 'FinancePayablePayment:Submit',
       Approve: 'FinancePayablePayment:Approve',
       Delete: 'FinancePayablePayment:Delete',
+      Push: 'FinancePayablePayment:Push',
       Confirm: 'FinancePayablePayment:Confirm',
       Voucher: 'FinancePayablePayment:Voucher',
       Void: 'FinancePayablePayment:Void',

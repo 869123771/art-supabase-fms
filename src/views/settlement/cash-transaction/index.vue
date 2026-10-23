@@ -63,6 +63,7 @@
   import {
     exportCashTransactionList,
     fetchCashTransactionList,
+    fetchCashTransactionDetail,
     fetchCarrierOptions,
     fetchCustomerOptions,
     voidCashTransaction
@@ -76,7 +77,9 @@
     formatSensitiveNumberWithAffix
   } from '@/utils/field-permission'
   import { financeRouteNames } from '@/router/business-paths'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { createTenantScopeReadGuard } from '@/utils/tenant-scope-context'
+  import { useMounted } from '@vueuse/core'
   import { useAuth } from '@/hooks/core/useAuth'
   import { fetchRecognitionArtifactDetail } from '@/api/intelligent-recognition'
   import BusinessWorkspaceHeader, {
@@ -123,6 +126,9 @@
   const { promptReason } = useArtFeedback()
   const { hasAuth } = useAuth()
   const route = useRoute()
+  const mounted = useMounted()
+  const voidingId = ref('')
+  const allocatingId = ref('')
   const router = useRouter()
   const customerDeleteContext = useMasterDataDeleteProcessingContext()
   const tableQueryRef = ref<ArtTableQueryExpose>()
@@ -133,6 +139,13 @@
   const fieldAccess = ref<Api.Fms.CashTransactionFieldAccessMap>({})
   const currentRows = ref<CashTransaction[]>([])
   const totalCount = ref(0)
+  const allocatableCount = computed(() =>
+    currentRows.value.some((row) => normalizeNullableNumber(row.allocatableAmount) === null)
+      ? null
+      : currentRows.value.filter(
+          (row) => row.status !== 'voided' && Number(row.allocatableAmount) > 0
+        ).length
+  )
   const metrics = computed<BusinessWorkspaceMetric[]>(() => [
     {
       key: 'total',
@@ -160,8 +173,9 @@
     {
       key: 'pending',
       label: '本页待核销',
-      value: currentRows.value.filter((row) => row.status === 'pending_allocation').length,
-      description: '需关联对账单',
+      value: allocatableCount.value ?? '—',
+      description:
+        allocatableCount.value === null ? '金额不可见，不统计待核销数' : '仍有可核销本金',
       icon: 'ri:links-line',
       tone: 'info'
     }
@@ -240,7 +254,7 @@
     ]),
     headerActions: computed<ArtTableQueryHeaderAction[]>(() => [
       {
-        auth: 'FinanceCashTransaction:Import',
+        permission: 'FinanceCashTransaction:Import',
         key: 'import',
         label: 'AI 批量导入流水',
         icon: 'ri-file-excel-2-line',
@@ -254,7 +268,7 @@
         onClick: () => void dialogRef.value?.handleOpen()
       },
       {
-        auth: 'FinanceCashTransaction:CreatePayment',
+        permission: 'FinanceCashTransaction:CreatePayment',
         key: 'create-payment',
         label: '发起承运商付款申请',
         onClick: () => void router.push({ name: financeRouteNames.paymentApplication })
@@ -323,9 +337,9 @@
               formatSensitiveNumberWithAffix(row.amount, { prefix: '¥' })
           },
           {
-            prop: 'unallocatedAmount',
+            prop: 'allocatableAmount',
             label: '核销余额',
-            width: 150,
+            width: 182,
             align: 'right' as const,
             formatter: (row: CashTransaction) => (
               <div class="py-1">
@@ -333,8 +347,14 @@
                   已核销 {formatSensitiveNumberWithAffix(row.allocatedAmount, { prefix: '¥' })}
                 </small>
                 <strong class="block text-sm font-semibold text-[var(--el-text-color-primary)]">
-                  未核销 {formatSensitiveNumberWithAffix(row.unallocatedAmount, { prefix: '¥' })}
+                  可核销 {formatSensitiveNumberWithAffix(row.allocatableAmount, { prefix: '¥' })}
                 </strong>
+                {(normalizeNullableNumber(row.feeAmount) ?? 0) > 0 && (
+                  <small class="block text-xs text-[var(--el-text-color-secondary)]">
+                    手续费 {formatSensitiveNumberWithAffix(row.feeAmount, { prefix: '¥' })}{' '}
+                    不参与核销
+                  </small>
+                )}
               </div>
             )
           }
@@ -398,12 +418,14 @@
                 icon="ri:links-line"
                 label="继续核销"
                 permission="FinanceCashTransaction:Allocate"
-                onClick={() => void dialogRef.value?.handleOpen(row)}
+                loading={allocatingId.value === row.id}
+                disabled={Boolean(allocatingId.value) || Boolean(voidingId.value)}
+                onClick={() => void handleAllocate(row)}
               />
             )}
           {row.direction === 'payment' &&
             ['pending_allocation', 'partially_allocated'].includes(row.status) &&
-            (normalizeNullableNumber(row.unallocatedAmount) ?? 0) > 0 &&
+            (normalizeNullableNumber(row.allocatableAmount) ?? 0) > 0 &&
             canEditField(row.fieldAccess, 'transactionAmounts') &&
             hasAuth('FinanceCashTransaction:Allocate') && (
               <ArtButtonTable
@@ -411,17 +433,22 @@
                 icon="ri:links-line"
                 label="继续核销"
                 permission="FinanceCashTransaction:Allocate"
-                onClick={() => void paymentDialogRef.value?.handleOpen(row)}
+                loading={allocatingId.value === row.id}
+                disabled={Boolean(allocatingId.value) || Boolean(voidingId.value)}
+                onClick={() => void handleAllocate(row)}
               />
             )}
           {row.status === 'pending_allocation' &&
             (normalizeNullableNumber(row.allocatedAmount) ?? 0) === 0 &&
+            canEditField(row.fieldAccess, 'transactionAmounts') &&
             hasAuth('FinanceCashTransaction:Void') && (
               <ArtButtonTable
                 type="delete"
                 icon="ri:close-circle-line"
                 label={row.direction === 'receipt' ? '作废收款' : '作废付款'}
                 permission="FinanceCashTransaction:Void"
+                loading={voidingId.value === row.id}
+                disabled={Boolean(voidingId.value) || Boolean(allocatingId.value)}
                 onClick={() => void handleVoid(row)}
               />
             )}
@@ -439,7 +466,10 @@
       ? [
           { key: 'amount', title: '收付金额' },
           { key: 'allocatedAmount', title: '已核销金额' },
-          { key: 'unallocatedAmount', title: '未核销金额' }
+          { key: 'unallocatedAmount', title: '账面未核销余额（含未核销手续费）' },
+          { key: 'principalAmount', title: '核销本金' },
+          { key: 'feeAmount', title: '手续费（不参与核销）' },
+          { key: 'allocatableAmount', title: '可核销余额' }
         ]
       : []),
     { key: 'paymentMethod', title: '收付方式' },
@@ -455,8 +485,10 @@
   ])
 
   async function fetchTableData(params: TableParams) {
+    const assertScope = createTenantScopeReadGuard()
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCashTransactionList({ ...params, from, to })
+    assertScope()
 
     fieldAccess.value = result.fieldAccess
     currentRows.value = result.data
@@ -479,10 +511,59 @@
     }))
   }
 
-  async function handleVoid(row: CashTransaction): Promise<void> {
+  async function handleAllocate(row: CashTransaction): Promise<void> {
+    if (allocatingId.value || voidingId.value) return
+    const assertScope = createTenantScopeReadGuard()
+    const operationRoute = route.fullPath
+    allocatingId.value = row.id
     try {
+      const { data, error } = await fetchCashTransactionDetail(row.id)
+      if (!mounted.value || route.fullPath !== operationRoute) return
+      assertScope()
+      if (error) throw error
+      if (!data) throw new Error('流水不存在或已不在当前范围，请刷新后重试')
+      if (!hasAuth('FinanceCashTransaction:Allocate'))
+        throw new Error('当前没有核销权限，请核对权限后重试')
+      if (!canEditField(data.fieldAccess, 'transactionAmounts'))
+        throw new Error('当前金额字段为只读，请核对权限后再核销')
+      if (
+        !['pending_allocation', 'partially_allocated'].includes(data.status) ||
+        (normalizeNullableNumber(data.allocatableAmount) ?? 0) <= 0
+      )
+        throw new Error('流水已无可核销本金，或状态已变化，请重新查询')
+      await (data.direction === 'payment' ? paymentDialogRef : dialogRef).value?.handleOpen(data)
+    } catch (error) {
+      notifyFriendlyError(error, '核销资料加载失败，请刷新后重试')
+    } finally {
+      allocatingId.value = ''
+    }
+  }
+
+  async function handleVoid(row: CashTransaction): Promise<void> {
+    if (voidingId.value || allocatingId.value) return
+    const assertScope = createTenantScopeReadGuard()
+    const operationRoute = route.fullPath
+    let completed = false
+    voidingId.value = row.id
+    try {
+      const { data, error } = await fetchCashTransactionDetail(row.id)
+      if (!mounted.value || route.fullPath !== operationRoute) return
+      assertScope()
+      if (error) throw error
+      if (!data) throw new Error('流水不存在或已不在当前范围，请刷新后重试')
+      if (
+        data.status !== 'pending_allocation' ||
+        normalizeNullableNumber(data.allocatedAmount) !== 0
+      )
+        throw new Error('流水状态或核销金额已变化，请重新查询后再作废')
+      if (!canEditField(data.fieldAccess, 'transactionAmounts'))
+        throw new Error('当前金额字段为只读，请核对权限后再作废')
+      if (data.managedPayment?.linked && !hasAuth('FinancePayablePayment:Confirm'))
+        throw new Error('此流水来自统一付款单，请取得取消付款确认权限后再作废')
       const reason = await promptReason(
-        `作废后保留${row.direction === 'receipt' ? '收款' : '付款'}流水历史，但不能再进行核销。`,
+        data.managedPayment?.linked
+          ? `此流水关联付款单${data.managedPayment.documentNo ? ` ${data.managedPayment.documentNo}` : ''}；作废将同步取消付款确认并冲回账面资金，保留流水与核销历史，不代表银行发生退款。`
+          : `作废后保留${row.direction === 'receipt' ? '收款' : '付款'}流水历史，但不能再进行核销。`,
         row.direction === 'receipt' ? '作废收款' : '作废付款',
         {
           confirmButtonText: '确认作废',
@@ -490,10 +571,21 @@
           emptyMessage: '作废原因不能为空'
         }
       )
+      if (!mounted.value || route.fullPath !== operationRoute) return
+      assertScope()
       await voidCashTransaction(row.id, reason)
+      completed = true
       await tableQueryRef.value?.refreshUpdate()
-    } catch {
-      // 用户取消时无需提示。
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close')
+        notifyFriendlyError(
+          error,
+          completed
+            ? '流水已作废，但列表刷新失败，请重新查询'
+            : '作废未确认，请刷新核对流水状态后重试'
+        )
+    } finally {
+      voidingId.value = ''
     }
   }
 

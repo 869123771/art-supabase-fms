@@ -1,49 +1,70 @@
 <template>
   <ArtPermissionGuard permission="FinancePayableWriteoff:View" resource-name="应付核销工作台">
-    <div class="business-workspace-page min-w-0">
+    <div class="payable-writeoff-page business-workspace-page min-w-0">
       <BusinessWorkspaceHeader
         title="应付核销工作台"
         description="核对已审核应付与已确认付款，按方案执行核销，分别保留核销记录与需记账核销单。"
         icon="ri:checkbox-circle-line"
         density="compact"
         :metrics="metrics"
+        refreshable
+        refresh-label="刷新"
+        :refresh-loading="loading"
+        :refresh-disabled="busy"
+        @refresh="load"
       >
         <template #actions>
           <ElButton v-auth="'FinancePayableWriteoff:Scheme'" @click="schemeDialog?.handleOpen()"
             ><ArtSvgIcon icon="ri:settings-3-line" />核销方案</ElButton
           >
-          <ElButton :loading="loading" @click="load"
-            ><ArtSvgIcon icon="ri:refresh-line" />刷新</ElButton
-          >
         </template>
       </BusinessWorkspaceHeader>
-      <ArtSectionCard
-        title="核销条件"
-        subtitle="当前支持人民币应付付款及预付款核销；单次查询最多显示各 200 条单据，核销时服务端重新校验。"
-      >
+      <div class="payable-writeoff-page__query art-card-xs">
         <ArtForm
           v-model="filter"
+          root-class="p-0! md:p-0!"
           :items="filterItems"
           :span="6"
-          label-position="top"
+          label-position="right"
+          :label-width="70"
           :show-submit="false"
           :show-reset="false"
         />
         <div class="flex flex-wrap items-center gap-3">
-          <ElButton type="primary" :loading="loading" @click="load">查询</ElButton>
+          <ElButton type="primary" :disabled="loading || busy" @click="load()"
+            ><ArtSvgIcon icon="ri:search-line" />查询</ElButton
+          >
           <ElSwitch v-model="onlyAvailable" aria-label="仅显示可核销数据" /><span
             class="text-sm text-g-600"
-            >仅显示主辅方都有可核销数据的往来单位</span
+            title="只显示主方、辅方都有可核销单据的往来单位"
+            >仅显示可核销数据</span
           >
-          <span class="ml-auto text-sm text-g-600">仅核销会计余额，不发起银行转账</span>
+          <span class="ml-auto text-xs text-g-600">人民币 · 每侧最多 200 条 · 不发起银行转账</span>
         </div>
-      </ArtSectionCard>
-      <div class="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+      </div>
+      <ElAlert
+        v-if="loaded && loadError"
+        :title="loadError"
+        type="error"
+        :closable="false"
+        show-icon
+      >
+        <template #default
+          >当前保留上次查询结果，核销操作已停用。<ElButton
+            link
+            type="primary"
+            :disabled="loading"
+            @click="load()"
+            >重新加载</ElButton
+          ></template
+        >
+      </ElAlert>
+      <div class="payable-writeoff-page__workspace">
         <ArtSectionCard
           title="往来单位"
-          subtitle="按单位定位核销双方"
-          :loading="loading"
-          :error="loadError"
+          :subtitle="`${partyNodes[0].children.length} 家往来单位`"
+          :loading="loading && !loaded"
+          :error="loaded ? '' : loadError"
           @retry="load"
         >
           <ElInput
@@ -51,22 +72,33 @@
             placeholder="搜索往来单位"
             clearable
             aria-label="搜索往来单位"
-          />
+            ><template #prefix><ArtSvgIcon icon="ri:search-line" /></template
+          ></ElInput>
           <ElScrollbar class="mt-3" max-height="570px"
             ><ElTree
               :data="partyNodes"
               node-key="id"
               :props="{ label: 'label' }"
               highlight-current
+              default-expand-all
+              :current-node-key="selectedParty"
               :expand-on-click-node="false"
               @node-click="(node) => (selectedParty = node.id)"
-          /></ElScrollbar>
+              ><template #default="{ data }"
+                ><span class="art-icon-label min-w-0"
+                  ><ArtSvgIcon
+                    :icon="data.id === 'all' ? 'ri:building-line' : 'ri:truck-line'"
+                  /><span class="truncate" :title="data.label">{{ data.label }}</span></span
+                ></template
+              ></ElTree
+            ></ElScrollbar
+          >
         </ArtSectionCard>
         <ArtSectionCard
           title="应付付款核销"
           subtitle="选择双方明细并填写本次金额；主辅方合计必须相等。"
-          :loading="loading"
-          :error="loadError"
+          :loading="loading && !loaded"
+          :error="loaded ? '' : loadError"
           @retry="load"
         >
           <ElTabs v-model="activeTab">
@@ -76,13 +108,15 @@
                   v-auth="'FinancePayableWriteoff:Writeoff'"
                   type="primary"
                   :loading="busy"
-                  :disabled="!primarySelection.length || !secondarySelection.length"
+                  :disabled="
+                    loading || !!loadError || !primarySelection.length || !secondarySelection.length
+                  "
                   @click="execute"
-                  >核销</ElButton
+                  ><ArtSvgIcon icon="ri:checkbox-circle-line" />核销</ElButton
                 >
                 <ElButton
                   v-auth="'FinancePayableWriteoff:AutoWriteoff'"
-                  :disabled="busy || loading"
+                  :disabled="busy || loading || !!loadError"
                   @click="openAutomatic"
                   ><ArtSvgIcon icon="ri:magic-line" />按方案自动核销</ElButton
                 >
@@ -92,12 +126,15 @@
                 >
               </div>
               <ArtSectionCard
-                title="财务应付单"
-                :subtitle="`共 ${primaryRows.length} 条`"
+                class="payable-writeoff-page__document-section"
+                aria-label="财务应付单"
+                :title="`财务应付单（${primaryRows.length}）`"
                 :empty="!primaryRows.length"
                 empty-title="暂无待核销应付"
                 empty-description="请选择其他往来单位，或先审核财务应付单。"
                 :show-scrollbar="false"
+                :min-height="120"
+                :empty-visual-size="56"
               >
                 <ArtTable
                   ref="primaryTable"
@@ -105,18 +142,20 @@
                   :columns="candidateColumns"
                   row-key="id"
                   :pagination="false"
-                  :max-height="270"
+                  :max-height="230"
                   @selection-change="(rows: PayableWriteoffCandidate[]) => (primarySelection = rows)"
                 />
               </ArtSectionCard>
               <ArtSectionCard
-                class="mt-4"
-                title="付款单"
-                :subtitle="`共 ${secondaryRows.length} 条`"
+                class="payable-writeoff-page__document-section mt-4"
+                aria-label="付款单"
+                :title="`付款单（${secondaryRows.length}）`"
                 :empty="!secondaryRows.length"
                 empty-title="暂无可核销付款"
                 empty-description="先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。"
                 :show-scrollbar="false"
+                :min-height="120"
+                :empty-visual-size="56"
               >
                 <ArtTable
                   ref="secondaryTable"
@@ -124,7 +163,7 @@
                   :columns="candidateColumns"
                   row-key="id"
                   :pagination="false"
-                  :max-height="270"
+                  :max-height="230"
                   @selection-change="(rows: PayableWriteoffCandidate[]) => (secondarySelection = rows)"
                 />
               </ArtSectionCard>
@@ -184,7 +223,7 @@
   </ArtPermissionGuard>
 </template>
 <script setup lang="tsx">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import dayjs from 'dayjs'
   import { ElInputNumber, ElMessage, ElButton } from 'element-plus'
   import { uniq, uniqBy } from 'lodash-es'
@@ -217,6 +256,8 @@
   import { allocatePayableWriteoff } from '@/utils/finance/payable-writeoff'
   import { formatCurrencyValue } from '@/utils/ui/format'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { financePaths } from '@/router/business-paths'
   import type { ColumnOption } from '@/types'
 
   defineOptions({ name: 'FinancePayableWriteoff' })
@@ -232,6 +273,7 @@
   const selectedParty = ref('all')
   const activeTab = ref('candidates')
   const loading = ref(false)
+  const loaded = ref(false)
   const loadError = ref('')
   const busy = ref(false)
   const automaticDialog = ref<InstanceType<typeof PayableAutomaticWriteoff>>()
@@ -253,6 +295,8 @@
   const previewRef = ref<InstanceType<typeof FinanceVoucherPreview>>()
   const voucherResult = ref<PayableVoucherResult>()
   const { confirm, promptReason } = useArtFeedback()
+  const { hasAuth } = useAuth()
+  const router = useRouter()
   const availableParties = computed(() => {
     const both = workspace.value.primary.filter((main) =>
       workspace.value.secondary.some(
@@ -370,12 +414,16 @@
     { key: 'writeoffDate', label: '核销日期', type: 'date', props: { valueFormat: 'YYYY-MM-DD' } }
   ])
   const candidateColumns: ColumnOption<PayableWriteoffCandidate>[] = [
-    { type: 'selection', width: 44 },
-    { prop: 'documentNo', label: '单据编号', minWidth: 210, fixed: 'left' },
+    {
+      type: 'selection',
+      width: 44,
+      selectable: () => !loading.value && !busy.value && !loadError.value
+    },
+    { prop: 'documentNo', label: '单据编号', minWidth: 190 },
+    { prop: 'supplierName', label: '往来单位', minWidth: 200 },
     { prop: 'businessDate', label: '业务日期', width: 125 },
     { prop: 'documentTypeName', label: '单据类型', minWidth: 150 },
     { prop: 'purposeName', label: '付款用途', minWidth: 130 },
-    { prop: 'supplierName', label: '往来单位', minWidth: 200 },
     { prop: 'currencyCode', label: '币种', width: 95 },
     { prop: 'projectName', label: '项目名称', minWidth: 170 },
     { prop: 'sourceDocumentNo', label: '源单据号', minWidth: 190 },
@@ -390,7 +438,6 @@
       prop: 'availableAmount',
       label: '允许核销金额(元)',
       width: 170,
-      fixed: 'right',
       align: 'right',
       formatter: (row) => formatCurrencyValue(row.availableAmount)
     },
@@ -406,6 +453,7 @@
           max={row.availableAmount}
           precision={2}
           controls={false}
+          disabled={loading.value || busy.value || !!loadError.value}
           aria-label="本次核销金额"
           class="w-full!"
         />
@@ -460,7 +508,28 @@
       width: 100,
       formatter: (row) => (row.status === 'active' ? '已核销' : '已反核销')
     },
-    { prop: 'voucherNo', label: '凭证号', minWidth: 190 },
+    {
+      prop: 'voucherNo',
+      label: '凭证号',
+      minWidth: 190,
+      formatter: (row) =>
+        row.voucherId && row.voucherNo && hasAuth('FinanceVoucherCenter:View') ? (
+          <ElButton
+            link
+            type="primary"
+            onClick={() =>
+              router.push({
+                path: financePaths.voucherCenter,
+                query: { recordId: row.voucherId }
+              })
+            }
+          >
+            {row.voucherNo}
+          </ElButton>
+        ) : (
+          row.voucherNo || '—'
+        )
+    },
     {
       prop: 'operation',
       label: '操作',
@@ -473,12 +542,14 @@
               <ArtButtonTable
                 icon="ri:file-search-line"
                 label="预览凭证"
+                disabled={loading.value || busy.value || !!loadError.value}
                 permission="FinancePayableWriteoff:Voucher"
                 onClick={() => voucher(row, true)}
               />
               <ArtButtonTable
                 icon="ri:file-add-line"
                 label="生成凭证"
+                disabled={loading.value || busy.value || !!loadError.value}
                 permission="FinancePayableWriteoff:Voucher"
                 onClick={() => voucher(row, false)}
               />
@@ -488,6 +559,7 @@
             <ArtButtonTable
               icon="ri:arrow-go-back-line"
               label="反核销"
+              disabled={loading.value || busy.value || !!loadError.value}
               permission="FinancePayableWriteoff:Reverse"
               onClick={() => reverse(row)}
             />
@@ -593,8 +665,6 @@
     const current = ++version
     loading.value = true
     loadError.value = ''
-    primarySelection.value = []
-    secondarySelection.value = []
     try {
       const response = await fetchPayableWriteoffWorkspace({
         keyword: filter.value.keyword,
@@ -604,6 +674,11 @@
       response.primary.forEach((row) => (row.writeoffAmount = row.availableAmount))
       response.secondary.forEach((row) => (row.writeoffAmount = row.availableAmount))
       workspace.value = response
+      loaded.value = true
+      primarySelection.value = []
+      secondarySelection.value = []
+      if (!partyNodes.value[0].children.some((row) => row.id === selectedParty.value))
+        selectedParty.value = 'all'
       if (!response.schemes.some((row) => row.id === filter.value.schemeId && row.enabled))
         filter.value.schemeId =
           response.schemes.find((row) => row.enabled && !row.automatic)?.id || ''
@@ -617,6 +692,7 @@
     }
   }
   async function openAutomatic(): Promise<void> {
+    if (loading.value || busy.value || loadError.value) return
     const scheme = workspace.value.schemes.find((row) => row.id === filter.value.schemeId)
     if (!scheme?.enabled || !scheme.automatic || !filter.value.writeoffDate) {
       ElMessage.warning('请选择已启用自动核销的方案和核销日期')
@@ -628,12 +704,14 @@
       query: {
         keyword: filter.value.keyword,
         organizationId: filter.value.organizationId,
-        supplierId: selectedParty.value === 'all' ? undefined : selectedParty.value
+        supplierId: availableParties.value.find(
+          (row) => `${row.tenantId}:${row.supplierId}` === selectedParty.value
+        )?.supplierId
       }
     })
   }
   async function execute(): Promise<void> {
-    if (busy.value) return
+    if (busy.value || loading.value || loadError.value) return
     if (
       uniq([...primarySelection.value, ...secondarySelection.value].map((row) => row.tenantId))
         .length > 1
@@ -677,7 +755,7 @@
     }
   }
   async function reverse(row: PayableWriteoffRecord): Promise<void> {
-    if (busy.value) return
+    if (busy.value || loading.value || loadError.value) return
     let reason: string
     try {
       reason = await promptReason(
@@ -699,7 +777,7 @@
     }
   }
   async function voucher(row: PayableWriteoffRecord, preview: boolean): Promise<void> {
-    if (busy.value) return
+    if (busy.value || loading.value || loadError.value) return
     busy.value = true
     try {
       voucherResult.value = await payableSettlementVoucher(row.id, 'writeoff', preview)
@@ -737,10 +815,40 @@
     () => tenantScope.revision,
     () => {
       workspace.value = { primary: [], secondary: [], history: [], schemes: [] }
+      loaded.value = false
       selectedParty.value = 'all'
       filter.value.schemeId = ''
       void load()
     }
   )
   onMounted(load)
+  onBeforeUnmount(() => {
+    version += 1
+  })
 </script>
+
+<style scoped lang="scss">
+  .payable-writeoff-page {
+    &__query {
+      padding: 16px;
+    }
+
+    &__document-section {
+      --art-section-padding: var(--art-space-3);
+    }
+
+    &__workspace {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    @media (width <= 900px) {
+      &__workspace {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  }
+</style>

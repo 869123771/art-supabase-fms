@@ -8,6 +8,14 @@
       :resource-tenant-id="tenantScopeStore.effectiveTenantId || ''"
       @apply="handleApplyOcrResult"
     />
+    <ArtDescriptions
+      v-if="dialog.mode === 'allocate' && dialog.transaction"
+      class="mb-5"
+      :data="dialog.transaction"
+      :items="allocationSourceItems"
+      :columns="2"
+      label-width="100px"
+    />
     <ArtForm
       root-class="art-form--mobile-stack"
       ref="formRef"
@@ -86,6 +94,14 @@
       />
     </div>
     <ElAlert
+      v-if="dialog.mode === 'allocate'"
+      class="mt-4"
+      type="info"
+      :closable="false"
+      show-icon
+      title="核销仅使用实付本金余额，手续费不参与应付核销；账面流水金额保持不变。"
+    />
+    <ElAlert
       class="mt-4"
       :type="allocationSummary.allocated > allocationSummary.limit ? 'error' : 'info'"
       :closable="false"
@@ -103,6 +119,8 @@
   import dayjs from 'dayjs'
   import { ElInputNumber, ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
+  import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
@@ -189,11 +207,37 @@
     voucherUrls: []
   })
   const form = reactive<PaymentForm>(initialForm())
+  const allocationSourceItems: ArtDescriptionItem<CashTransaction>[] = [
+    { key: 'transactionNo', label: '付款流水号', field: 'transactionNo', copyable: true },
+    { key: 'transactionDate', label: '付款日期', field: 'transactionDate', format: 'date' },
+    { key: 'counterpartyName', label: '付款承运商', field: 'counterpartyName' },
+    {
+      key: 'paymentMethod',
+      label: '付款方式',
+      field: 'paymentMethod',
+      dictCode: 'tmsCashPaymentMethod',
+      dictDisplay: 'text'
+    },
+    ...(
+      [
+        ['amount', '实付总额'],
+        ['feeAmount', '手续费（不核销）'],
+        ['allocatedAmount', '已核销本金'],
+        ['allocatableAmount', '可核销本金']
+      ] as const
+    ).map(([field, label]) => ({
+      key: field,
+      label,
+      field,
+      formatter: (value: unknown) =>
+        formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+    }))
+  ]
 
   const limit = computed(() =>
     round(
       dialog.mode === 'allocate'
-        ? Number(dialog.transaction?.unallocatedAmount ?? 0)
+        ? (normalizeNullableNumber(dialog.transaction?.allocatableAmount) ?? 0)
         : Number(form.amount || 0)
     )
   )
@@ -320,57 +364,59 @@
     ],
     paymentMethod: [{ required: true, message: '请选择付款方式', trigger: 'change' }]
   }
-  const formItems = computed<FormItem[]>(() => [
-    { label: '付款信息', key: 'base', type: 'divider', span: 24 },
-    {
-      label: '付款流水号',
-      key: 'transactionNo',
-      type: 'input',
-      span: 12,
-      props: {
-        maxlength: 50,
-        ...transactionNumber.inputProps(dialog.mode === 'allocate', '请输入付款流水号', true)
-      },
-      description: dialog.mode === 'create' ? transactionNumber.description.value : undefined
-    },
-    { label: '付款承运商', key: 'carrierId', type: 'input', span: 12 },
-    {
-      label: '付款日期',
-      key: 'transactionDate',
-      type: 'date',
-      span: 12,
-      props: { valueFormat: 'YYYY-MM-DD', class: '!w-full', disabled: dialog.mode === 'allocate' }
-    },
-    {
-      label: '付款金额',
-      key: 'amount',
-      type: 'number',
-      span: 12,
-      props: {
-        min: 0.01,
-        precision: 2,
-        controlsPosition: 'right',
-        class: '!w-full',
-        disabled: dialog.mode === 'allocate',
-        onChange: autoAllocate
-      }
-    },
-    {
-      label: '付款方式',
-      key: 'paymentMethod',
-      type: 'select',
-      span: 12,
-      props: {
-        options: getDictMap.value.tmsCashPaymentMethod ?? [],
-        disabled: dialog.mode === 'allocate'
-      }
-    },
-    ...(dialog.mode === 'create'
-      ? [
+  const formItems = computed<FormItem[]>(() =>
+    dialog.mode === 'allocate'
+      ? [{ label: '承运商对账单', key: 'statementIds', type: 'input', span: 24 }]
+      : [
+          { label: '付款信息', key: 'base', type: 'divider', span: 24 },
+          {
+            label: '付款流水号',
+            key: 'transactionNo',
+            type: 'input',
+            span: 12,
+            props: {
+              maxlength: 50,
+              ...transactionNumber.inputProps(false, '请输入付款流水号', true)
+            },
+            description: transactionNumber.description.value
+          },
+          { label: '付款承运商', key: 'carrierId', type: 'input', span: 12 },
+          {
+            label: '付款日期',
+            key: 'transactionDate',
+            type: 'date',
+            span: 12,
+            props: {
+              valueFormat: 'YYYY-MM-DD',
+              class: '!w-full'
+            }
+          },
+          {
+            label: '付款金额',
+            key: 'amount',
+            type: 'number',
+            span: 12,
+            props: {
+              min: 0.01,
+              precision: 2,
+              controlsPosition: 'right',
+              class: '!w-full',
+              onChange: autoAllocate
+            }
+          },
+          {
+            label: '付款方式',
+            key: 'paymentMethod',
+            type: 'select',
+            span: 12,
+            props: {
+              options: getDictMap.value.tmsCashPaymentMethod ?? []
+            }
+          },
           {
             label: '付款账户',
             key: 'fundAccountId',
-            type: 'select' as const,
+            type: 'select',
             span: 12,
             props: {
               options: fundAccountOptions.value,
@@ -378,26 +424,25 @@
               placeholder: '选择实际扣款资金账户'
             },
             description: '付款成功后自动登记资金流出日记账'
-          }
+          },
+          {
+            label: '银行流水号',
+            key: 'bankReference',
+            type: 'input',
+            span: 12,
+            props: { placeholder: '选填' }
+          },
+          {
+            label: '付款备注',
+            key: 'remark',
+            type: 'textarea',
+            span: 24,
+            props: { maxlength: 500, placeholder: '选填' }
+          },
+          { label: '核销信息', key: 'allocation', type: 'divider', span: 24 },
+          { label: '承运商对账单', key: 'statementIds', type: 'input', span: 24 }
         ]
-      : []),
-    {
-      label: '银行流水号',
-      key: 'bankReference',
-      type: 'input',
-      span: 12,
-      props: { disabled: dialog.mode === 'allocate', placeholder: '选填' }
-    },
-    {
-      label: '付款备注',
-      key: 'remark',
-      type: 'textarea',
-      span: 24,
-      props: { disabled: dialog.mode === 'allocate', maxlength: 500, placeholder: '选填' }
-    },
-    { label: '核销信息', key: 'allocation', type: 'divider', span: 24 },
-    { label: '承运商对账单', key: 'statementIds', type: 'input', span: 24 }
-  ])
+  )
 
   async function fetchCarrierSelectorData(params: DataSelectFetchParams) {
     const { data } = await fetchCarrierOptions({ companyName: params.keyword })
@@ -589,19 +634,21 @@
     await dialogRef.value?.handleOpen(undefined, {
       title: transaction ? `继续核销 · ${transaction.transactionNo}` : '登记承运商付款',
       subtitle: transaction
-        ? `本笔付款尚有 ${formatSensitiveNumberWithAffix(normalizeNullableNumber(transaction.unallocatedAmount) ?? 0, { prefix: '¥' })} 未核销`
+        ? `本笔付款可核销本金 ${formatSensitiveNumberWithAffix(transaction.allocatableAmount, { prefix: '¥' })}，不含手续费`
         : '登记实际付款流水，可同时核销一份或多份已确认承运商对账单',
       confirmText: transaction ? '确认核销' : '登记付款',
       contentMaxHeight: '76vh',
       loading: true,
-      loadingText: '正在加载编号规则与资金账户…',
+      loadingText: transaction ? '正在准备核销明细…' : '正在加载编号规则与资金账户…',
       onOpen: async (_openData, api) => {
         try {
-          const [, fundAccounts] = await Promise.all([
-            transactionNumber.loadRule(),
-            fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
-          ])
-          fundAccountOptions.value = fundAccounts.data ?? []
+          if (dialog.mode === 'create') {
+            const [, fundAccounts] = await Promise.all([
+              transactionNumber.loadRule(),
+              fetchFundAccountOptions({ status: 'active', baseCurrencyOnly: true })
+            ])
+            fundAccountOptions.value = fundAccounts.data ?? []
+          }
         } finally {
           api.setLoading(false)
         }

@@ -184,8 +184,34 @@
           },
           {
             key: 'unallocatedAmount',
-            label: '未核销金额',
+            label: '账面未核销余额',
             field: 'unallocatedAmount' as const,
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+          },
+          {
+            key: 'allocatableAmount',
+            label: '可核销余额',
+            field: 'allocatableAmount' as const,
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+          }
+        ]
+      : []),
+    ...(detail.data?.direction === 'payment' &&
+    canViewField(detail.data.fieldAccess, 'transactionAmounts')
+      ? [
+          {
+            key: 'principalAmount',
+            label: '核销本金',
+            field: 'principalAmount' as const,
+            formatter: (value: unknown) =>
+              formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
+          },
+          {
+            key: 'feeAmount',
+            label: '手续费（不核销）',
+            field: 'feeAmount' as const,
             formatter: (value: unknown) =>
               formatSensitiveNumberWithAffix(value as Api.Fms.SensitiveNumber, { prefix: '¥' })
           }

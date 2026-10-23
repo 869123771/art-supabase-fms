@@ -2065,6 +2065,9 @@ declare global {
         amount?: Api.Fms.SensitiveNumber
         allocatedAmount?: Api.Fms.SensitiveNumber
         unallocatedAmount?: Api.Fms.SensitiveNumber
+        principalAmount?: Api.Fms.SensitiveNumber
+        feeAmount?: Api.Fms.SensitiveNumber
+        allocatableAmount?: Api.Fms.SensitiveNumber
         allocationCount: number
         paymentMethod: CashPaymentMethod
         bankReference?: string | null
@@ -2079,6 +2082,12 @@ declare global {
         updateBy?: string | null
         updateTime: string
         paymentApplicationId?: string | null
+        managedPayment?: {
+          linked: boolean
+          id?: string
+          documentNo?: string
+          status?: string
+        } | null
         fundAccountId?: string | null
         fundAccount?: Pick<
           FundAccountRecord,

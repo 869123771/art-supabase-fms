@@ -122,7 +122,7 @@
   }
 
   interface DrawerExpose {
-    handleOpen: (row: Voucher) => Promise<void>
+    handleOpen: (row: Voucher | string) => Promise<void>
   }
 
   interface TableGroup {
@@ -643,6 +643,14 @@
   }
 
   onMounted(() => {
+    watch(
+      () => [route.name, route.query.recordId, hasAuth('FinanceVoucherCenter:View')] as const,
+      ([name, id, allowed]) => {
+        if (name === 'FinanceVoucherCenter' && typeof id === 'string' && allowed)
+          void drawerRef.value?.handleOpen(id)
+      },
+      { immediate: true, flush: 'post' }
+    )
     void Promise.allSettled([
       userStore.ensureDictLoaded('fmsVoucherStatus'),
       userStore.ensureDictLoaded('fmsVoucherType'),

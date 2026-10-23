@@ -3,13 +3,14 @@ import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { fetchAllRangePages } from '@/utils/supabase/pagination'
-import { useSupabase } from '@/hooks/core/useSupabase'
+import { useSupabase, type RunQueryOptions } from '@/hooks/core/useSupabase'
 import type { QueryResult } from '@/types/api/response'
 import { applyDateRange } from '@/api/providers/supabase/query'
 import { actWorkflowByBusiness, startWorkflow } from '@/api/workflow'
 import TreeUtils from '@/utils/tree'
 
 type WaybillCost = Api.Fms.WaybillCostRecord
+type FinanceRequestFeedback = Pick<RunQueryOptions, 'showMessage' | 'showErrorMessage'>
 type WaybillCostSearchParams = Api.Fms.WaybillCostSearchParams
 type WaybillOption = Api.Fms.WaybillOption
 type WaybillOptionSearchParams = Api.Fms.WaybillOptionSearchParams
@@ -231,7 +232,10 @@ export async function exportWaybillCostList(
   }
 }
 
-export async function fetchFinanceWaybillOptions(params: WaybillOptionSearchParams = {}) {
+export async function fetchFinanceWaybillOptions(
+  params: WaybillOptionSearchParams = {},
+  options: FinanceRequestFeedback = {}
+) {
   const result = await responseHandle<SecureListPayload<WaybillOption>>(
     () =>
       supabase.rpc('tms_list_waybill_cost_options_secure', {
@@ -239,7 +243,7 @@ export async function fetchFinanceWaybillOptions(params: WaybillOptionSearchPara
         p_keyword: normalizeNullableText(String(params.keyword ?? '')),
         p_order_id: params.orderId || null
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: true, ...options }
   )
   return {
     data: result.data?.records ?? [],
@@ -248,18 +252,18 @@ export async function fetchFinanceWaybillOptions(params: WaybillOptionSearchPara
   }
 }
 
-export async function addWaybillCost(params: WaybillCost) {
+export async function addWaybillCost(params: WaybillCost, options: FinanceRequestFeedback = {}) {
   return await responseHandle<WaybillCost>(
     () =>
       supabase.rpc('tms_save_waybill_cost_secure', {
         p_id: null,
         p_payload: keysToSnakeDeep(createCostWritePayload(params))
       }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, breakReturn: true, ...options }
   )
 }
 
-export async function editWaybillCost(params: WaybillCost) {
+export async function editWaybillCost(params: WaybillCost, options: FinanceRequestFeedback = {}) {
   if (!params.id) throw new Error('缺少费用ID')
   return await responseHandle<WaybillCost>(
     () =>
@@ -267,7 +271,7 @@ export async function editWaybillCost(params: WaybillCost) {
         p_id: params.id,
         p_payload: keysToSnakeDeep(createCostWritePayload(params))
       }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, breakReturn: true, ...options }
   )
 }
 

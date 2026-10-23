@@ -208,7 +208,7 @@ export async function voidCashTransaction(id: string, reason: string) {
         p_transaction_id: id,
         p_reason: reason
       }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true }
   )
 }
 

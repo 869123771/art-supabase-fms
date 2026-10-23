@@ -1,8 +1,8 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" @close="() => void invalidateSession()">
     <ElAlert v-if="ocrLoadError" type="error" :closable="false" show-icon>
       <template #title>{{ ocrLoadError }}</template>
-      <ElButton link type="primary" @click="loadOcrResult">重新加载</ElButton>
+      <ElButton link type="primary" @click="() => loadOcrResult()">重新加载</ElButton>
     </ElAlert>
     <ExpenseOcrPanel
       v-if="canUseOcr"
@@ -92,10 +92,12 @@
   import { normalizeCoordinatePair } from '@/utils/geo'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
+  import { createTenantScopeReadGuard } from '@/utils/tenant-scope-context'
   import dayjs from 'dayjs'
   import { omit } from 'lodash-es'
   import { useMediaQuery } from '@vueuse/core'
   import type { ComputedRef } from 'vue'
+  import { useArtOverlaySession } from '@/hooks/core/useArtOverlay'
   import { ElMessage, type FormRules } from 'element-plus'
   import { fetchRegionOptions } from '@/api/region-options'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -181,6 +183,19 @@
   const ocrPanelRef = ref<{ reset: () => void }>()
   const selection = reactive<{ waybills: SelectorWaybill[] }>({ waybills: [] })
   const state = reactive({ autoLocateArmed: false, ocrEnabled: true })
+  const {
+    version: formSession,
+    invalidate,
+    isCurrent
+  } = useArtOverlaySession(() => Boolean(unref(dialogRef.value?.visible)))
+  function invalidateSession(): number {
+    invalidate()
+    state.autoLocateArmed = false
+    addressPickerRef.value?.cancelLocate()
+    ocrPanelRef.value?.reset()
+    return formSession.value
+  }
+  onBeforeUnmount(invalidateSession)
   const expenseNumber = useDocumentNumberRule('tms.waybill_cost')
   const tenantScopeStore = useTenantScopeStore()
   const attachmentTenantId = computed(
@@ -628,74 +643,113 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
+    const session = formSession.value
+    const ensureScope = createTenantScopeReadGuard()
     if (!canSave()) return false
     if (ocrLoadError.value) return false
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!isCurrent(session)) return false
+      ensureScope()
       if (!canSave()) return false
     } catch (error) {
+      if (!isCurrent(session)) return false
       notifyFriendlyError(error, '运单费用校验失败，请重试')
       return false
     }
     if (isCompact.value && canEditExpenseLocation.value && !hasValidExpenseCoordinate.value) {
       await addressPickerRef.value?.locateCurrent()
+      if (!isCurrent(session)) return false
+      try {
+        if (!(await validateArtFormForSubmit(formRef.value))) return false
+      } catch (error) {
+        if (isCurrent(session)) notifyFriendlyError(error, '运单费用校验失败，请重试')
+        return false
+      }
     }
-    if (!canSave()) return false
-    const type = form.data.id ? 'edit' : 'add'
-    let entityId: string | undefined
+    if (!isCurrent(session)) return false
     try {
-      const response = form.data.id
-        ? await editWaybillCost(buildExpensePayload())
-        : await addWaybillCost(buildExpensePayload())
-      entityId = form.data.id || response.data?.id
+      ensureScope()
     } catch (error) {
-      notifyFriendlyError(error, '运单费用保存失败，请检查内容后重试')
+      notifyFriendlyError(error, '租户范围已变化，请刷新后重试')
       return false
     }
-    if (canUseOcr.value && form.data.ocrArtifactId && entityId) {
+    if (!canSave()) return false
+    const payload = buildExpensePayload()
+    const type = payload.id ? 'edit' : 'add'
+    const artifactId = canUseOcr.value ? payload.ocrArtifactId : undefined
+    const finalPayload = artifactId ? buildOcrFinalPayload() : undefined
+    let entityId: string | undefined
+    try {
+      const response = payload.id
+        ? await editWaybillCost(payload, { showMessage: false, showErrorMessage: false })
+        : await addWaybillCost(payload, { showMessage: false, showErrorMessage: false })
+      entityId = payload.id || response.data?.id
+    } catch (error) {
+      if (isCurrent(session)) notifyFriendlyError(error, '运单费用保存失败，请检查内容后重试')
+      return false
+    }
+    if (artifactId && finalPayload && entityId) {
       try {
         const { error } = await reviewWaybillExpenseOcrArtifact({
-          artifactId: form.data.ocrArtifactId,
+          artifactId,
           entityId,
-          finalPayload: buildOcrFinalPayload()
+          finalPayload
         })
-        if (error) ElMessage.warning('运单费用已保存，但 AI 质量记录失败；不影响正式业务数据')
+        if (error && isCurrent(session))
+          ElMessage.warning('运单费用已保存，但 AI 质量记录失败；不影响正式业务数据')
       } catch {
-        ElMessage.warning('运单费用已保存，但 AI 质量记录失败；不影响正式业务数据')
+        if (isCurrent(session))
+          ElMessage.warning('运单费用已保存，但 AI 质量记录失败；不影响正式业务数据')
       }
     }
     emit('success', type)
+    if (isCurrent(session)) ElMessage.success('运单费用已保存')
     return true
   }
 
-  async function loadOcrResult(): Promise<void> {
-    if (!ocrResultLoader.value) return
+  async function loadOcrResult(session = formSession.value): Promise<void> {
+    const loader = ocrResultLoader.value
+    if (!loader || !isCurrent(session)) return
+    const ensureScope = createTenantScopeReadGuard()
     ocrLoadError.value = ''
     dialogRef.value?.setLoading(true)
     try {
-      const result = await ocrResultLoader.value()
+      const result = await loader()
+      if (!isCurrent(session)) return
+      ensureScope()
       if (!state.ocrEnabled) throw new Error('票据识别功能当前不可用')
       applyOcrResult(result)
     } catch (error) {
-      ocrLoadError.value = getFriendlySupabaseErrorMessage(error, '识别结果加载失败')
+      if (isCurrent(session))
+        ocrLoadError.value = getFriendlySupabaseErrorMessage(error, '识别结果加载失败')
     } finally {
-      dialogRef.value?.setLoading(false)
+      if (isCurrent(session)) dialogRef.value?.setLoading(false)
     }
   }
 
-  async function resetForm(): Promise<void> {
+  async function resetForm(): Promise<number> {
+    const session = invalidateSession()
     state.autoLocateArmed = false
     Object.assign(form.data, createInitialForm())
     selection.waybills = []
     ocrPanelRef.value?.reset()
     await nextTick()
-    formRef.value?.clearValidate()
+    if (session === formSession.value) formRef.value?.clearValidate()
+    return session
   }
 
-  async function prefillByOrderId(orderId: string): Promise<void> {
-    const { data } = await fetchFinanceWaybillOptions({ orderId, from: 0, to: 9 })
+  async function prefillByOrderId(orderId: string, session: number): Promise<void> {
+    const ensureScope = createTenantScopeReadGuard()
+    const { data, error } = await fetchFinanceWaybillOptions(
+      { orderId, from: 0, to: 9 },
+      { showErrorMessage: false }
+    )
+    if (!isCurrent(session)) return
+    ensureScope()
+    if (error) throw error
     const waybill = data?.[0]
-    if (!waybill) return
+    if (!waybill || !isCurrent(session)) return
     form.data.waybillId = waybill.id
     selection.waybills = [toSelectorWaybill(waybill)]
   }
@@ -707,7 +761,8 @@
       return
     }
     savePermission.value = permission
-    await resetForm()
+    const session = await resetForm()
+    if (session !== formSession.value) return
     ocrLoadError.value = ''
     ocrResultLoader.value = data.loadOcrResult
     if (data.row) {
@@ -734,24 +789,34 @@
       loading: true,
       loadingText: '正在准备运单费用…',
       onOpen: async (_openData, api) => {
+        const ensureScope = createTenantScopeReadGuard()
         try {
           const [, enabled] = await Promise.all([
             expenseNumber.loadRule(),
             fetchWaybillExpenseOcrEnabled(),
-            data.orderId ? prefillByOrderId(data.orderId) : Promise.resolve()
+            data.orderId ? prefillByOrderId(data.orderId, session) : Promise.resolve()
           ])
+          if (!isCurrent(session)) return
+          ensureScope()
           state.ocrEnabled = enabled
-          if (data.loadOcrResult) await loadOcrResult()
+          if (data.loadOcrResult) await loadOcrResult(session)
           else if (data.ocrResult && enabled) applyOcrResult(data.ocrResult)
+        } catch (error) {
+          if (isCurrent(session)) {
+            state.ocrEnabled = false
+            notifyFriendlyError(error, '费用信息准备失败，请关闭后重新打开表单')
+          }
         } finally {
-          state.autoLocateArmed = true
-          api.setLoading(false)
+          if (isCurrent(session)) {
+            state.autoLocateArmed = true
+            api.setLoading(false)
+          }
         }
       },
       onConfirm: handleSubmit,
       onReset: async () => {
-        await resetForm()
-        state.autoLocateArmed = true
+        const resetSession = await resetForm()
+        if (resetSession === formSession.value) state.autoLocateArmed = true
       },
       dialogProps: { appendToBody: true, closeOnClickModal: false }
     })
@@ -769,7 +834,19 @@
       ) {
         return
       }
-      void nextTick(() => addressPickerRef.value?.locateCurrent())
+      const session = formSession.value
+      void nextTick(() => {
+        if (
+          !isCurrent(session) ||
+          !state.autoLocateArmed ||
+          !hasAuth(savePermission.value) ||
+          !canEditExpenseLocation.value ||
+          hasValidExpenseCoordinate.value ||
+          form.data.attachments.length < count
+        )
+          return
+        void addressPickerRef.value?.locateCurrent()
+      })
     }
   )
 

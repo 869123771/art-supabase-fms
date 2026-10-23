@@ -85,6 +85,8 @@
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import OcrOriginalText from '@/components/business/ocr-original-text/index.vue'
   import { analyzeWaybillExpenseByAi } from '@fms/api'
+  import { artOverlayRequestScopeKey } from '@/hooks/core/useArtOverlay'
+  import { createTenantScopeReadGuard } from '@/utils/tenant-scope-context'
 
   defineOptions({ name: 'FinanceWaybillExpenseOcrPanel' })
 
@@ -104,10 +106,24 @@
     analyzing: boolean
     result?: Api.Fms.WaybillExpenseOcrAnalyzeResponse
   }>({ analyzing: false, result: undefined })
+  const overlayScope = inject(artOverlayRequestScopeKey, undefined)
+  let requestVersion = 0
+  watch(
+    [
+      () => props.modelValue,
+      () => props.enabled,
+      () => props.resourceTenantId,
+      () => overlayScope?.version.value,
+      () => overlayScope?.visible.value
+    ],
+    reset,
+    { deep: true, flush: 'sync' }
+  )
+  onBeforeUnmount(reset)
   const imageUrls = computed<string[]>({
     get: () => props.modelValue,
     set: (value) => {
-      state.result = undefined
+      reset()
       emit('update:modelValue', value)
     }
   })
@@ -118,23 +134,31 @@
 
   async function handleAnalyze(): Promise<void> {
     if (!props.enabled || !imageUrls.value.length || state.analyzing) return
+    if (overlayScope && !overlayScope.visible.value) return
+    const version = ++requestVersion
+    const ensureScope = createTenantScopeReadGuard()
+    const images = [...imageUrls.value]
     state.analyzing = true
     try {
-      const response = await analyzeWaybillExpenseByAi(imageUrls.value)
+      const response = await analyzeWaybillExpenseByAi(images)
+      if (version !== requestVersion) return
+      ensureScope()
       if (response.error || !response.data) throw response.error || new Error('未返回识别结果')
       state.result = response.data
       ElMessage.success('票据识别完成，请核对后应用')
     } catch (error) {
+      if (version !== requestVersion) return
       emit('failed')
       ElMessage.error(
         getFriendlySupabaseErrorMessage(error, '票据识别失败，请稍后重试或改为手工填写')
       )
     } finally {
-      state.analyzing = false
+      if (version === requestVersion) state.analyzing = false
     }
   }
 
   function reset(): void {
+    requestVersion += 1
     state.analyzing = false
     state.result = undefined
   }
