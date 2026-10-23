@@ -1,0 +1,1 @@
+import{on as e,r as t,zi as n}from"./sys-BMRIA_DP.js";import{t as r}from"./tenant-scope-C0M0Nd9F.js";function i(){let{isAllTenants:i,effectiveTenantId:a}=e(r()),o=t();return{effectiveTenantId:n(()=>a.value??null),defaultWriteTenantId:n(()=>a.value??o.getUserInfo.tenantId??null),shouldExposeTenantField:n(()=>i.value),isTenantScopeItem:e=>e.key===`tenantId`}}export{i as t};

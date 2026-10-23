@@ -1,0 +1,1 @@
+import{Vi as e,Xi as t,ha as n}from"./sys-BMRIA_DP.js";import{t as r}from"./ar-secondary-workspace-K9x2JazV.js";var i=t({name:`FinanceReceipt`,__name:`index`,setup(t){return(t,i)=>(n(),e(r,{kind:`receipt`}))}});export{i as default};

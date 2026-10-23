@@ -238,6 +238,14 @@
         'organization_id',
         'counterparty_organization_id'
       ],
+      'system:ap_payment_refund_writeoff_approved': [
+        'supplier_id',
+        'counterparty_supplier_id',
+        'organization_id',
+        'counterparty_organization_id',
+        'carrier_id',
+        'counterparty_carrier_id'
+      ],
       'system:ar_estimate_approved': ['customer_id', 'organization_id', 'project_id'],
       'system:ar_financial_approved': ['customer_id', 'organization_id', 'project_id'],
       'system:ar_reversal_approved': ['customer_id', 'organization_id', 'project_id'],

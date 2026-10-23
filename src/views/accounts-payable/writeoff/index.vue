@@ -3,7 +3,7 @@
     <div class="payable-writeoff-page business-workspace-page min-w-0">
       <BusinessWorkspaceHeader
         title="应付核销工作台"
-        description="核对已审核应付与已确认付款，按方案执行核销，分别保留核销记录与需记账核销单。"
+        description="核对已审核应付、已确认付款与实际到账退款，按方案核销，分别保留核销记录与需记账核销单。"
         icon="ri:checkbox-circle-line"
         density="compact"
         :metrics="metrics"
@@ -95,12 +95,20 @@
           >
         </ArtSectionCard>
         <ArtSectionCard
-          title="应付付款核销"
+          :title="relationTitle"
           subtitle="选择双方明细并填写本次金额；主辅方合计必须相等。"
           :loading="loading && !loaded"
           :error="loaded ? '' : loadError"
           @retry="load"
         >
+          <template #actions>
+            <ElSegmented
+              v-model="filter.relation"
+              :options="relationOptions"
+              aria-label="核销关系"
+              :disabled="loading || busy"
+            />
+          </template>
           <ElTabs v-model="activeTab">
             <ElTabPane label="待核销单据" name="candidates">
               <div class="mb-4 flex flex-wrap items-center gap-3">
@@ -127,11 +135,15 @@
               </div>
               <ArtSectionCard
                 class="payable-writeoff-page__document-section"
-                aria-label="财务应付单"
-                :title="`财务应付单（${primaryRows.length}）`"
+                :aria-label="primaryTitle"
+                :title="`${primaryTitle}（${primaryRows.length}）`"
                 :empty="!primaryRows.length"
-                empty-title="暂无待核销应付"
-                empty-description="请选择其他往来单位，或先审核财务应付单。"
+                :empty-title="isRefundRelation ? '暂无可核销付款' : '暂无待核销应付'"
+                :empty-description="
+                  isRefundRelation
+                    ? '请选择其他往来单位，或先确认实际付款。'
+                    : '请选择其他往来单位，或先审核财务应付单。'
+                "
                 :show-scrollbar="false"
                 :min-height="120"
                 :empty-visual-size="56"
@@ -148,11 +160,15 @@
               </ArtSectionCard>
               <ArtSectionCard
                 class="payable-writeoff-page__document-section mt-4"
-                aria-label="付款单"
-                :title="`付款单（${secondaryRows.length}）`"
+                :aria-label="secondaryTitle"
+                :title="`${secondaryTitle}（${secondaryRows.length}）`"
                 :empty="!secondaryRows.length"
-                empty-title="暂无可核销付款"
-                empty-description="先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。"
+                :empty-title="isRefundRelation ? '暂无可核销退款' : '暂无可核销付款'"
+                :empty-description="
+                  isRefundRelation
+                    ? '先登记退款实际到账；未兑现折扣不作为可核销现金。'
+                    : '先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。'
+                "
                 :show-scrollbar="false"
                 :min-height="120"
                 :empty-visual-size="56"
@@ -238,6 +254,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import BusinessTableIdentityCell from '@/components/business/business-table-identity-cell/index.vue'
   import FinanceVoucherPreview from '@/components/business/finance-voucher-preview/index.vue'
   import ReferenceEditor from '@/components/business/payable-reference-workspace/modules/reference-editor.vue'
   import PayableAutomaticWriteoff from '@/components/business/payable-automatic-writeoff/index.vue'
@@ -249,11 +266,14 @@
     type PayableWriteoffCandidate,
     type PayableWriteoffRecord,
     type PayableWriteoffWorkspace,
+    type PayableWriteoffRelation,
+    type PayableManualWriteoffItem,
     type PayableVoucherResult
   } from '@/api/payable-writeoff'
   import type { PayableReference, PayableMatchRule } from '@/api/payable-reference'
   import { payableMatchFields, payableMatchOperators } from '@/utils/finance/payable-match'
-  import { allocatePayableWriteoff } from '@/utils/finance/payable-writeoff'
+  import { allocateWriteoffAmounts } from '@/utils/finance/payable-writeoff'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { formatCurrencyValue } from '@/utils/ui/format'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -261,12 +281,30 @@
   import type { ColumnOption } from '@/types'
 
   defineOptions({ name: 'FinancePayableWriteoff' })
-  const filter = ref({
+  const filter = ref<{
+    keyword: string
+    organizationId: string
+    schemeId: string
+    writeoffDate: string
+    relation: PayableWriteoffRelation
+  }>({
     keyword: '',
     organizationId: '',
     schemeId: '',
-    writeoffDate: dayjs().format('YYYY-MM-DD')
+    writeoffDate: dayjs().format('YYYY-MM-DD'),
+    relation: 'payable_payment'
   })
+  const relationOptions = useDictionaryOptions<PayableWriteoffRelation>(
+    'fmsPayableWriteoffRelation'
+  )
+  const isRefundRelation = computed(() => filter.value.relation === 'payment_refund')
+  const relationTitle = computed(
+    () =>
+      relationOptions.find((option) => option.value === filter.value.relation)?.label ||
+      (isRefundRelation.value ? '付款冲退款' : '应付付款核销')
+  )
+  const primaryTitle = computed(() => (isRefundRelation.value ? '付款单' : '财务应付单'))
+  const secondaryTitle = computed(() => (isRefundRelation.value ? '付款退款单' : '付款单'))
   const tenantScope = useTenantScopeStore()
   const onlyAvailable = ref(false)
   const partyKeyword = ref('')
@@ -352,8 +390,10 @@
     {
       key: 'payable',
       icon: 'ri:bill-line',
-      description: '当前查询范围内的应付未核销余额',
-      label: '当前待核销应付',
+      description: isRefundRelation.value
+        ? '当前查询范围内允许核销的已确认付款现金本金'
+        : '当前查询范围内的应付未核销余额',
+      label: isRefundRelation.value ? '当前可核销付款' : '当前待核销应付',
       value: formatCurrencyValue(
         workspace.value.primary.reduce((sum, row) => sum + row.availableAmount, 0)
       )
@@ -361,8 +401,10 @@
     {
       key: 'payment',
       icon: 'ri:secure-payment-line',
-      description: '当前查询范围内的已确认付款余额',
-      label: '当前可核销付款',
+      description: isRefundRelation.value
+        ? '当前查询范围内已实际到账且未核销的退款现金本金'
+        : '当前查询范围内的已确认付款余额',
+      label: isRefundRelation.value ? '当前可核销退款' : '当前可核销付款',
       value: formatCurrencyValue(
         workspace.value.secondary.reduce((sum, row) => sum + row.availableAmount, 0)
       )
@@ -423,7 +465,7 @@
     { prop: 'supplierName', label: '往来单位', minWidth: 200 },
     { prop: 'businessDate', label: '业务日期', width: 125 },
     { prop: 'documentTypeName', label: '单据类型', minWidth: 150 },
-    { prop: 'purposeName', label: '付款用途', minWidth: 130 },
+    { prop: 'purposeName', label: '业务用途', minWidth: 130 },
     { prop: 'currencyCode', label: '币种', width: 95 },
     { prop: 'projectName', label: '项目名称', minWidth: 170 },
     { prop: 'sourceDocumentNo', label: '源单据号', minWidth: 190 },
@@ -460,12 +502,32 @@
       )
     }
   ]
-  const historyColumns: ColumnOption<PayableWriteoffRecord>[] = [
-    { prop: 'recordNo', label: '核销记录号', minWidth: 245 },
+  const historyColumns = computed<ColumnOption<PayableWriteoffRecord>[]>(() => [
+    {
+      prop: 'recordNo',
+      label: '核销记录号',
+      minWidth: 245,
+      formatter: (row) => (
+        <BusinessTableIdentityCell primary={row.recordNo} secondary={row.supplierName} />
+      )
+    },
+    {
+      prop: 'amount',
+      label: '核销金额(元)',
+      width: 150,
+      align: 'right',
+      formatter: (row) => formatCurrencyValue(row.amount)
+    },
+    {
+      prop: 'status',
+      label: '状态',
+      width: 100,
+      formatter: (row) => (row.status === 'active' ? '已核销' : '已反核销')
+    },
     { prop: 'writeoffDate', label: '核销日期', width: 130 },
     { prop: 'supplierName', label: '往来单位', minWidth: 170 },
-    { prop: 'payableNo', label: '财务应付单', minWidth: 210 },
-    { prop: 'paymentNo', label: '付款单', minWidth: 210 },
+    { prop: 'payableNo', label: primaryTitle.value, minWidth: 210 },
+    { prop: 'paymentNo', label: secondaryTitle.value, minWidth: 210 },
     {
       prop: 'documentNo',
       label: '核销单',
@@ -482,15 +544,8 @@
         )
     },
     {
-      prop: 'amount',
-      label: '核销金额(元)',
-      width: 165,
-      align: 'right',
-      formatter: (row) => formatCurrencyValue(row.amount)
-    },
-    {
       prop: 'paymentAmount',
-      label: '实付分摊金额(元)',
+      label: isRefundRelation.value ? '核销现金本金(元)' : '实付分摊金额(元)',
       width: 175,
       align: 'right',
       formatter: (row) => formatCurrencyValue(row.paymentAmount ?? row.amount)
@@ -501,12 +556,6 @@
       width: 175,
       align: 'right',
       formatter: (row) => formatCurrencyValue(row.cashDiscountAmount ?? 0)
-    },
-    {
-      prop: 'status',
-      label: '状态',
-      width: 100,
-      formatter: (row) => (row.status === 'active' ? '已核销' : '已反核销')
     },
     {
       prop: 'voucherNo',
@@ -533,7 +582,9 @@
     {
       prop: 'operation',
       label: '操作',
-      width: 145,
+      width: historyRows.value.some((row) => row.needsVoucher && row.status === 'active')
+        ? 145
+        : 80,
       fixed: 'right',
       formatter: (row) => (
         <BusinessTableRowActions>
@@ -567,7 +618,7 @@
         </BusinessTableRowActions>
       )
     }
-  ]
+  ])
   const matchingColumns: ColumnOption<PayableMatchRule>[] = [
     {
       prop: 'primaryField',
@@ -637,16 +688,16 @@
       )
     }
   ]
-  const recordItems = [
+  const recordItems = computed(() => [
     { key: 'documentNo', field: 'documentNo', label: '核销单号' },
     { key: 'writeoffDate', field: 'writeoffDate', label: '核销日期' },
-    { key: 'payableNo', field: 'payableNo', label: '主方财务应付' },
-    { key: 'paymentNo', field: 'paymentNo', label: '辅方付款单' },
+    { key: 'payableNo', field: 'payableNo', label: `主方${primaryTitle.value}` },
+    { key: 'paymentNo', field: 'paymentNo', label: `辅方${secondaryTitle.value}` },
     { key: 'supplierName', field: 'supplierName', label: '往来单位' },
     { key: 'amount', field: 'amount', label: '核销金额(元)' },
     {
       key: 'paymentAmount',
-      label: '实付分摊金额(元)',
+      label: isRefundRelation.value ? '核销现金本金(元)' : '实付分摊金额(元)',
       value: (row: PayableWriteoffRecord) => formatCurrencyValue(row.paymentAmount ?? row.amount)
     },
     {
@@ -656,7 +707,7 @@
     },
     { key: 'voucherNo', field: 'voucherNo', label: '凭证号' },
     { key: 'remark', field: 'remark', label: '备注' }
-  ]
+  ])
   async function showRecord(row: PayableWriteoffRecord): Promise<void> {
     currentRecord.value = row
     await recordDialog.value?.handleOpen()
@@ -667,6 +718,7 @@
     loadError.value = ''
     try {
       const response = await fetchPayableWriteoffWorkspace({
+        relation: filter.value.relation,
         keyword: filter.value.keyword,
         organizationId: filter.value.organizationId
       })
@@ -702,6 +754,7 @@
       schemeId: scheme.id || '',
       date: filter.value.writeoffDate,
       query: {
+        relation: filter.value.relation,
         keyword: filter.value.keyword,
         organizationId: filter.value.organizationId,
         supplierId: availableParties.value.find(
@@ -723,9 +776,21 @@
       ElMessage.warning('请选择核销方案和日期')
       return
     }
-    let items: ReturnType<typeof allocatePayableWriteoff>
+    let items: PayableManualWriteoffItem[]
     try {
-      items = allocatePayableWriteoff(primarySelection.value, secondarySelection.value)
+      const pairs = allocateWriteoffAmounts(primarySelection.value, secondarySelection.value)
+      items = isRefundRelation.value
+        ? pairs.map((pair) => ({
+            relation: 'payment_refund',
+            paymentLineId: pair.primaryId,
+            refundLineId: pair.secondaryId,
+            amount: pair.amount
+          }))
+        : pairs.map((pair) => ({
+            payableId: pair.primaryId,
+            paymentLineId: pair.secondaryId,
+            amount: pair.amount
+          }))
     } catch (error) {
       notifyFriendlyError(error, '双方金额不正确，请调整后重试')
       return
@@ -744,9 +809,9 @@
         items,
         filter.value.schemeId,
         filter.value.writeoffDate,
-        '手工应付付款核销'
+        `手工${relationTitle.value}`
       )
-      ElMessage.success('应付付款已核销')
+      ElMessage.success(`${relationTitle.value}已完成`)
       await load()
     } catch (error) {
       notifyFriendlyError(error, '核销未完成，请重新查询核对余额')
@@ -800,6 +865,21 @@
     primaryTable.value?.elTableRef?.clearSelection()
     secondaryTable.value?.elTableRef?.clearSelection()
   })
+  watch(
+    () => filter.value.relation,
+    () => {
+      version += 1
+      loaded.value = false
+      workspace.value = { ...workspace.value, primary: [], secondary: [], history: [] }
+      primarySelection.value = []
+      secondarySelection.value = []
+      selectedParty.value = 'all'
+      activeTab.value = 'candidates'
+      currentRecord.value = undefined
+      void recordDialog.value?.handleClose()
+      void load()
+    }
+  )
   watch(
     () => primarySelection.value[0]?.tenantId || secondarySelection.value[0]?.tenantId,
     (tenant) => {
