@@ -3,7 +3,7 @@
     <div class="payable-writeoff-page business-workspace-page min-w-0">
       <BusinessWorkspaceHeader
         title="应付核销工作台"
-        description="核对已审核应付、已确认付款与实际到账退款，按方案核销，分别保留核销记录与需记账核销单。"
+        description="核对已审核应付与应收、已确认付款及实际到账退款，按方案核销，保留核销记录与需记账核销单。"
         icon="ri:checkbox-circle-line"
         density="compact"
         :metrics="metrics"
@@ -39,6 +39,15 @@
             title="只显示主方、辅方都有可核销单据的往来单位"
             >仅显示可核销数据</span
           >
+          <label
+            v-if="isReceivableRelation && hasAuth('FinanceReceiptWriteoff:CrossCustomer')"
+            class="art-icon-label text-sm text-g-600"
+            title="仍须符合所选方案；不按客户、供应商的名称自动认定同一往来单位"
+            ><ElSwitch
+              v-model="allowCrossParty"
+              aria-label="允许跨往来单位核销"
+            />允许跨往来单位</label
+          >
           <span class="ml-auto text-xs text-g-600">人民币 · 每侧最多 200 条 · 不发起银行转账</span>
         </div>
       </div>
@@ -62,15 +71,17 @@
       <div class="payable-writeoff-page__workspace">
         <ArtSectionCard
           title="往来单位"
-          :subtitle="`${partyNodes[0].children.length} 家往来单位`"
-          :loading="loading && !loaded"
-          :error="loaded ? '' : loadError"
+          :subtitle="
+            loadError ? '暂不可读取往来单位' : `${partyNodes[0].children.length} 家往来单位`
+          "
+          :loading="loading && !loaded && !loadError"
           @retry="load"
         >
           <ElInput
             v-model="partyKeyword"
             placeholder="搜索往来单位"
             clearable
+            :disabled="!!loadError"
             aria-label="搜索往来单位"
             ><template #prefix><ArtSvgIcon icon="ri:search-line" /></template
           ></ElInput>
@@ -87,7 +98,11 @@
               ><template #default="{ data }"
                 ><span class="art-icon-label min-w-0"
                   ><ArtSvgIcon
-                    :icon="data.id === 'all' ? 'ri:building-line' : 'ri:truck-line'"
+                    :icon="
+                      data.id === 'all' || isReceivableRelation
+                        ? 'ri:building-line'
+                        : 'ri:truck-line'
+                    "
                   /><span class="truncate" :title="data.label">{{ data.label }}</span></span
                 ></template
               ></ElTree
@@ -97,7 +112,7 @@
         <ArtSectionCard
           :title="relationTitle"
           subtitle="选择双方明细并填写本次金额；主辅方合计必须相等。"
-          :loading="loading && !loaded"
+          :loading="loading && !loaded && !loadError"
           :error="loaded ? '' : loadError"
           @retry="load"
         >
@@ -117,14 +132,23 @@
                   type="primary"
                   :loading="busy"
                   :disabled="
-                    loading || !!loadError || !primarySelection.length || !secondarySelection.length
+                    loading ||
+                    !!loadError ||
+                    !primarySelection.length ||
+                    !secondarySelection.length ||
+                    (isReceivableRelation && !hasAuth('FinanceReceiptWriteoff:Writeoff'))
                   "
                   @click="execute"
                   ><ArtSvgIcon icon="ri:checkbox-circle-line" />核销</ElButton
                 >
                 <ElButton
                   v-auth="'FinancePayableWriteoff:AutoWriteoff'"
-                  :disabled="busy || loading || !!loadError"
+                  :disabled="
+                    busy ||
+                    loading ||
+                    !!loadError ||
+                    (isReceivableRelation && !hasAuth('FinanceReceiptWriteoff:Writeoff'))
+                  "
                   @click="openAutomatic"
                   ><ArtSvgIcon icon="ri:magic-line" />按方案自动核销</ElButton
                 >
@@ -163,11 +187,19 @@
                 :aria-label="secondaryTitle"
                 :title="`${secondaryTitle}（${secondaryRows.length}）`"
                 :empty="!secondaryRows.length"
-                :empty-title="isRefundRelation ? '暂无可核销退款' : '暂无可核销付款'"
+                :empty-title="
+                  isReceivableRelation
+                    ? '暂无可抵销应收'
+                    : isRefundRelation
+                      ? '暂无可核销退款'
+                      : '暂无可核销付款'
+                "
                 :empty-description="
-                  isRefundRelation
-                    ? '先登记退款实际到账；未兑现折扣不作为可核销现金。'
-                    : '先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。'
+                  isReceivableRelation
+                    ? '请核对正向财务应收的审核状态、组织期初、账套及主数据统一往来单位。'
+                    : isRefundRelation
+                      ? '先登记退款实际到账；未兑现折扣不作为可核销现金。'
+                      : '先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。'
                 "
                 :show-scrollbar="false"
                 :min-height="120"
@@ -200,7 +232,7 @@
                 :max-height="560"
                 row-key="id"
                 empty-text="暂无需要记账的核销单"
-                empty-description="仅跨往来单位、预付款等需要调整会计科目的核销生成核销单。"
+                empty-description="应收应付抵销、跨往来单位及预付款等需要调整会计科目的核销生成核销单。"
             /></ElTabPane>
           </ElTabs>
         </ArtSectionCard>
@@ -219,7 +251,13 @@
       <ReferenceEditor ref="schemeEditor" kind="scheme" @success="load" />
       <PayableAutomaticWriteoff ref="automaticDialog" @success="load" @refresh="load" />
       <ArtDialog ref="recordDialog" title="应付核销单" size="lg" :show-footer="false"
-        ><ArtDescriptions v-if="currentRecord" :data="currentRecord" :items="recordItems" />
+        ><ArtDescriptions
+          v-if="currentRecord"
+          :data="currentRecord"
+          :items="recordItems"
+          :columns="2"
+          :label-width="144"
+        />
         <ArtSectionCard
           v-if="currentRecord?.matchSnapshot?.rules?.length"
           class="mt-4"
@@ -272,10 +310,14 @@
   } from '@/api/payable-writeoff'
   import type { PayableReference, PayableMatchRule } from '@/api/payable-reference'
   import { payableMatchFields, payableMatchOperators } from '@/utils/finance/payable-match'
-  import { allocateWriteoffAmounts } from '@/utils/finance/payable-writeoff'
+  import {
+    allocateWriteoffAmounts,
+    preferredPayableWriteoffScheme
+  } from '@/utils/finance/payable-writeoff'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { formatCurrencyValue } from '@/utils/ui/format'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { getFriendlySupabaseErrorMessage, isSupabaseAccessFailure } from '@/utils/supabase'
   import { useAuth } from '@/hooks/core/useAuth'
   import { financePaths } from '@/router/business-paths'
   import type { ColumnOption } from '@/types'
@@ -298,13 +340,17 @@
     'fmsPayableWriteoffRelation'
   )
   const isRefundRelation = computed(() => filter.value.relation === 'payment_refund')
+  const isReceivableRelation = computed(() => filter.value.relation === 'payable_receivable')
+  const allowCrossParty = ref(false)
   const relationTitle = computed(
     () =>
       relationOptions.find((option) => option.value === filter.value.relation)?.label ||
       (isRefundRelation.value ? '付款冲退款' : '应付付款核销')
   )
   const primaryTitle = computed(() => (isRefundRelation.value ? '付款单' : '财务应付单'))
-  const secondaryTitle = computed(() => (isRefundRelation.value ? '付款退款单' : '付款单'))
+  const secondaryTitle = computed(() =>
+    isReceivableRelation.value ? '财务应收单' : isRefundRelation.value ? '付款退款单' : '付款单'
+  )
   const tenantScope = useTenantScopeStore()
   const onlyAvailable = ref(false)
   const partyKeyword = ref('')
@@ -335,11 +381,11 @@
   const { confirm, promptReason } = useArtFeedback()
   const { hasAuth } = useAuth()
   const router = useRouter()
+  const partyKey = (row: { tenantId: string; supplierId: string; counterpartyKey?: string }) =>
+    `${row.tenantId}:${row.counterpartyKey || row.supplierId}`
   const availableParties = computed(() => {
     const both = workspace.value.primary.filter((main) =>
-      workspace.value.secondary.some(
-        (side) => side.supplierId === main.supplierId && side.tenantId === main.tenantId
-      )
+      workspace.value.secondary.some((side) => partyKey(side) === partyKey(main))
     )
     return onlyAvailable.value
       ? both
@@ -349,21 +395,19 @@
     {
       id: 'all',
       label: '全部往来单位',
-      children: uniqBy(availableParties.value, (row) => `${row.tenantId}:${row.supplierId}`)
+      children: uniqBy(availableParties.value, partyKey)
         .filter((row) => !partyKeyword.value || row.supplierName.includes(partyKeyword.value))
-        .map((row) => ({ id: `${row.tenantId}:${row.supplierId}`, label: row.supplierName }))
+        .map((row) => ({ id: partyKey(row), label: row.supplierName }))
     }
   ])
-  const partyMatches = (row: { tenantId: string; supplierId: string }) =>
-    selectedParty.value === 'all' || `${row.tenantId}:${row.supplierId}` === selectedParty.value
+  const partyMatches = (row: { tenantId: string; supplierId: string; counterpartyKey?: string }) =>
+    selectedParty.value === 'all' || partyKey(row) === selectedParty.value
   const primaryRows = computed(() =>
     workspace.value.primary.filter(
       (row) =>
         partyMatches(row) &&
         (!onlyAvailable.value ||
-          availableParties.value.some(
-            (party) => party.tenantId === row.tenantId && party.supplierId === row.supplierId
-          ))
+          availableParties.value.some((party) => partyKey(party) === partyKey(row)))
     )
   )
   const secondaryRows = computed(() =>
@@ -371,9 +415,7 @@
       (row) =>
         partyMatches(row) &&
         (!onlyAvailable.value ||
-          availableParties.value.some(
-            (party) => party.tenantId === row.tenantId && party.supplierId === row.supplierId
-          ))
+          availableParties.value.some((party) => partyKey(party) === partyKey(row)))
     )
   )
   const historyRows = computed(() =>
@@ -390,35 +432,53 @@
     {
       key: 'payable',
       icon: 'ri:bill-line',
-      description: isRefundRelation.value
-        ? '当前查询范围内允许核销的已确认付款现金本金'
-        : '当前查询范围内的应付未核销余额',
-      label: isRefundRelation.value ? '当前可核销付款' : '当前待核销应付',
-      value: formatCurrencyValue(
-        workspace.value.primary.reduce((sum, row) => sum + row.availableAmount, 0)
-      )
+      description: isReceivableRelation.value
+        ? '当前查询范围内未被付款申请、付款占用的应付余额'
+        : isRefundRelation.value
+          ? '当前查询范围内允许核销的已确认付款现金本金'
+          : '当前查询范围内的应付未核销余额',
+      label: isReceivableRelation.value
+        ? '当前可抵销应付'
+        : isRefundRelation.value
+          ? '当前可核销付款'
+          : '当前待核销应付',
+      value: loaded.value
+        ? formatCurrencyValue(
+            workspace.value.primary.reduce((sum, row) => sum + row.availableAmount, 0)
+          )
+        : '—'
     },
     {
       key: 'payment',
-      icon: 'ri:secure-payment-line',
-      description: isRefundRelation.value
-        ? '当前查询范围内已实际到账且未核销的退款现金本金'
-        : '当前查询范围内的已确认付款余额',
-      label: isRefundRelation.value ? '当前可核销退款' : '当前可核销付款',
-      value: formatCurrencyValue(
-        workspace.value.secondary.reduce((sum, row) => sum + row.availableAmount, 0)
-      )
+      icon: isReceivableRelation.value ? 'ri:bill-line' : 'ri:secure-payment-line',
+      description: isReceivableRelation.value
+        ? '当前查询范围内未被收款或其他业务占用的应收余额'
+        : isRefundRelation.value
+          ? '当前查询范围内已实际到账且未核销的退款现金本金'
+          : '当前查询范围内的已确认付款余额',
+      label: isReceivableRelation.value
+        ? '当前可抵销应收'
+        : isRefundRelation.value
+          ? '当前可核销退款'
+          : '当前可核销付款',
+      value: loaded.value
+        ? formatCurrencyValue(
+            workspace.value.secondary.reduce((sum, row) => sum + row.availableAmount, 0)
+          )
+        : '—'
     },
     {
       key: 'written',
       icon: 'ri:checkbox-circle-line',
       description: '当前查询的有效核销记录合计',
       label: '查询内已核销',
-      value: formatCurrencyValue(
-        workspace.value.history
-          .filter((row) => row.status === 'active')
-          .reduce((sum, row) => sum + row.amount, 0)
-      )
+      value: loaded.value
+        ? formatCurrencyValue(
+            workspace.value.history
+              .filter((row) => row.status === 'active')
+              .reduce((sum, row) => sum + row.amount, 0)
+          )
+        : '—'
     }
   ])
   const filterItems = computed<FormItem[]>(() => [
@@ -455,13 +515,14 @@
     },
     { key: 'writeoffDate', label: '核销日期', type: 'date', props: { valueFormat: 'YYYY-MM-DD' } }
   ])
-  const candidateColumns: ColumnOption<PayableWriteoffCandidate>[] = [
+  const candidateColumns = computed<ColumnOption<PayableWriteoffCandidate>[]>(() => [
     {
       type: 'selection',
       width: 44,
       selectable: () => !loading.value && !busy.value && !loadError.value
     },
     { prop: 'documentNo', label: '单据编号', minWidth: 190 },
+    ...(isReceivableRelation.value ? [{ prop: 'lineNo', label: '行号', width: 85 }] : []),
     { prop: 'supplierName', label: '往来单位', minWidth: 200 },
     { prop: 'businessDate', label: '业务日期', width: 125 },
     { prop: 'documentTypeName', label: '单据类型', minWidth: 150 },
@@ -501,7 +562,7 @@
         />
       )
     }
-  ]
+  ])
   const historyColumns = computed<ColumnOption<PayableWriteoffRecord>[]>(() => [
     {
       prop: 'recordNo',
@@ -526,6 +587,9 @@
     },
     { prop: 'writeoffDate', label: '核销日期', width: 130 },
     { prop: 'supplierName', label: '往来单位', minWidth: 170 },
+    ...(isReceivableRelation.value
+      ? [{ prop: 'counterpartyName', label: '辅方往来单位', minWidth: 180 }]
+      : []),
     { prop: 'payableNo', label: primaryTitle.value, minWidth: 210 },
     { prop: 'paymentNo', label: secondaryTitle.value, minWidth: 210 },
     {
@@ -544,11 +608,20 @@
         )
     },
     {
-      prop: 'paymentAmount',
-      label: isRefundRelation.value ? '核销现金本金(元)' : '实付分摊金额(元)',
+      prop: isReceivableRelation.value ? 'receivableAmount' : 'paymentAmount',
+      label: isReceivableRelation.value
+        ? '应收抵销金额(元)'
+        : isRefundRelation.value
+          ? '核销现金本金(元)'
+          : '实付分摊金额(元)',
       width: 175,
       align: 'right',
-      formatter: (row) => formatCurrencyValue(row.paymentAmount ?? row.amount)
+      formatter: (row) =>
+        formatCurrencyValue(
+          isReceivableRelation.value
+            ? (row.receivableAmount ?? row.amount)
+            : (row.paymentAmount ?? row.amount)
+        )
     },
     {
       prop: 'cashDiscountAmount',
@@ -610,7 +683,12 @@
             <ArtButtonTable
               icon="ri:arrow-go-back-line"
               label="反核销"
-              disabled={loading.value || busy.value || !!loadError.value}
+              disabled={
+                loading.value ||
+                busy.value ||
+                !!loadError.value ||
+                (isReceivableRelation.value && !hasAuth('FinanceReceiptWriteoff:Reverse'))
+              }
               permission="FinancePayableWriteoff:Reverse"
               onClick={() => reverse(row)}
             />
@@ -694,11 +772,27 @@
     { key: 'payableNo', field: 'payableNo', label: `主方${primaryTitle.value}` },
     { key: 'paymentNo', field: 'paymentNo', label: `辅方${secondaryTitle.value}` },
     { key: 'supplierName', field: 'supplierName', label: '往来单位' },
-    { key: 'amount', field: 'amount', label: '核销金额(元)' },
+    ...(isReceivableRelation.value
+      ? [{ key: 'counterpartyName', field: 'counterpartyName', label: '辅方往来单位' }]
+      : []),
     {
-      key: 'paymentAmount',
-      label: isRefundRelation.value ? '核销现金本金(元)' : '实付分摊金额(元)',
-      value: (row: PayableWriteoffRecord) => formatCurrencyValue(row.paymentAmount ?? row.amount)
+      key: 'amount',
+      label: '核销金额(元)',
+      value: (row: PayableWriteoffRecord) => formatCurrencyValue(row.amount)
+    },
+    {
+      key: isReceivableRelation.value ? 'receivableAmount' : 'paymentAmount',
+      label: isReceivableRelation.value
+        ? '应收抵销金额(元)'
+        : isRefundRelation.value
+          ? '核销现金本金(元)'
+          : '实付分摊金额(元)',
+      value: (row: PayableWriteoffRecord) =>
+        formatCurrencyValue(
+          isReceivableRelation.value
+            ? (row.receivableAmount ?? row.amount)
+            : (row.paymentAmount ?? row.amount)
+        )
     },
     {
       key: 'cashDiscountAmount',
@@ -715,7 +809,6 @@
   async function load(): Promise<void> {
     const current = ++version
     loading.value = true
-    loadError.value = ''
     try {
       const response = await fetchPayableWriteoffWorkspace({
         relation: filter.value.relation,
@@ -723,6 +816,7 @@
         organizationId: filter.value.organizationId
       })
       if (current !== version) return
+      loadError.value = ''
       response.primary.forEach((row) => (row.writeoffAmount = row.availableAmount))
       response.secondary.forEach((row) => (row.writeoffAmount = row.availableAmount))
       workspace.value = response
@@ -732,11 +826,16 @@
       if (!partyNodes.value[0].children.some((row) => row.id === selectedParty.value))
         selectedParty.value = 'all'
       if (!response.schemes.some((row) => row.id === filter.value.schemeId && row.enabled))
-        filter.value.schemeId =
-          response.schemes.find((row) => row.enabled && !row.automatic)?.id || ''
+        filter.value.schemeId = preferredPayableWriteoffScheme(
+          response.schemes,
+          filter.value.relation
+        )
     } catch (error) {
       if (current === version) {
-        loadError.value = '核销资料加载失败，请重新加载'
+        loadError.value =
+          isReceivableRelation.value && isSupabaseAccessFailure(error)
+            ? '此关系需要应收核销与应收金额查看权限，请联系管理员核对授权。'
+            : getFriendlySupabaseErrorMessage(error, '核销资料加载失败，请重新加载')
         notifyFriendlyError(error, loadError.value)
       }
     } finally {
@@ -757,9 +856,14 @@
         relation: filter.value.relation,
         keyword: filter.value.keyword,
         organizationId: filter.value.organizationId,
-        supplierId: availableParties.value.find(
-          (row) => `${row.tenantId}:${row.supplierId}` === selectedParty.value
-        )?.supplierId
+        supplierId: isReceivableRelation.value
+          ? undefined
+          : availableParties.value.find((row) => partyKey(row) === selectedParty.value)?.supplierId,
+        counterpartyKey: isReceivableRelation.value
+          ? availableParties.value.find((row) => partyKey(row) === selectedParty.value)
+              ?.counterpartyKey
+          : undefined,
+        allowCrossParty: isReceivableRelation.value && allowCrossParty.value
       }
     })
   }
@@ -779,18 +883,26 @@
     let items: PayableManualWriteoffItem[]
     try {
       const pairs = allocateWriteoffAmounts(primarySelection.value, secondarySelection.value)
-      items = isRefundRelation.value
+      items = isReceivableRelation.value
         ? pairs.map((pair) => ({
-            relation: 'payment_refund',
-            paymentLineId: pair.primaryId,
-            refundLineId: pair.secondaryId,
-            amount: pair.amount
-          }))
-        : pairs.map((pair) => ({
+            relation: 'payable_receivable',
             payableId: pair.primaryId,
-            paymentLineId: pair.secondaryId,
-            amount: pair.amount
+            receivableLineId: pair.secondaryId,
+            amount: pair.amount,
+            allowCrossParty: allowCrossParty.value
           }))
+        : isRefundRelation.value
+          ? pairs.map((pair) => ({
+              relation: 'payment_refund',
+              paymentLineId: pair.primaryId,
+              refundLineId: pair.secondaryId,
+              amount: pair.amount
+            }))
+          : pairs.map((pair) => ({
+              payableId: pair.primaryId,
+              paymentLineId: pair.secondaryId,
+              amount: pair.amount
+            }))
     } catch (error) {
       notifyFriendlyError(error, '双方金额不正确，请调整后重试')
       return
@@ -870,10 +982,13 @@
     () => {
       version += 1
       loaded.value = false
+      loadError.value = ''
       workspace.value = { ...workspace.value, primary: [], secondary: [], history: [] }
       primarySelection.value = []
       secondarySelection.value = []
       selectedParty.value = 'all'
+      filter.value.schemeId = ''
+      allowCrossParty.value = false
       activeTab.value = 'candidates'
       currentRecord.value = undefined
       void recordDialog.value?.handleClose()
@@ -885,10 +1000,11 @@
     (tenant) => {
       const current = workspace.value.schemes.find((row) => row.id === filter.value.schemeId)
       if (tenant && current?.tenantId && current.tenantId !== tenant)
-        filter.value.schemeId =
-          workspace.value.schemes.find(
-            (row) => row.tenantId === tenant && row.enabled && !row.automatic
-          )?.id || ''
+        filter.value.schemeId = preferredPayableWriteoffScheme(
+          workspace.value.schemes,
+          filter.value.relation,
+          tenant
+        )
     }
   )
   watch(
@@ -896,6 +1012,7 @@
     () => {
       workspace.value = { primary: [], secondary: [], history: [], schemes: [] }
       loaded.value = false
+      loadError.value = ''
       selectedParty.value = 'all'
       filter.value.schemeId = ''
       void load()

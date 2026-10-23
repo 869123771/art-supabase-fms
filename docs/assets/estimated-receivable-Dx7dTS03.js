@@ -1,1 +1,0 @@
-import{Vi as e,Xi as t,ha as n}from"./sys-BMRIA_DP.js";import{t as r}from"./receivable-workspace-CniZ9Mu5.js";var i=t({name:`FinanceEstimatedReceivable`,__name:`index`,setup(t){return(t,i)=>(n(),e(r,{kind:`estimate`}))}});export{i as default};
