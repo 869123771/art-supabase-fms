@@ -40,7 +40,10 @@
             >仅显示可核销数据</span
           >
           <label
-            v-if="isReceivableRelation && hasAuth('FinanceReceiptWriteoff:CrossCustomer')"
+            v-if="
+              isRedBlueRelation ||
+              (isReceivableRelation && hasAuth('FinanceReceiptWriteoff:CrossCustomer'))
+            "
             class="art-icon-label text-sm text-g-600"
             title="仍须符合所选方案；不按客户、供应商的名称自动认定同一往来单位"
             ><ElSwitch
@@ -48,7 +51,10 @@
               aria-label="允许跨往来单位核销"
             />允许跨往来单位</label
           >
-          <span class="ml-auto text-xs text-g-600">人民币 · 每侧最多 200 条 · 不发起银行转账</span>
+          <span class="ml-auto text-xs text-g-600"
+            >{{ isRedBlueRelation ? '金额按原币分别显示' : '人民币' }} · 每侧最多 200 条 ·
+            不发起银行转账</span
+          >
         </div>
       </div>
       <ElAlert
@@ -111,7 +117,11 @@
         </ArtSectionCard>
         <ArtSectionCard
           :title="relationTitle"
-          subtitle="选择双方明细并填写本次金额；主辅方合计必须相等。"
+          :subtitle="
+            isRedBlueRelation
+              ? '红字按正数余量核销；同币按账套分别等额，异币请逐对明确双方原币金额。'
+              : '选择双方明细并填写本次金额；主辅方合计必须相等。'
+          "
           :loading="loading && !loaded && !loadError"
           :error="loaded ? '' : loadError"
           @retry="load"
@@ -153,8 +163,7 @@
                   ><ArtSvgIcon icon="ri:magic-line" />按方案自动核销</ElButton
                 >
                 <span class="text-sm text-g-600"
-                  >主方 {{ formatCurrencyValue(primaryTotal) }} · 辅方
-                  {{ formatCurrencyValue(secondaryTotal) }}</span
+                  >主方 {{ primarySelectedSummary }} · 辅方 {{ secondarySelectedSummary }}</span
                 >
               </div>
               <ArtSectionCard
@@ -188,18 +197,22 @@
                 :title="`${secondaryTitle}（${secondaryRows.length}）`"
                 :empty="!secondaryRows.length"
                 :empty-title="
-                  isReceivableRelation
-                    ? '暂无可抵销应收'
-                    : isRefundRelation
-                      ? '暂无可核销退款'
-                      : '暂无可核销付款'
+                  isRedBlueRelation
+                    ? '暂无可核销红字'
+                    : isReceivableRelation
+                      ? '暂无可抵销应收'
+                      : isRefundRelation
+                        ? '暂无可核销退款'
+                        : '暂无可核销付款'
                 "
                 :empty-description="
-                  isReceivableRelation
-                    ? '请核对正向财务应收的审核状态、组织期初、账套及主数据统一往来单位。'
-                    : isRefundRelation
-                      ? '先登记退款实际到账；未兑现折扣不作为可核销现金。'
-                      : '先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。'
+                  isRedBlueRelation
+                    ? '请先审核手工红字财务应付；来源须在同一账套内且未冻结。'
+                    : isReceivableRelation
+                      ? '请核对正向财务应收的审核状态、组织期初、账套及主数据统一往来单位。'
+                      : isRefundRelation
+                        ? '先登记退款实际到账；未兑现折扣不作为可核销现金。'
+                        : '先确认付款，或关闭“仅显示可核销数据”查看其他往来单位。'
                 "
                 :show-scrollbar="false"
                 :min-height="120"
@@ -312,7 +325,10 @@
   import { payableMatchFields, payableMatchOperators } from '@/utils/finance/payable-match'
   import {
     allocateWriteoffAmounts,
-    preferredPayableWriteoffScheme
+    preferredPayableWriteoffScheme,
+    allocatePayableRedBlueAmounts,
+    formatPayableCurrencyTotals,
+    formatPayableExchangeDifference
   } from '@/utils/finance/payable-writeoff'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { formatCurrencyValue } from '@/utils/ui/format'
@@ -336,20 +352,32 @@
     writeoffDate: dayjs().format('YYYY-MM-DD'),
     relation: 'payable_payment'
   })
-  const relationOptions = useDictionaryOptions<PayableWriteoffRelation>(
+  const dictionaryRelations = useDictionaryOptions<PayableWriteoffRelation>(
     'fmsPayableWriteoffRelation'
+  )
+  const relationOptions = computed(() =>
+    workspace.value.relations?.length ? workspace.value.relations : dictionaryRelations
   )
   const isRefundRelation = computed(() => filter.value.relation === 'payment_refund')
   const isReceivableRelation = computed(() => filter.value.relation === 'payable_receivable')
+  const isRedBlueRelation = computed(() => filter.value.relation === 'payable_red_blue')
   const allowCrossParty = ref(false)
   const relationTitle = computed(
     () =>
-      relationOptions.find((option) => option.value === filter.value.relation)?.label ||
+      relationOptions.value.find((option) => option.value === filter.value.relation)?.label ||
       (isRefundRelation.value ? '付款冲退款' : '应付付款核销')
   )
-  const primaryTitle = computed(() => (isRefundRelation.value ? '付款单' : '财务应付单'))
+  const primaryTitle = computed(() =>
+    isRedBlueRelation.value ? '蓝字财务应付单' : isRefundRelation.value ? '付款单' : '财务应付单'
+  )
   const secondaryTitle = computed(() =>
-    isReceivableRelation.value ? '财务应收单' : isRefundRelation.value ? '付款退款单' : '付款单'
+    isRedBlueRelation.value
+      ? '红字财务应付单'
+      : isReceivableRelation.value
+        ? '财务应收单'
+        : isRefundRelation.value
+          ? '付款退款单'
+          : '付款单'
   )
   const tenantScope = useTenantScopeStore()
   const onlyAvailable = ref(false)
@@ -413,7 +441,8 @@
   const secondaryRows = computed(() =>
     workspace.value.secondary.filter(
       (row) =>
-        partyMatches(row) &&
+        ((allowCrossParty.value && (isRedBlueRelation.value || isReceivableRelation.value)) ||
+          partyMatches(row)) &&
         (!onlyAvailable.value ||
           availableParties.value.some((party) => partyKey(party) === partyKey(row)))
     )
@@ -427,44 +456,59 @@
   const total = (rows: PayableWriteoffCandidate[]) =>
     rows.reduce((sum, row) => sum + Number(row.writeoffAmount ?? row.availableAmount), 0)
   const primaryTotal = computed(() => total(primarySelection.value))
-  const secondaryTotal = computed(() => total(secondarySelection.value))
+  const primarySelectedSummary = computed(() =>
+    formatPayableCurrencyTotals(
+      primarySelection.value,
+      (row) => row.writeoffAmount ?? row.availableAmount
+    )
+  )
+  const secondarySelectedSummary = computed(() =>
+    formatPayableCurrencyTotals(
+      secondarySelection.value,
+      (row) => row.writeoffAmount ?? row.availableAmount
+    )
+  )
   const metrics = computed(() => [
     {
       key: 'payable',
       icon: 'ri:bill-line',
-      description: isReceivableRelation.value
-        ? '当前查询范围内未被付款申请、付款占用的应付余额'
-        : isRefundRelation.value
-          ? '当前查询范围内允许核销的已确认付款现金本金'
-          : '当前查询范围内的应付未核销余额',
-      label: isReceivableRelation.value
-        ? '当前可抵销应付'
-        : isRefundRelation.value
-          ? '当前可核销付款'
-          : '当前待核销应付',
+      description: isRedBlueRelation.value
+        ? '扣除付款申请、付款预占后的蓝字余量，按原币显示'
+        : isReceivableRelation.value
+          ? '当前查询范围内未被付款申请、付款占用的应付余额'
+          : isRefundRelation.value
+            ? '当前查询范围内允许核销的已确认付款现金本金'
+            : '当前查询范围内的应付未核销余额',
+      label: isRedBlueRelation.value
+        ? '当前可核销蓝字'
+        : isReceivableRelation.value
+          ? '当前可抵销应付'
+          : isRefundRelation.value
+            ? '当前可核销付款'
+            : '当前待核销应付',
       value: loaded.value
-        ? formatCurrencyValue(
-            workspace.value.primary.reduce((sum, row) => sum + row.availableAmount, 0)
-          )
+        ? formatPayableCurrencyTotals(workspace.value.primary, (row) => row.availableAmount)
         : '—'
     },
     {
       key: 'payment',
       icon: isReceivableRelation.value ? 'ri:bill-line' : 'ri:secure-payment-line',
-      description: isReceivableRelation.value
-        ? '当前查询范围内未被收款或其他业务占用的应收余额'
-        : isRefundRelation.value
-          ? '当前查询范围内已实际到账且未核销的退款现金本金'
-          : '当前查询范围内的已确认付款余额',
-      label: isReceivableRelation.value
-        ? '当前可抵销应收'
-        : isRefundRelation.value
-          ? '当前可核销退款'
-          : '当前可核销付款',
+      description: isRedBlueRelation.value
+        ? '红字未核销绝对余量；冻结或无有效账套的来源不参与'
+        : isReceivableRelation.value
+          ? '当前查询范围内未被收款或其他业务占用的应收余额'
+          : isRefundRelation.value
+            ? '当前查询范围内已实际到账且未核销的退款现金本金'
+            : '当前查询范围内的已确认付款余额',
+      label: isRedBlueRelation.value
+        ? '当前可核销红字'
+        : isReceivableRelation.value
+          ? '当前可抵销应收'
+          : isRefundRelation.value
+            ? '当前可核销退款'
+            : '当前可核销付款',
       value: loaded.value
-        ? formatCurrencyValue(
-            workspace.value.secondary.reduce((sum, row) => sum + row.availableAmount, 0)
-          )
+        ? formatPayableCurrencyTotals(workspace.value.secondary, (row) => row.availableAmount)
         : '—'
     },
     {
@@ -473,10 +517,9 @@
       description: '当前查询的有效核销记录合计',
       label: '查询内已核销',
       value: loaded.value
-        ? formatCurrencyValue(
-            workspace.value.history
-              .filter((row) => row.status === 'active')
-              .reduce((sum, row) => sum + row.amount, 0)
+        ? formatPayableCurrencyTotals(
+            workspace.value.history.filter((row) => row.status === 'active'),
+            (row) => row.amount
           )
         : '—'
     }
@@ -528,25 +571,31 @@
     { prop: 'documentTypeName', label: '单据类型', minWidth: 150 },
     { prop: 'purposeName', label: '业务用途', minWidth: 130 },
     { prop: 'currencyCode', label: '币种', width: 95 },
+    ...(isRedBlueRelation.value
+      ? [
+          { prop: 'accountSetName', label: '核算账套', minWidth: 170 },
+          { prop: 'exchangeRate', label: '原单记账汇率', width: 145 }
+        ]
+      : []),
     { prop: 'projectName', label: '项目名称', minWidth: 170 },
     { prop: 'sourceDocumentNo', label: '源单据号', minWidth: 190 },
     {
       prop: 'amount',
-      label: '单据金额(元)',
+      label: isRedBlueRelation.value ? '单据金额(原币)' : '单据金额(元)',
       width: 150,
       align: 'right',
-      formatter: (row) => formatCurrencyValue(row.amount)
+      formatter: (row) => formatCurrencyValue(row.amount, row.currencyCode || 'CNY')
     },
     {
       prop: 'availableAmount',
-      label: '允许核销金额(元)',
+      label: isRedBlueRelation.value ? '允许核销金额(原币)' : '允许核销金额(元)',
       width: 170,
       align: 'right',
-      formatter: (row) => formatCurrencyValue(row.availableAmount)
+      formatter: (row) => formatCurrencyValue(row.availableAmount, row.currencyCode || 'CNY')
     },
     {
       prop: 'writeoffAmount',
-      label: '本次核销金额(元)',
+      label: isRedBlueRelation.value ? '本次核销金额(原币)' : '本次核销金额(元)',
       width: 170,
       fixed: 'right',
       formatter: (row) => (
@@ -574,10 +623,10 @@
     },
     {
       prop: 'amount',
-      label: '核销金额(元)',
+      label: isRedBlueRelation.value ? '主方核销金额(原币)' : '核销金额(元)',
       width: 150,
       align: 'right',
-      formatter: (row) => formatCurrencyValue(row.amount)
+      formatter: (row) => formatCurrencyValue(row.amount, row.currencyCode || 'CNY')
     },
     {
       prop: 'status',
@@ -587,7 +636,7 @@
     },
     { prop: 'writeoffDate', label: '核销日期', width: 130 },
     { prop: 'supplierName', label: '往来单位', minWidth: 170 },
-    ...(isReceivableRelation.value
+    ...(isReceivableRelation.value || isRedBlueRelation.value
       ? [{ prop: 'counterpartyName', label: '辅方往来单位', minWidth: 180 }]
       : []),
     { prop: 'payableNo', label: primaryTitle.value, minWidth: 210 },
@@ -608,19 +657,28 @@
         )
     },
     {
-      prop: isReceivableRelation.value ? 'receivableAmount' : 'paymentAmount',
-      label: isReceivableRelation.value
-        ? '应收抵销金额(元)'
-        : isRefundRelation.value
-          ? '核销现金本金(元)'
-          : '实付分摊金额(元)',
+      prop: isRedBlueRelation.value
+        ? 'creditAmount'
+        : isReceivableRelation.value
+          ? 'receivableAmount'
+          : 'paymentAmount',
+      label: isRedBlueRelation.value
+        ? '辅方核销金额(原币)'
+        : isReceivableRelation.value
+          ? '应收抵销金额(元)'
+          : isRefundRelation.value
+            ? '核销现金本金(元)'
+            : '实付分摊金额(元)',
       width: 175,
       align: 'right',
       formatter: (row) =>
         formatCurrencyValue(
-          isReceivableRelation.value
-            ? (row.receivableAmount ?? row.amount)
-            : (row.paymentAmount ?? row.amount)
+          isRedBlueRelation.value
+            ? (row.creditAmount ?? row.amount)
+            : isReceivableRelation.value
+              ? (row.receivableAmount ?? row.amount)
+              : (row.paymentAmount ?? row.amount),
+          row.secondaryCurrencyCode || row.currencyCode || 'CNY'
         )
     },
     {
@@ -630,6 +688,34 @@
       align: 'right',
       formatter: (row) => formatCurrencyValue(row.cashDiscountAmount ?? 0)
     },
+    ...(isRedBlueRelation.value
+      ? [
+          {
+            prop: 'payableBaseAmount',
+            label: '主方本位币金额',
+            width: 180,
+            align: 'right' as const,
+            formatter: (row: PayableWriteoffRecord) =>
+              formatCurrencyValue(row.payableBaseAmount ?? 0, row.baseCurrencyCode || 'CNY')
+          },
+          {
+            prop: 'creditBaseAmount',
+            label: '辅方本位币金额',
+            width: 180,
+            align: 'right' as const,
+            formatter: (row: PayableWriteoffRecord) =>
+              formatCurrencyValue(row.creditBaseAmount ?? 0, row.baseCurrencyCode || 'CNY')
+          },
+          {
+            prop: 'exchangeDifference',
+            label: '汇兑差额(本位币)',
+            width: 195,
+            align: 'right' as const,
+            formatter: (row: PayableWriteoffRecord) =>
+              formatPayableExchangeDifference(row.exchangeDifference, row.baseCurrencyCode || 'CNY')
+          }
+        ]
+      : []),
     {
       prop: 'voucherNo',
       label: '凭证号',
@@ -772,26 +858,36 @@
     { key: 'payableNo', field: 'payableNo', label: `主方${primaryTitle.value}` },
     { key: 'paymentNo', field: 'paymentNo', label: `辅方${secondaryTitle.value}` },
     { key: 'supplierName', field: 'supplierName', label: '往来单位' },
-    ...(isReceivableRelation.value
+    ...(isReceivableRelation.value || isRedBlueRelation.value
       ? [{ key: 'counterpartyName', field: 'counterpartyName', label: '辅方往来单位' }]
       : []),
     {
       key: 'amount',
       label: '核销金额(元)',
-      value: (row: PayableWriteoffRecord) => formatCurrencyValue(row.amount)
+      value: (row: PayableWriteoffRecord) =>
+        formatCurrencyValue(row.amount, row.currencyCode || 'CNY')
     },
     {
-      key: isReceivableRelation.value ? 'receivableAmount' : 'paymentAmount',
-      label: isReceivableRelation.value
-        ? '应收抵销金额(元)'
-        : isRefundRelation.value
-          ? '核销现金本金(元)'
-          : '实付分摊金额(元)',
+      key: isRedBlueRelation.value
+        ? 'creditAmount'
+        : isReceivableRelation.value
+          ? 'receivableAmount'
+          : 'paymentAmount',
+      label: isRedBlueRelation.value
+        ? '辅方原币金额'
+        : isReceivableRelation.value
+          ? '应收抵销金额(元)'
+          : isRefundRelation.value
+            ? '核销现金本金(元)'
+            : '实付分摊金额(元)',
       value: (row: PayableWriteoffRecord) =>
         formatCurrencyValue(
-          isReceivableRelation.value
-            ? (row.receivableAmount ?? row.amount)
-            : (row.paymentAmount ?? row.amount)
+          isRedBlueRelation.value
+            ? (row.creditAmount ?? row.amount)
+            : isReceivableRelation.value
+              ? (row.receivableAmount ?? row.amount)
+              : (row.paymentAmount ?? row.amount),
+          row.secondaryCurrencyCode || row.currencyCode || 'CNY'
         )
     },
     {
@@ -799,6 +895,24 @@
       label: '现金折扣金额(元)',
       value: (row: PayableWriteoffRecord) => formatCurrencyValue(row.cashDiscountAmount ?? 0)
     },
+    ...(isRedBlueRelation.value
+      ? [
+          {
+            key: 'currencyCode',
+            label: '主方/辅方币种',
+            value: (row: PayableWriteoffRecord) =>
+              `${row.currencyCode || 'CNY'} / ${row.secondaryCurrencyCode || 'CNY'}`
+          },
+          { key: 'primaryExchangeRate', label: '主方原记账汇率', field: 'primaryExchangeRate' },
+          { key: 'secondaryExchangeRate', label: '辅方原记账汇率', field: 'secondaryExchangeRate' },
+          {
+            key: 'exchangeDifference',
+            label: '汇兑差额(本位币)',
+            value: (row: PayableWriteoffRecord) =>
+              formatPayableExchangeDifference(row.exchangeDifference, row.baseCurrencyCode || 'CNY')
+          }
+        ]
+      : []),
     { key: 'voucherNo', field: 'voucherNo', label: '凭证号' },
     { key: 'remark', field: 'remark', label: '备注' }
   ])
@@ -813,7 +927,8 @@
       const response = await fetchPayableWriteoffWorkspace({
         relation: filter.value.relation,
         keyword: filter.value.keyword,
-        organizationId: filter.value.organizationId
+        organizationId: filter.value.organizationId,
+        asOfDate: isRedBlueRelation.value ? filter.value.writeoffDate : undefined
       })
       if (current !== version) return
       loadError.value = ''
@@ -863,7 +978,8 @@
           ? availableParties.value.find((row) => partyKey(row) === selectedParty.value)
               ?.counterpartyKey
           : undefined,
-        allowCrossParty: isReceivableRelation.value && allowCrossParty.value
+        allowCrossParty:
+          (isReceivableRelation.value || isRedBlueRelation.value) && allowCrossParty.value
       }
     })
   }
@@ -882,34 +998,49 @@
     }
     let items: PayableManualWriteoffItem[]
     try {
-      const pairs = allocateWriteoffAmounts(primarySelection.value, secondarySelection.value)
-      items = isReceivableRelation.value
-        ? pairs.map((pair) => ({
-            relation: 'payable_receivable',
-            payableId: pair.primaryId,
-            receivableLineId: pair.secondaryId,
-            amount: pair.amount,
-            allowCrossParty: allowCrossParty.value
-          }))
-        : isRefundRelation.value
-          ? pairs.map((pair) => ({
-              relation: 'payment_refund',
-              paymentLineId: pair.primaryId,
-              refundLineId: pair.secondaryId,
-              amount: pair.amount
-            }))
-          : pairs.map((pair) => ({
+      const pairs = isRedBlueRelation.value
+        ? []
+        : allocateWriteoffAmounts(primarySelection.value, secondarySelection.value)
+      items = isRedBlueRelation.value
+        ? allocatePayableRedBlueAmounts(primarySelection.value, secondarySelection.value).map(
+            (pair) => ({
+              relation: 'payable_red_blue',
               payableId: pair.primaryId,
-              paymentLineId: pair.secondaryId,
-              amount: pair.amount
+              creditPayableId: pair.secondaryId,
+              amount: pair.amount,
+              creditAmount: pair.creditAmount,
+              allowCrossParty: allowCrossParty.value
+            })
+          )
+        : isReceivableRelation.value
+          ? pairs.map((pair) => ({
+              relation: 'payable_receivable',
+              payableId: pair.primaryId,
+              receivableLineId: pair.secondaryId,
+              amount: pair.amount,
+              allowCrossParty: allowCrossParty.value
             }))
+          : isRefundRelation.value
+            ? pairs.map((pair) => ({
+                relation: 'payment_refund',
+                paymentLineId: pair.primaryId,
+                refundLineId: pair.secondaryId,
+                amount: pair.amount
+              }))
+            : pairs.map((pair) => ({
+                payableId: pair.primaryId,
+                paymentLineId: pair.secondaryId,
+                amount: pair.amount
+              }))
     } catch (error) {
       notifyFriendlyError(error, '双方金额不正确，请调整后重试')
       return
     }
     try {
       await confirm(
-        `本次核销 ${formatCurrencyValue(primaryTotal.value)}，执行后扣减双方未核销余额。`,
+        isRedBlueRelation.value
+          ? `主方 ${primarySelectedSummary.value}，辅方 ${secondarySelectedSummary.value}。按双方原记账汇率核销，汇兑差额计入损益，执行后扣减双方余额。`
+          : `本次核销 ${formatCurrencyValue(primaryTotal.value)}，执行后扣减双方未核销余额。`,
         { title: '核销确认', confirmButtonText: '执行核销' }
       )
     } catch {
@@ -971,7 +1102,7 @@
       busy.value = false
     }
   }
-  watch([selectedParty, onlyAvailable], () => {
+  watch([selectedParty, onlyAvailable, allowCrossParty], () => {
     primarySelection.value = []
     secondarySelection.value = []
     primaryTable.value?.elTableRef?.clearSelection()

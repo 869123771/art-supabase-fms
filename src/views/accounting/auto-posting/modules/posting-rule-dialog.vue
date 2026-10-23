@@ -245,6 +245,13 @@
         'counterparty_organization_id',
         'project_id'
       ],
+      'system:ap_red_blue_offset_approved': [
+        'supplier_id',
+        'counterparty_supplier_id',
+        'organization_id',
+        'counterparty_organization_id',
+        'project_id'
+      ],
       'system:ap_payment_refund_writeoff_approved': [
         'supplier_id',
         'counterparty_supplier_id',

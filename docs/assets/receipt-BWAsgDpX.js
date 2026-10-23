@@ -1,0 +1,1 @@
+import{Hi as e,Zi as t,ga as n}from"./sys-BvQgX_8r.js";import{t as r}from"./ar-secondary-workspace-CdOPdYA2.js";var i=t({name:`FinanceReceipt`,__name:`index`,setup(t){return(t,i)=>(n(),e(r,{kind:`receipt`}))}});export{i as default};
