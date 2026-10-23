@@ -226,6 +226,12 @@
       'estimated_payable:approved': ['supplier_id', 'organization_id', 'project_id'],
       'financial_payable:approved': ['supplier_id', 'organization_id', 'project_id'],
       'system:ap_payment_confirmed': ['supplier_id', 'organization_id', 'project_id'],
+      'system:ap_payment_refund_received': [
+        'supplier_id',
+        'carrier_id',
+        'organization_id',
+        'project_id'
+      ],
       'system:ap_writeoff_approved': [
         'supplier_id',
         'counterparty_supplier_id',
