@@ -46,10 +46,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmployeeSelect from '@/components/business/art-employee-select/index.vue'
   import type { EmployeeIntegrationItem } from '@/api/integration/employees'
-  import {
-    fetchEnabledOrganizationTree,
-    fetchEnabledOrganizationOptionsList
-  } from '@/api/system-manage'
+  import { fetchEnabledOrganizationTree } from '@/api/system-manage'
   import { savePayeeInformation, type PayeeInformation, type PayeeInformationInput } from '@fms/api'
 
   interface OpenData {
@@ -148,14 +145,19 @@
     {
       key: 'costCompanyId',
       label: '费用承担公司',
-      type: 'select',
+      type: 'treeSelect',
       api: async () => {
-        const response = await fetchEnabledOrganizationOptionsList(model.value.tenantId)
-        return (response.data ?? []).filter((item) => item.organizationType === 'company')
+        const response = await fetchEnabledOrganizationTree({ tenantId: model.value.tenantId })
+        if (response.error) throw response.error
+        return organizationTreeUtils.mapTree(response.data ?? [], (item) => ({
+          ...item,
+          disabled: item.organizationType !== 'company'
+        }))
       },
       labelField: 'organizationName',
       valueField: 'id',
-      props: { filterable: true, clearable: true }
+      childrenField: 'children',
+      props: { filterable: true, clearable: true, checkStrictly: true }
     },
     { key: 'access', label: '使用设置', type: 'divider', span: 24 },
     { key: 'authorizedUse', label: '授权使用', type: 'switch' },

@@ -36,6 +36,7 @@
 <script setup lang="ts">
   import { ref, reactive, computed } from 'vue'
   import dayjs from 'dayjs'
+  import { fetchArOrganizationTree } from '@/api/receivables'
   import { fetchArReport, fetchArOptions, type ArReportRow } from '@/api/receivables'
   import { formatSensitiveCurrencyValue as money } from '@/utils/ui/format'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
@@ -71,11 +72,12 @@
     {
       key: 'organizationId',
       label: '结算组织',
-      type: 'select',
-      api: () => fetchArOptions('organization'),
+      type: 'treeSelect',
+      api: () => fetchArOrganizationTree('organization'),
       labelField: 'name',
       valueField: 'id',
-      props: { filterable: true, clearable: true }
+      childrenField: 'children',
+      props: { filterable: true, clearable: true, checkStrictly: true }
     },
     {
       key: 'customerId',

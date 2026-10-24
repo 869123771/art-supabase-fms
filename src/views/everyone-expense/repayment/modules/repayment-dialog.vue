@@ -1,7 +1,22 @@
 <template>
   <ArtDialog ref="dialogRef" size="xl">
     <div class="flex min-w-0 flex-col gap-4">
+      <ArtSectionCard v-if="readonly" title="基本信息">
+        <ArtDescriptions
+          :data="model"
+          :items="[
+            { key: 'loanId', label: '关联借款', value: selectedLoan?.loanNo || '—' },
+            { key: 'repaymentDate', label: '还款日期', field: 'repaymentDate' },
+            { key: 'reason', label: '还款事由', field: 'reason' },
+            { key: 'payerName', label: '付款人', field: 'payerName' },
+            { key: 'payerBank', label: '付款银行', field: 'payerBank' },
+            { key: 'bankAccount', label: '付款银行账号', field: 'bankAccount' },
+            { key: 'remark', label: '备注', field: 'remark' }
+          ]"
+        />
+      </ArtSectionCard>
       <ArtForm
+        v-else
         ref="formRef"
         v-model="model"
         :items="formItems"
@@ -11,7 +26,6 @@
         label-position="top"
         :show-reset="false"
         :show-submit="false"
-        :disabled="readonly"
       >
         <template #loanId>
           <ElSelect
@@ -193,6 +207,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import { ElMessage } from 'element-plus'
   import dayjs from 'dayjs'
   import type { ColumnOption } from '@/types'

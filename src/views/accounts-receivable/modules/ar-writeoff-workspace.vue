@@ -23,6 +23,7 @@
         <ArtForm
           :key="schemeVersion"
           v-model="form"
+          :disabled="loading || busy || checking"
           :items="filterItems"
           :show-submit="false"
           :show-reset="false"
@@ -30,25 +31,32 @@
           label-position="top"
         />
         <div class="flex flex-wrap items-center gap-2">
-          <ElButton type="primary" :loading="loading" @click="load"
+          <ElButton type="primary" :loading="loading" :disabled="busy || checking" @click="load"
             ><ArtSvgIcon icon="ri:search-line" aria-hidden="true" />查询待核销单据</ElButton
           >
           <ElButton
             v-auth="'FinanceReceiptWriteoff:Check'"
-            :disabled="!selectedCount || busy"
+            :loading="checking"
+            :disabled="!selectedCount || busy || loading || !!loadError"
             @click="check"
             ><ArtSvgIcon icon="ri:shield-check-line" aria-hidden="true" />单据查验</ElButton
           >
           <ElButton
             v-auth="'FinanceReceiptWriteoff:Writeoff'"
             :loading="busy"
-            :disabled="!primarySelection.length || !secondarySelection.length"
+            :disabled="
+              !primarySelection.length ||
+              !secondarySelection.length ||
+              loading ||
+              checking ||
+              !!loadError
+            "
             @click="execute(false)"
             ><ArtSvgIcon icon="ri:checkbox-circle-line" aria-hidden="true" />核销</ElButton
           >
           <ElButton
             v-auth="'FinanceReceiptWriteoff:Special'"
-            :disabled="!primarySelection.length || busy"
+            :disabled="!primarySelection.length || busy || loading || checking || !!loadError"
             @click="execute(true)"
             ><ArtSvgIcon icon="ri:magic-line" aria-hidden="true" />特殊核销</ElButton
           >
@@ -175,6 +183,7 @@
   import { ElInputNumber, ElInput, ElMessage } from 'element-plus'
   import {
     fetchArOptions,
+    fetchArOrganizationTree,
     fetchArWriteoffCandidates,
     fetchArWorkspace,
     executeArWriteoff,
@@ -241,6 +250,7 @@
   const requestId = ref('')
   const loading = ref(false)
   const busy = ref(false)
+  const checking = ref(false)
   const loadError = ref<Error>()
   const loaded = ref(false)
   let version = 0
@@ -286,12 +296,16 @@
     {
       key: 'organizationId',
       label: '结算组织',
-      type: 'select',
+      type: 'treeSelect',
       api: () =>
-        fetchArOptions('initialized_organization', useTenantScopeStore().effectiveTenantId),
+        fetchArOrganizationTree(
+          'initialized_organization',
+          useTenantScopeStore().effectiveTenantId
+        ),
       labelField: 'name',
       valueField: 'id',
-      props: { filterable: true, clearable: true }
+      childrenField: 'children',
+      props: { filterable: true, clearable: true, checkStrictly: true }
     },
     { key: 'counterpartyType', label: '往来类型', type: 'select', props: { options: parties } },
     {
@@ -422,7 +436,11 @@
     secondarySelection.value = rows
   }
   const candidateColumns: ColumnOption<WriteoffCandidate>[] = [
-    { type: 'selection', width: 45 },
+    {
+      type: 'selection',
+      width: 45,
+      selectable: () => !loading.value && !busy.value && !checking.value && !loadError.value
+    },
     {
       prop: 'documentNo',
       label: '单据编号 / 明细',
@@ -476,8 +494,9 @@
       formatter: (row) => (
         <ElInputNumber
           v-model={row.writeoffAmount}
+          disabled={loading.value || busy.value || checking.value}
           aria-label={`${row.documentNo} 本次核销金额`}
-          min={0.01}
+          min={0}
           max={row.availableAmount}
           precision={2}
           controls={false}
@@ -490,11 +509,17 @@
       label: '核销备注',
       minWidth: 200,
       formatter: (row) => (
-        <ElInput v-model={row.remark} maxlength={1000} aria-label={`${row.documentNo} 核销备注`} />
+        <ElInput
+          v-model={row.remark}
+          disabled={loading.value || busy.value || checking.value}
+          maxlength={1000}
+          aria-label={`${row.documentNo} 核销备注`}
+        />
       )
     }
   ]
   async function load(): Promise<void> {
+    if (checking.value) return
     if (!form.value.organizationId) {
       ElMessage.warning('请先选择已结束初始化的结算组织')
       return
@@ -559,6 +584,21 @@
     }
   ]
   async function execute(isSpecial: boolean): Promise<void> {
+    if (busy.value || checking.value || loading.value || loadError.value) return
+    const selected = isSpecial
+      ? primarySelection.value
+      : [...primarySelection.value, ...secondarySelection.value]
+    if (
+      selected.some(
+        (row) =>
+          !Number.isFinite(row.writeoffAmount) ||
+          row.writeoffAmount <= 0 ||
+          row.writeoffAmount > row.availableAmount
+      )
+    ) {
+      ElMessage.warning('本次核销金额须大于零且不超过可用余额')
+      return
+    }
     special.value = isSpecial
     reasonForm.value.reason = ''
     requestId.value = crypto.randomUUID()
@@ -597,11 +637,19 @@
     { prop: 'message', label: '查验结果', minWidth: 300 }
   ]
   async function check(): Promise<void> {
+    if (checking.value || busy.value || loading.value || loadError.value || !selectedCount.value)
+      return
+    const batch = version
+    checking.value = true
     try {
-      checkResults.value = await checkArWriteoff(payload())
+      const result = await checkArWriteoff(payload())
+      if (batch !== version) return
+      checkResults.value = result
       await checkDialog.value?.handleOpen()
     } catch (error) {
-      notifyFriendlyError(error, '单据查验未完成，请重试')
+      if (batch === version) notifyFriendlyError(error, '单据查验未完成，请重试')
+    } finally {
+      checking.value = false
     }
   }
   async function historyRows(query: ArQuery) {

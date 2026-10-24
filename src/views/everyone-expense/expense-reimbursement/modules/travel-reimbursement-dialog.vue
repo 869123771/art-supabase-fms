@@ -155,6 +155,7 @@
   import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { getDeleteReferenceContext } from '@/utils/supabase/delete-reference'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { normalizeNullableText, normalizeNonNullableText } from '@/utils/form/normalize'
   import { createTenantScopeReadGuard } from '@/utils/tenant-scope-context'
   import { formatCurrencyValue } from '@/utils/ui'
   import TreeUtils from '@/utils/tree'
@@ -854,7 +855,29 @@
               )
               return false
             }
-            await saveTravelReimbursementDraft(model.value, lines.value, payees.value)
+            const payload: TravelReimbursementDraftInput = {
+              ...model.value,
+              assignmentId: normalizeNullableText(model.value.assignmentId),
+              expenseDepartmentId: normalizeNullableText(model.value.expenseDepartmentId),
+              travelApplicationId: normalizeNullableText(model.value.travelApplicationId),
+              travelLoanId: normalizeNullableText(model.value.travelLoanId),
+              projectId: normalizeNullableText(model.value.projectId),
+              reason: normalizeNonNullableText(model.value.reason),
+              remark: normalizeNullableText(model.value.remark)
+            }
+            const linePayloads = lines.value.map((line): TravelReimbursementLineInput => ({
+              ...line,
+              projectId: normalizeNullableText(line.projectId),
+              reimburseeEmployeeId: normalizeNullableText(line.reimburseeEmployeeId),
+              invoiceNo: normalizeNullableText(line.invoiceNo),
+              remark: normalizeNullableText(line.remark)
+            }))
+            const payeePayloads = payees.value.map((payee): TravelReimbursementPayeeInput => ({
+              ...payee,
+              accountName: normalizeNullableText(payee.accountName),
+              remark: normalizeNullableText(payee.remark)
+            }))
+            await saveTravelReimbursementDraft(payload, linePayloads, payeePayloads)
             ElMessage.success('费用报销草稿已保存')
             emit('success')
             return true

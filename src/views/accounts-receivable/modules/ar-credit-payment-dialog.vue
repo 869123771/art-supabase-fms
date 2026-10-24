@@ -61,7 +61,7 @@
       key: 'amount',
       label: '本次申请金额',
       type: 'number',
-      props: { min: 0.01, precision: 2, max: source.value?.availableAmount ?? 0 }
+      props: { min: 0, precision: 2, max: source.value?.availableAmount ?? 0 }
     },
     { key: 'businessDate', label: '付款日期', type: 'date', props: { valueFormat: 'YYYY-MM-DD' } },
     {

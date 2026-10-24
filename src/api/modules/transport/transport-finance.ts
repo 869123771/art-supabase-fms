@@ -353,7 +353,11 @@ export async function fetchExpenseReimbursementList(params: ReimbursementSearch)
 export async function fetchExpenseReimbursementDetail(id: string) {
   return await responseHandle<Reimbursement | null>(
     () => supabase.rpc('tms_get_expense_reimbursement_secure', { p_id: id }),
-    { showErrorMessage: true }
+    {
+      breakReturn: true,
+      showErrorMessage: false,
+      errorMessage: '报销详情加载失败，请检查网络后重试'
+    }
   )
 }
 

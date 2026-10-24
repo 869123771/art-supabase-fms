@@ -30,6 +30,7 @@
   const dialog = ref<ArtDialogExpose>()
   const table = ref<InstanceType<typeof ArtTableQuery>>()
   const recordId = ref<string>()
+  const busy = ref(false)
   async function rows(query: ArQuery) {
     return fetchArWorkspace('adjustment', {
       ...query,
@@ -38,12 +39,16 @@
     })
   }
   async function act(ids: string[], action: 'submit' | 'approve'): Promise<void> {
+    if (busy.value) return
+    busy.value = true
     try {
       for (const id of ids) await actArAdjustment(id, action)
       ElMessage.success('调整状态已更新')
-      await table.value?.refreshData()
     } catch (error) {
       notifyFriendlyError(error, '调整操作未完成，请刷新后重试')
+    } finally {
+      busy.value = false
+      await table.value?.refreshData()
     }
   }
   const actions: ArtTableQueryHeaderAction[] = [
@@ -52,6 +57,7 @@
       label: '提交调整',
       permission: 'FinanceFinancialReceivable:Adjust',
       selectionRequired: true,
+      disabled: (ctx) => busy.value || ctx.selectedRows.some((row) => row.status !== 'draft'),
       onClick: (ctx) =>
         act(
           ctx.selectedRows.map((row) => String(row.id)),
@@ -63,6 +69,7 @@
       label: '审核调整',
       permission: 'FinanceFinancialReceivable:AdjustApprove',
       selectionRequired: true,
+      disabled: (ctx) => busy.value || ctx.selectedRows.some((row) => row.status !== 'submitted'),
       onClick: (ctx) =>
         act(
           ctx.selectedRows.map((row) => String(row.id)),

@@ -68,6 +68,7 @@ export async function fetchPayeeInformationList(params: PayeeInformationSearch =
   if (params.keyword?.trim())
     query = query.or(buildOrIlikeFilter(['payee_name', 'payee_employee_no'], params.keyword))
   return await responseHandle<PayeeInformation[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '收款信息加载失败，请检查网络后重试'
   })

@@ -528,13 +528,14 @@
     {
       key: 'organizationId',
       label: '结算组织',
-      type: 'select',
+      type: 'treeSelect',
       props: {
         clearable: true,
-        options: (workspace.value.organizations || []).map((row) => ({
-          value: row.id,
-          label: row.name
-        }))
+        filterable: true,
+        checkStrictly: true,
+        nodeKey: 'id',
+        props: { label: 'name', children: 'children' },
+        data: workspace.value.organizations || []
       }
     },
     {
@@ -601,7 +602,7 @@
       formatter: (row) => (
         <ElInputNumber
           v-model={row.writeoffAmount}
-          min={0.01}
+          min={0}
           max={row.availableAmount}
           precision={2}
           controls={false}

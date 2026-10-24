@@ -128,6 +128,7 @@ export async function fetchTravelRepaymentList(params: TravelRepaymentSearch = {
       buildOrIlikeFilter(['repayment_no', 'applicant_name', 'reason'], params.keyword)
     )
   return responseHandle<TravelRepayment[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '还款单加载失败，请检查网络后重试'
   })
@@ -154,6 +155,7 @@ export async function fetchTravelRepaymentLineList(params: TravelRepaymentSearch
       { referencedTable: 'repayment' }
     )
   return responseHandle<TravelRepaymentLine[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '还款明细加载失败，请检查网络后重试'
   })

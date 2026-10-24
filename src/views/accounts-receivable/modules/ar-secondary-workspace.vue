@@ -551,7 +551,9 @@
             label: '已收款未核销(元)',
             width: 180,
             formatter: (row: ListRow) =>
-              row.availableAmount === null ? '—' : money(row.availableAmount ?? 0, row.currencyCode)
+              row.status !== 'confirmed' || row.availableAmount === null
+                ? '—'
+                : money(row.availableAmount ?? 0, row.currencyCode)
           }
         ]
       : []),
@@ -594,6 +596,8 @@
   ]
   async function print(ids: string[]): Promise<void> {
     const rows = await getRows(ids)
+    if (rows.length !== ids.length)
+      throw new Error('部分所选单据已变化或不可查看，请重新查询后再打印')
     const records: ArPrintRecord[] = rows.map((row) => ({
       documentNo: row.documentNo,
       fields: [

@@ -22,7 +22,10 @@
         :table-props="{
           rowKey: 'recordKey',
           emptyText: '暂无应收单据',
-          emptyDescription: '新建应收单，或从已审核销售出库、已签收运输来源生成暂估。'
+          emptyDescription:
+            kind === 'estimate'
+              ? '新建暂估应收，或从已审核销售出库、已签收运输来源生成暂估。'
+              : '新建财务应收，或从已审核暂估应收下推；先开票单据可后续勾稽。'
         }"
       >
         <template #ar-push="{ selectedRows }">
@@ -32,7 +35,7 @@
             @click="(item) => command(String(item.key), String(selectedRows[0]?.id || ''))"
           >
             <template #trigger
-              ><ElButton size="small" :disabled="busy || selectedRows.length !== 1" plain
+              ><ElButton size="small" :disabled="approvedSelectionDisabled(selectedRows)" plain
                 ><ArtSvgIcon icon="ri:file-transfer-line" />下推<ArtSvgIcon
                   icon="ri:arrow-down-s-line" /></ElButton
             ></template>
@@ -45,7 +48,10 @@
             @click="(item) => voucher(String(selectedRows[0]?.id || ''), item.key === 'generate')"
           >
             <template #trigger
-              ><ElButton size="small" :disabled="busy || selectedRows.length !== 1" plain
+              ><ElButton
+                size="small"
+                :disabled="approvedSelectionDisabled(selectedRows, true)"
+                plain
                 ><ArtSvgIcon icon="ri:file-list-3-line" />生成凭证<ArtSvgIcon
                   icon="ri:arrow-down-s-line" /></ElButton
             ></template>
@@ -105,6 +111,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import { ElMessage, ElButton } from 'element-plus'
   import { uniq, groupBy } from 'lodash-es'
+  import { fetchArOrganizationTree } from '@/api/receivables'
   import {
     fetchArWorkspace,
     fetchArOptions,
@@ -244,11 +251,12 @@
     {
       key: 'organizationId',
       label: '结算组织',
-      type: 'select',
-      api: () => fetchArOptions('organization'),
+      type: 'treeSelect',
+      api: () => fetchArOrganizationTree('organization'),
       labelField: 'name',
       valueField: 'id',
-      props: { clearable: true, filterable: true }
+      childrenField: 'children',
+      props: { clearable: true, filterable: true, checkStrictly: true }
     },
     {
       key: 'documentTypeId',
@@ -321,6 +329,17 @@
   }
   function ids(ctx: ArtTableQueryHeaderActionContext): string[] {
     return uniq(ctx.selectedRows.map((row) => String(row.id)))
+  }
+  function approvedSelectionDisabled(
+    rows: Record<string, unknown>[],
+    allowReversal = false
+  ): boolean {
+    return (
+      busy.value ||
+      rows.length !== 1 ||
+      rows[0]?.status !== 'approved' ||
+      (!allowReversal && rows[0]?.kind === 'reversal')
+    )
   }
   const headerActions = computed<ArtTableQueryHeaderAction[]>(() => [
     {
@@ -413,7 +432,8 @@
             label: '应收调整',
             permission: 'FinanceFinancialReceivable:Adjust',
             selectionRequired: true,
-            disabled: (ctx: ArtTableQueryHeaderActionContext) => ctx.selectedRows.length !== 1,
+            disabled: (ctx: ArtTableQueryHeaderActionContext) =>
+              approvedSelectionDisabled(ctx.selectedRows),
             onClick: async (ctx: ArtTableQueryHeaderActionContext) =>
               adjustmentDialog.value?.open(await getDocument(ids(ctx)[0]))
           },
@@ -441,7 +461,10 @@
             label: '先开票勾稽',
             permission: 'FinanceFinancialReceivable:Match',
             selectionRequired: true,
-            disabled: (ctx: ArtTableQueryHeaderActionContext) => ctx.selectedRows.length !== 1,
+            disabled: (ctx: ArtTableQueryHeaderActionContext) =>
+              approvedSelectionDisabled(ctx.selectedRows) ||
+              !!ctx.selectedRows[0]?.isCredit ||
+              !!ctx.selectedRows[0]?.estimateId,
             onClick: async (ctx: ArtTableQueryHeaderActionContext) =>
               matchDialog.value?.open(await getDocument(ids(ctx)[0]))
           }

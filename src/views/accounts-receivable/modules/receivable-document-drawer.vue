@@ -83,18 +83,29 @@
   import { ref, computed, watch } from 'vue'
   import dayjs from 'dayjs'
   import { cloneDeep, sumBy } from 'lodash-es'
-  import { ElInput, ElInputNumber, ElSelect, ElOption, ElCheckbox, ElMessage } from 'element-plus'
+  import {
+    ElInput,
+    ElInputNumber,
+    ElSelect,
+    ElTreeSelect,
+    ElOption,
+    ElCheckbox,
+    ElMessage
+  } from 'element-plus'
   import {
     fetchArWorkspace,
     fetchArOptions,
+    fetchArOrganizationTree,
     fetchArDeleteDependencies,
     saveReceivableDocument,
     type ReceivableDocument,
     type ReceivableWriteLine,
     type ReceivableWritePayload,
-    type ArOption
+    type ArOption,
+    type ArOrganizationOption
   } from '@/api/receivables'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import TreeUtils from '@/utils/tree'
   import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
@@ -211,6 +222,24 @@
     settlementMethod: [{ required: true, message: '请选择结算方式' }]
   }
   function remoteItem(key: string, label: string, type: string, picker = false): FormItem {
+    if (type === 'company' || type === 'organization') {
+      return {
+        key,
+        label,
+        type: 'treeSelect',
+        api: () => fetchArOrganizationTree(type, form.value.tenantId),
+        labelField: 'name',
+        valueField: 'id',
+        childrenField: 'children',
+        ...(key === 'settlementOrganizationId'
+          ? {
+              autoSelect: (options) =>
+                new TreeUtils().treeToList(options).find((option) => option.isDefault === true)
+            }
+          : {}),
+        props: { clearable: true, filterable: true, checkStrictly: true }
+      }
+    }
     return {
       key,
       label,
@@ -219,9 +248,6 @@
       labelField: 'name',
       valueField: 'id',
       ...(key === 'documentTypeId' ? { autoSelect: 'first' as const } : {}),
-      ...(key === 'settlementOrganizationId'
-        ? { autoSelect: (options) => options.find((option) => option.isDefault === true) }
-        : {}),
       props: picker
         ? {
             rowKey: 'id',
@@ -315,11 +341,20 @@
       : sumBy(lines.value, (row) => row.totalAmount ?? 0)
   }))
   const references = ref<Record<string, ArOption[]>>({})
+  const organizationTree = ref<ArOrganizationOption[]>([])
   async function loadReferences(batch: number): Promise<void> {
-    const types = ['unit', 'project', 'customer', 'contract', 'organization']
-    const values = await Promise.all(types.map((type) => fetchArOptions(type, form.value.tenantId)))
-    if (batch === generation)
-      references.value = Object.fromEntries(types.map((type, index) => [type, values[index]]))
+    const types = ['unit', 'project', 'customer', 'contract']
+    const [values, organizations] = await Promise.all([
+      Promise.all(types.map((type) => fetchArOptions(type, form.value.tenantId))),
+      fetchArOrganizationTree('organization', form.value.tenantId)
+    ])
+    if (batch === generation) {
+      organizationTree.value = organizations
+      references.value = {
+        ...Object.fromEntries(types.map((type, index) => [type, values[index]])),
+        organization: new TreeUtils().treeToList(organizations)
+      }
+    }
   }
   function recalculate(row: EditLine): void {
     try {
@@ -366,7 +401,7 @@
       prop: key,
       label,
       width: 145,
-      required: key === 'quantity',
+      required: editable.value && key === 'quantity',
       rules:
         key === 'quantity'
           ? {
@@ -441,7 +476,19 @@
             }
           : undefined,
       formatter: (row) =>
-        editable.value ? (
+        editable.value && type === 'organization' ? (
+          <ElTreeSelect
+            v-model={row[key]}
+            data={organizationTree.value}
+            props={{ label: 'name', children: 'children' }}
+            node-key="id"
+            check-strictly
+            clearable
+            filterable
+            class="w-full!"
+            aria-label={`${label} 第${row.lineNo}行`}
+          />
+        ) : editable.value ? (
           <ElSelect
             v-model={row[key]}
             clearable
@@ -486,7 +533,7 @@
       prop: 'materialDescription',
       label: '物料/服务描述',
       minWidth: 220,
-      required: true,
+      required: editable.value,
       formatter: (row) =>
         editable.value ? (
           <ElInput
@@ -518,7 +565,7 @@
       prop: 'taxRate',
       label: '税率(%)',
       width: 115,
-      required: true,
+      required: editable.value,
       formatter: (row) =>
         editable.value ? (
           <ElSelect

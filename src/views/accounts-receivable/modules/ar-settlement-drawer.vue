@@ -67,6 +67,7 @@
   import {
     fetchArWorkspace,
     fetchArOptions,
+    fetchArOrganizationTree,
     saveArReceipt,
     saveArRefund,
     type ReceiptDocument,
@@ -133,6 +134,18 @@
         }
   )
   function remote(key: string, label: string, type: string, picker = false): FormItem {
+    if (type === 'company' || type === 'organization') {
+      return {
+        key,
+        label,
+        type: 'treeSelect',
+        api: () => fetchArOrganizationTree(type, form.value.tenantId),
+        labelField: 'name',
+        valueField: 'id',
+        childrenField: 'children',
+        props: { clearable: true, filterable: true, checkStrictly: true }
+      }
+    }
     return {
       key,
       label,
@@ -234,7 +247,7 @@
             type: 'date',
             props: { valueFormat: 'YYYY-MM-DD' }
           },
-          { key: 'amount', label: '退款金额', type: 'number', props: { min: 0.01, precision: 2 } },
+          { key: 'amount', label: '退款金额', type: 'number', props: { min: 0, precision: 2 } },
           {
             key: 'remark',
             label: '退款原因',
@@ -273,7 +286,7 @@
       prop: 'amount',
       label: '本次收款金额',
       width: 180,
-      required: true,
+      required: editable.value,
       rules: {
         validator: ({ row }) =>
           row.amount !== null &&
@@ -286,7 +299,7 @@
           <ElInputNumber
             v-model={row.amount}
             aria-label={`第${row.lineNo}行本次收款金额`}
-            min={allowSourceZero.value ? 0 : 0.01}
+            min={0}
             precision={2}
             controls={false}
             class="w-full!"

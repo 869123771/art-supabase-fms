@@ -150,7 +150,11 @@ export async function fetchReimbursementWorkspaceList(params: ReimbursementWorks
         p_reimbursement_date_start: params.reimbursementDateRange?.[0] || null,
         p_reimbursement_date_end: params.reimbursementDateRange?.[1] || null
       }),
-    { showErrorMessage: false, errorMessage: '费用报销单加载失败，请检查网络后重试' }
+    {
+      breakReturn: true,
+      showErrorMessage: false,
+      errorMessage: '费用报销单加载失败，请检查网络后重试'
+    }
   )
   return {
     data: result.data?.records ?? [],
@@ -172,7 +176,11 @@ export async function fetchReimbursementWorkspaceLines(params: ReimbursementWork
         p_reimbursement_date_start: params.reimbursementDateRange?.[0] || null,
         p_reimbursement_date_end: params.reimbursementDateRange?.[1] || null
       }),
-    { showErrorMessage: false, errorMessage: '报销明细加载失败，请检查网络后重试' }
+    {
+      breakReturn: true,
+      showErrorMessage: false,
+      errorMessage: '报销明细加载失败，请检查网络后重试'
+    }
   )
   return {
     data: result.data?.records ?? [],
@@ -207,11 +215,7 @@ export async function saveTravelReimbursementDraft(
   }>(
     () =>
       supabase.rpc('fms_save_travel_reimbursement_draft_secure', {
-        p_payload: keysToSnakeDeep({
-          ...input,
-          reason: input.reason.trim(),
-          remark: normalizeNullableText(input.remark)
-        }),
+        p_payload: keysToSnakeDeep(input),
         p_lines: keysToSnakeDeep(lines),
         p_payees: keysToSnakeDeep(payees)
       }),

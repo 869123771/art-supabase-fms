@@ -51,7 +51,7 @@
       }
     },
     { key: 'kind', label: '调整类型', type: 'select', props: { options: kindOptions } },
-    { key: 'amount', label: '调整金额', type: 'number', props: { min: 0.01, precision: 2 } },
+    { key: 'amount', label: '调整金额', type: 'number', props: { min: 0, precision: 2 } },
     { key: 'businessDate', label: '业务日期', type: 'date', props: { valueFormat: 'YYYY-MM-DD' } },
     {
       key: 'reason',

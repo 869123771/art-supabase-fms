@@ -185,6 +185,7 @@ export async function fetchTravelLoanList(params: TravelLoanSearch = {}) {
   if (params.keyword?.trim())
     query = query.or(buildOrIlikeFilter(['loan_no', 'applicant_name', 'reason'], params.keyword))
   return await responseHandle<TravelLoan[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '借款单加载失败，请检查网络后重试'
   })
@@ -212,6 +213,7 @@ export async function fetchTravelLoanItemList(params: TravelLoanSearch = {}) {
       referencedTable: 'loan'
     })
   return await responseHandle<TravelLoanItemRecord[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '借款明细加载失败，请检查网络后重试'
   })

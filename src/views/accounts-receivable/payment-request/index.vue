@@ -328,6 +328,8 @@
   }
   async function print(selectedIds: string[]): Promise<void> {
     const result = await fetchArWorkspace('payment_request', { ids: selectedIds, size: 500 })
+    if (result.data.length !== selectedIds.length)
+      throw new Error('部分所选付款申请已变化或不可查看，请重新查询后再打印')
     const records: ArPrintRecord[] = result.data.map((row) => ({
       documentNo: row.documentNo,
       fields: [

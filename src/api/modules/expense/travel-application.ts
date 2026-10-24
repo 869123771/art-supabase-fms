@@ -146,6 +146,7 @@ export async function fetchTravelApplicationList(params: TravelApplicationSearch
       buildOrIlikeFilter(['application_no', 'applicant_name', 'reason'], params.keyword)
     )
   return await responseHandle<TravelApplication[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '出差申请加载失败，请检查网络后重试'
   })
@@ -175,6 +176,7 @@ export async function fetchTravelItineraryList(params: TravelApplicationSearch =
       { referencedTable: 'application' }
     )
   return await responseHandle<TravelLineRecord[]>(() => query, {
+    breakReturn: true,
     showErrorMessage: false,
     errorMessage: '行程明细加载失败，请检查网络后重试'
   })
